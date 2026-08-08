@@ -1,0 +1,282 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --canvas: #ffffff;
+  --ink: #183b56;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-body), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* The audience skews 35+, so nothing on the page relies on hairline weights
+   and the base size sits a notch above the usual 15px. */
+body {
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-heading), Georgia, serif;
+  margin: 0;
+}
+
+p {
+  margin: 0;
+}
+
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid #4fa8c7;
+  outline-offset: 3px;
+}
+
+/* Hero marquee. Two copies of the track make -50% land seamlessly. */
+@keyframes bw-marquee {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.bw-marquee-track {
+  display: inline-flex;
+  width: max-content;
+  animation: bw-marquee 38s linear infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bw-marquee-track {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+ *  Scroll-reveal (motion-lite). Replaces framer-motion's whileInView with
+ *  pure CSS driven by one IntersectionObserver, so the page ships no
+ *  animation runtime. Hidden states are gated behind `.bw-js`, set before
+ *  paint in layout.tsx, so no-JS users and crawlers always see full content.
+ * ─────────────────────────────────────────────────────────────────── */
+.bw-js .bw-reveal-up,
+.bw-js .bw-reveal-up-sm,
+.bw-js .bw-reveal-left,
+.bw-js .bw-reveal-right,
+.bw-js .bw-reveal-scale,
+.bw-js .bw-reveal-fade {
+  opacity: 0;
+}
+.bw-js .bw-reveal-up { transform: translate3d(0, 24px, 0); }
+.bw-js .bw-reveal-up-sm { transform: translate3d(0, 14px, 0); }
+.bw-js .bw-reveal-left { transform: translate3d(32px, 0, 0); }
+.bw-js .bw-reveal-right { transform: translate3d(-32px, 0, 0); }
+.bw-js .bw-reveal-scale { transform: scale(0.96); }
+
+.bw-reveal {
+  transition:
+    opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+.bw-reveal.bw-in {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+/* Continuous marquees. Two copies of the track make -50% land seamlessly. */
+@keyframes bw-marq-left {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
+}
+@keyframes bw-marq-right {
+  from { transform: translate3d(-50%, 0, 0); }
+  to { transform: translate3d(0, 0, 0); }
+}
+.bw-marq {
+  animation: var(--bw-marq-name, bw-marq-left) var(--bw-marq-dur, 30s) linear infinite;
+  will-change: transform;
+}
+.bw-marq-left { --bw-marq-name: bw-marq-left; }
+.bw-marq-right { --bw-marq-name: bw-marq-right; }
+
+/* Hover micro-interactions. Defined after .bw-in so :hover wins on revealed els. */
+.bw-hover-scale { transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1); }
+.bw-hover-scale:hover { transform: scale(1.02); }
+.bw-hover-lift { transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1); }
+.bw-hover-lift:hover { transform: translateY(-4px) !important; }
+.bw-hover-lift-sm { transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1); }
+.bw-hover-lift-sm:hover { transform: translateY(-3px) !important; }
+
+/* ──────────────────────────────────────────────────────────────────────
+ *  Promise card. Ported from the Sreshtha funnel's promise band: layered
+ *  frame, gold medallion seal, and a thin gold flourish rule broken by a
+ *  centred ornament, like the title page of a leather-bound book. Rebuilt
+ *  in the light palette, which is both what the reference screenshot shows
+ *  and what sits correctly on this page's sand canvas.
+ *  The pseudo-elements are why this lives in CSS and not inline styles.
+ * ─────────────────────────────────────────────────────────────────── */
+.sm-promise-card {
+  position: relative;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 68px 60px 56px;
+  text-align: center;
+  isolation: isolate;
+  background:
+    radial-gradient(ellipse 90% 60% at 50% 0%, rgba(79, 168, 199, 0.08), transparent 65%),
+    #ffffff;
+  box-shadow:
+    0 0 0 1px rgba(24, 59, 86, 0.10),
+    0 0 0 7px #ffffff,
+    0 0 0 8px rgba(159, 218, 203, 0.7),
+    0 0 60px -10px rgba(79, 168, 199, 0.14),
+    0 50px 90px -40px rgba(24, 59, 86, 0.16);
+}
+.sm-promise-card > * {
+  position: relative;
+  z-index: 2;
+}
+.sm-promise-card::before {
+  content: '';
+  position: absolute;
+  top: 24px;
+  left: 18%;
+  right: 18%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(159, 218, 203, 0.85) 30%,
+    rgba(159, 218, 203, 0.85) 70%,
+    transparent
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+.sm-promise-card::after {
+  content: '✦';
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  color: #32836e;
+  background: #ffffff;
+  padding: 0 8px;
+  line-height: 1;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Medallion seal */
+.sm-promise-seal {
+  position: relative;
+  width: 76px;
+  height: 76px;
+  margin: 0 auto 20px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(246, 255, 252, 0.6), transparent 55%),
+    linear-gradient(180deg, #c9ece1 0%, #9fdacb 55%, #6fb9a5 100%);
+  box-shadow:
+    0 0 0 1.5px rgba(50, 131, 110, 0.38),
+    0 0 0 5px #ffffff,
+    0 0 0 6.5px rgba(159, 218, 203, 0.8),
+    0 14px 30px -8px rgba(50, 131, 110, 0.26),
+    inset 0 1px 0 rgba(250, 255, 253, 0.6);
+}
+.sm-promise-seal svg {
+  width: 30px;
+  height: 30px;
+  color: #32836e;
+}
+
+/* The closing line sits under a short centred hairline. */
+.sm-promise-closer {
+  position: relative;
+  margin: 30px auto 0;
+  padding-top: 26px;
+  max-width: 540px;
+}
+.sm-promise-closer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(159, 218, 203, 0.85), transparent);
+}
+
+@media (max-width: 720px) {
+  .sm-promise-card {
+    padding: 56px 24px 40px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .bw-marq {
+    animation: none !important;
+    transform: none !important;
+  }
+  /* Never leave reveal content hidden when motion is reduced. */
+  .bw-js .bw-reveal-up,
+  .bw-js .bw-reveal-up-sm,
+  .bw-js .bw-reveal-left,
+  .bw-js .bw-reveal-right,
+  .bw-js .bw-reveal-scale,
+  .bw-js .bw-reveal-fade {
+    opacity: 1;
+    transform: none;
+  }
+}

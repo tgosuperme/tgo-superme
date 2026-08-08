@@ -1,0 +1,1102 @@
+'use client';
+
+/**
+ * Everything below the hero, in the order the signed-off PDF sets out:
+ *
+ *      (page 2's card and credentials both live in the hero now)
+ *   2  What you'll experience ..... page 3
+ *   3  Your 5-day schedule ........ page 4
+ *   4  Live sessions band ......... page 5
+ *   5  Does this sound like you? .. page 5
+ *   6  Testimonials ............... page 6
+ *   7  Who is Atul ................ page 7
+ *   8  Why this works ............. page 8
+ *   9  What people notice ......... page 9
+ * 10a  Come to Day One (promise) ... page 10
+ * 10b  The two options .......... page 10
+ *  11  FAQ ........................ page 11
+ *  12  Important information ...... page 12
+ *
+ * COPY IS VERBATIM from that PDF. It is the wording the UK compliance review
+ * was run against, so it must not be re-voiced, shortened or "improved". Three
+ * devices from the reference postpartum page are deliberately absent and must
+ * stay absent: a rising-price strip, a struck-through list price with a savings
+ * badge, and any percentage outcome claim.
+ */
+import {
+  ArrowRight,
+  Barbell,
+  CalendarBlank,
+  CheckCircle,
+  Clock,
+  Eye,
+  FirstAidKit,
+  Function as FunctionIcon,
+  Lightning,
+  Minus,
+  Plus,
+  Ruler,
+  ShieldCheck,
+  VideoCamera,
+  Wind,
+  X,
+} from '@phosphor-icons/react/dist/ssr';
+import { useState } from 'react';
+
+import { domAnimation, LazyMotion, m, type Variants } from './motion-lite';
+import {
+  C,
+  PRICE_LABEL,
+  SectionEyebrow,
+  SectionHeading,
+  SESSION_TIMES,
+  START_DATE,
+} from './shared';
+
+// ── Animation primitives (same curve and timings as the reference page) ──
+const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
+const fadeUp: Variants = {
+  hidden: { opacity: 0, y: 24 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: EASE } },
+};
+const fadeUpSm: Variants = {
+  hidden: { opacity: 0, y: 14 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.55, ease: EASE } },
+};
+const stagger: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.08, delayChildren: 0.05 } },
+};
+
+/* ── section 2 · what you'll experience (PDF p3) ─────────────────────────
+   Design and motion are the postpartum page's Experience section verbatim:
+   staggered fade-up on the heading block, staggered fade-up on the cards, a
+   hover lift, and the orphan-card placement fix. SuperMe has 7 cards too, so
+   that last-row maths applies unchanged. */
+
+/* One accent per card, in palette order, so the grid reads as a deliberate
+   set rather than seven random colours. The bed is the accent held back to a
+   pale wash; the glyph is the matching ink, which is the same hue darkened
+   until it clears 4.5:1. Card, type and border stay white and navy, so the
+   colour lands only on the 48px icon tile. */
+const ACCENTS: { bed: string; fg: string }[] = [
+  { bed: 'rgba(79,168,199,0.16)', fg: C.skyInk },      // brand blue
+  { bed: 'rgba(159,218,203,0.34)', fg: C.mintInk },    // mint
+  { bed: 'rgba(233,139,122,0.26)', fg: C.coralInk },   // coral
+  { bed: 'rgba(244,178,140,0.30)', fg: C.peachInk },   // peach
+  { bed: 'rgba(242,200,91,0.30)', fg: C.yellowInk },   // yellow
+  { bed: 'rgba(169,154,203,0.26)', fg: C.lavenderInk },// lavender
+  { bed: 'rgba(114,183,122,0.26)', fg: C.greenInk },   // green
+];
+
+const EXPERIENCE: { icon: typeof Wind; title: string; body: string }[] = [
+  {
+    icon: VideoCamera,
+    title: 'Live Coach-Led Sessions',
+    body: 'Every day live on Zoom with Atul. Guided movement, real-time corrections and a clear progression, not another routine to follow alone.',
+  },
+  {
+    icon: FirstAidKit,
+    title: 'Supported, Pain-Safe Movement',
+    body: "Walls, belts, blocks and simple modifications help you work through each movement without forcing the area that's already doing too much.",
+  },
+  {
+    icon: Wind,
+    title: 'Unload Before You Strengthen',
+    body: 'Learn how to take the load off first, using breath work and supported movement before asking your body to do more.',
+  },
+  {
+    icon: Lightning,
+    title: 'Wake Up Your Inner Support',
+    body: 'Activate the deeper muscles around your core, spine, hips and joints that are meant to help carry the load.',
+  },
+  {
+    icon: Barbell,
+    title: 'Build Strength Into Movement',
+    body: 'Progress from supported work into standing movements that build strength, stability and better movement through your back, neck and knees.',
+  },
+  {
+    icon: Eye,
+    title: 'Real-Time Form Corrections',
+    body: "Atul watches how you move, makes adjustments and gives you the right variation, so you're not left wondering if you're doing it correctly.",
+  },
+  {
+    icon: Ruler,
+    title: 'Measure Your Own Progress',
+    body: 'Score how you feel at the start and again on Day 4, so you can see your own change rather than simply taking another promise on faith.',
+  },
+];
+
+function Experience() {
+  return (
+    <section className="py-20 md:py-28">
+      <div className="mx-auto max-w-6xl px-5 md:px-8">
+        <m.div
+          variants={stagger}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, amount: 0.3 }}
+          className="mx-auto max-w-3xl text-center"
+        >
+          <m.div variants={fadeUpSm}>
+            <SectionEyebrow text="The Experience" />
+          </m.div>
+          <m.h2
+            variants={fadeUp}
+            className="mt-3 font-heading text-[28px] font-extrabold leading-tight sm:text-[40px]"
+            style={{ color: C.ink }}
+          >
+            Here&apos;s What You&apos;ll Experience{' '}
+            <span style={{ color: C.gold }}>In 5 Days</span>
+          </m.h2>
+          <m.p
+            variants={fadeUp}
+            className="mt-4 text-[15px] sm:text-[16px]"
+            style={{ color: C.inkSoft }}
+          >
+            Don&apos;t take our word for it. Experience the approach live and see
+            your own progress across 5 days.
+          </m.p>
+        </m.div>
+
+        <m.div
+          variants={stagger}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, amount: 0.15 }}
+          className="mt-14 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3"
+        >
+          {EXPERIENCE.map(({ icon: Icon, title, body }, idx) => {
+            // 7 cards leave a single orphan in the last row at both breakpoints
+            // (2-col: 3 rows + 1 · 3-col: 2 rows + 1). The orphan spans the full
+            // row but is width-capped and centred so it reads as one normal card
+            // instead of a stranded left-aligned one. Widths mirror the gap-5
+            // (20px) track maths at each breakpoint.
+            const isOrphan = idx === EXPERIENCE.length - 1;
+            const placement = [
+              isOrphan && EXPERIENCE.length % 2 === 1
+                ? 'sm:col-span-2 sm:mx-auto sm:w-full sm:max-w-[calc(50%-10px)]'
+                : '',
+              isOrphan && EXPERIENCE.length % 3 === 1
+                ? 'lg:col-span-3 lg:max-w-[calc(33.333%-13.334px)]'
+                : '',
+            ]
+              .filter(Boolean)
+              .join(' ');
+            return (
+              <m.article
+                key={title}
+                variants={fadeUp}
+                whileHover={{ y: -4 }}
+                transition={{ duration: 0.3, ease: EASE }}
+                className={`relative overflow-hidden rounded-2xl p-7 ${placement}`}
+                style={{
+                  background: 'white',
+                  border: `1px solid ${C.line}`,
+                  /* a 3px accent rule along the top edge: enough to tie the
+                     card to its icon, small enough to stay in the 10% */
+                  borderTop: `3px solid ${ACCENTS[idx % ACCENTS.length].bed}`,
+                }}
+              >
+                <span
+                  className="grid h-12 w-12 place-items-center rounded-xl"
+                  style={{ background: ACCENTS[idx % ACCENTS.length].bed }}
+                >
+                  <Icon
+                    weight="duotone"
+                    className="h-6 w-6"
+                    style={{ color: ACCENTS[idx % ACCENTS.length].fg }}
+                  />
+                </span>
+                <h3
+                  className="mt-4 font-heading text-[18px] font-bold leading-snug"
+                  style={{ color: C.ink }}
+                >
+                  {title}
+                </h3>
+                <p
+                  className="mt-2 text-[14px] leading-relaxed"
+                  style={{ color: C.inkSoft }}
+                >
+                  {body}
+                </p>
+              </m.article>
+            );
+          })}
+        </m.div>
+      </div>
+    </section>
+  );
+}
+
+/* ── section 3 · the 5-day schedule (PDF p4) ─────────────────────────── */
+
+const DAYS = [
+  {
+    n: 'Day 1',
+    title: 'Unload & Release',
+    body: 'Start by taking pressure off the areas doing too much. Guided breathing, supported movement, gentle spinal mobility and prop-assisted positions help you move without forcing the painful area.',
+  },
+  {
+    n: 'Day 2',
+    title: 'Breathe & Brace',
+    body: 'Use breath work to settle tension before introducing the deeper stabilising muscles around your core, spine, hips and joints. Begin building the support your body has been missing.',
+  },
+  {
+    n: 'Day 3',
+    title: 'Strengthen & Support',
+    body: 'Progress into controlled strengthening with mindful breathing and safe alignment. Build strength through the deep core and spinal support system while learning how to move with greater control.',
+  },
+  {
+    n: 'Day 4',
+    title: 'Stand Tall & Measure',
+    body: "Bring everything together through standing movements, hip opening, leg strengthening and better alignment. Then measure your progress and see what's changed since Day 1.",
+  },
+  {
+    n: 'Day 5',
+    title: 'The Next Step',
+    body: 'Understand what your 5 days have actually shown you, what still needs to change, and how to continue building the strength, mobility and movement habits that create lasting progress.',
+  },
+];
+
+function Schedule() {
+  /* Structure stays on the primary blue: heading, rail and nodes. The only
+     accent in the section is the day pill, one colour for all five, which is
+     what keeps the run reading as continuous. */
+  return (
+    <section className="px-4 py-16 sm:py-24" style={{ background: C.canvas }}>
+      <SectionHeading sub="A step-by-step 5-day progression, with each session building on the last.">
+        Your <span style={{ color: C.goldDeep }}>5-Day Schedule</span>
+      </SectionHeading>
+
+      {/* Alternating rail. The spine is a single centred line on desktop and
+          slides to the left edge on mobile, where a zig-zag has no room. */}
+      <ol className="relative mx-auto mt-12 max-w-[900px]">
+        <span
+          aria-hidden
+          className="absolute bottom-0 left-[15px] top-0 w-px sm:left-1/2"
+          style={{ background: C.line }}
+        />
+        {DAYS.map((d, i) => (
+          <li
+            key={d.n}
+            className={`relative mb-5 pl-11 sm:mb-8 sm:w-1/2 sm:pl-0 ${
+              i % 2 === 0 ? 'sm:pr-11 sm:text-right' : 'sm:ml-auto sm:pl-11'
+            }`}
+          >
+            <span
+              className="absolute left-[7px] top-6 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold text-white sm:left-auto sm:top-7"
+              style={{
+                background: C.gold,
+                ...(i % 2 === 0 ? { right: -8 } : { left: -8 }),
+              }}
+            >
+              {i + 1}
+            </span>
+            <div
+              className="rounded-2xl border p-6"
+              style={{ borderColor: C.line, background: C.white }}
+            >
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em]"
+                style={{ background: 'rgba(233,139,122,0.20)', color: C.coralInk }}
+              >
+                <CalendarBlank weight="bold" className="h-3 w-3" />
+                {d.n}
+              </span>
+              <h3
+                className="mt-3 font-heading text-[18px] font-bold"
+                style={{ color: C.ink }}
+              >
+                {d.title}
+              </h3>
+              <p
+                className="mt-2 text-[13.5px] leading-relaxed"
+                style={{ color: C.inkSoft }}
+              >
+                {d.body}
+              </p>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+/* ── section 4 · live sessions band (PDF p5) ─────────────────────────── */
+
+function SessionsBand() {
+  return (
+    <section className="px-4 py-14" style={{ background: C.white }}>
+      <div
+        className="mx-auto max-w-[900px] rounded-3xl px-6 py-12 text-center sm:px-12"
+        style={{ background: C.ink }}
+      >
+        <span
+          className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[10.5px] font-bold uppercase tracking-[0.2em]"
+          style={{ background: 'rgba(244,178,140,0.22)', color: '#F9D9C2' }}
+        >
+          <Clock weight="bold" className="h-3 w-3" />
+          Live Sessions, Twice A Day
+        </span>
+        <h2
+          className="mt-5 font-heading text-[clamp(24px,3.6vw,36px)] font-bold leading-tight"
+          style={{ color: C.white }}
+        >
+          {SESSION_TIMES}, live on Zoom.
+        </h2>
+        <p className="mt-3 text-[15px]" style={{ color: 'rgba(250,245,234,0.75)' }}>
+          Pick whichever time fits your day.
+        </p>
+        <div className="mx-auto mt-7 flex max-w-[400px] flex-col items-center">
+          <a
+            href="/checkout"
+            className="inline-flex min-h-[56px] w-full items-center justify-center gap-2 rounded-full px-7 py-4 font-heading text-[15px] font-bold transition-transform duration-200 hover:-translate-y-0.5"
+            style={{ background: C.white, color: C.ink }}
+          >
+            Start Your 5-Day Reset · {PRICE_LABEL}
+            <ArrowRight weight="bold" className="h-4 w-4" />
+          </a>
+          <p
+            className="mt-3 text-[13px] font-medium"
+            style={{ color: 'rgba(250,245,234,0.7)' }}
+          >
+            Refundable If You Don&apos;t Love Day One
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── section 5 · does this sound like you? (PDF p5) ──────────────────── */
+
+/* Each line carries one blue phrase, the bit the reader is meant to recognise
+   as their own. Split into three parts rather than marked up inline so the
+   sentences stay exactly as signed off, just wrapped. */
+const RECOGNITION: [string, string, string][] = [
+  ['Your back, neck or knee pain ', 'keeps coming back', ', even after trying exercises and stretches.'],
+  ['You wake up ', 'feeling stiff', ', or find yourself avoiding certain movements because they hurt.'],
+  ["You're ", 'afraid of making things worse', ", so you've stopped doing the activities you actually enjoy."],
+  ["You've tried random YouTube routines and workouts, but still ", "don't know what your body actually needs", '.'],
+  ["You're ", 'tired of managing the pain day after day', ' and want a clear, guided approach to move better and feel stronger.'],
+];
+
+function Recognition() {
+  return (
+    <section className="px-4 py-16 sm:py-24" style={{ background: C.canvas }}>
+      <SectionHeading>
+        Does this <span style={{ color: C.goldDeep }}>sound like you</span>?
+      </SectionHeading>
+      <ul className="mx-auto mt-10 grid max-w-[760px] gap-3">
+        {RECOGNITION.map(([pre, hl, post]) => (
+          <li
+            key={hl}
+            className="flex items-start gap-3.5 rounded-2xl border px-5 py-4"
+            style={{ borderColor: C.line, background: C.white }}
+          >
+            <span
+              className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
+              style={{ background: 'rgba(233,139,122,0.20)' }}
+            >
+              <X weight="bold" className="h-2.5 w-2.5" style={{ color: C.coralInk }} />
+            </span>
+            <span
+              className="text-[14.5px] leading-relaxed"
+              style={{ color: C.inkSoft }}
+            >
+              {pre}
+              {/* blueFill, not the brand blue: at 14.5px the phrase needs
+                  4.5:1 and #4FA8C7 only reaches 2.7:1 */}
+              <strong style={{ color: C.blueFill, fontWeight: 600 }}>{hl}</strong>
+              {post}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/* ── section 6 · testimonials (PDF p6) ───────────────────────────────── */
+
+/**
+ * The PDF marks four testimonial slots but ships no assets, so the rail renders
+ * empty frames at the right aspect ratio. Drop the clips into
+ * public/testimonials and fill this array; the layout will not shift.
+ */
+const TESTIMONIALS: { name: string; caption: string; src?: string }[] = [
+  { name: 'Testimonial 1', caption: '' },
+  { name: 'Testimonial 2', caption: '' },
+  { name: 'Testimonial 3', caption: '' },
+  { name: 'Testimonial 4', caption: '' },
+];
+
+function Testimonials() {
+  return (
+    <section className="px-4 py-16 sm:py-24" style={{ background: C.white }}>
+      <SectionHeading sub="From working professionals and busy parents to people who had stopped moving the way they used to, these are real people who used the Inner Brace Method to improve their mobility, build strength and move with greater ease.">
+        Real People Who Refused To Let Pain Decide What They{' '}
+        <span style={{ color: C.goldDeep }}>Could &amp; Couldn&apos;t Do</span>
+      </SectionHeading>
+
+      <ul className="mx-auto mt-11 grid max-w-[1080px] grid-cols-2 gap-4 lg:grid-cols-4">
+        {TESTIMONIALS.map((t) => (
+          <li
+            key={t.name}
+            className="aspect-[9/14] overflow-hidden rounded-2xl border"
+            style={{ borderColor: C.line, background: C.sand }}
+          >
+            <div
+              className="flex h-full w-full flex-col items-center justify-center gap-1.5 px-3 text-center"
+              style={{ color: C.inkMuted }}
+            >
+              <span
+                className="rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em]"
+                style={{ background: 'rgba(242,200,91,0.24)', color: C.yellowInk }}
+              >
+                {t.name}
+              </span>
+              <span className="text-[11.5px] leading-snug">Awaiting clip</span>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/* ── section 7 · who is Atul (PDF p7) ────────────────────────────────── */
+
+function Guide() {
+  return (
+    <section className="px-4 py-16 sm:py-24" style={{ background: C.canvas }}>
+      <div className="mx-auto grid max-w-[1060px] items-center gap-10 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)]">
+        {/* Portrait cluster: Atul's own portrait in the tall frame, two
+            practice shots stacked beside it. The sources are 4160x6240 and
+            6000x4000 camera files, several EXIF-rotated, so all four were
+            re-cropped and re-encoded into public/atul at display size.
+            NOTE: the practice photographs are a demonstrator, not Atul, so
+            their alt text must not name him. */}
+        <div className="grid grid-cols-[1.25fr_1fr] gap-3">
+          <div
+            className="overflow-hidden rounded-2xl border"
+            style={{ borderColor: C.line, background: C.canvas }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/atul/atul-portrait.jpg"
+              alt="Atul Mishra"
+              width={900}
+              height={1200}
+              className="aspect-[3/4] h-full w-full object-cover"
+              loading="lazy"
+            />
+          </div>
+          <div className="grid gap-3">
+            <div
+              className="overflow-hidden rounded-2xl border"
+              style={{ borderColor: C.line, background: C.canvas }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/atul/practice-seated.jpg"
+                alt="A seated forward stretch from the Inner Brace Method"
+                width={800}
+                height={800}
+                className="aspect-square h-full w-full object-cover"
+                loading="lazy"
+              />
+            </div>
+            <div
+              className="overflow-hidden rounded-2xl border"
+              style={{ borderColor: C.line, background: C.canvas }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/atul/practice-standing.jpg"
+                alt="A supported standing pose from the Inner Brace Method"
+                width={800}
+                height={800}
+                className="aspect-square h-full w-full object-cover"
+                loading="lazy"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <SectionEyebrow text="Meet Your Guide" />
+          <h2
+            className="mt-4 font-heading text-[clamp(26px,4vw,40px)] font-bold leading-[1.15]"
+            style={{ color: C.ink }}
+          >
+            Who Is <span style={{ color: C.goldDeep }}>Atul</span>, And Why Does
+            He Teach You To Move Differently?
+          </h2>
+
+          <div
+            className="mt-5 space-y-4 text-[14.5px] leading-relaxed"
+            style={{ color: C.inkSoft }}
+          >
+            <p>
+              Atul is an <strong>E-RYT 500 certified yoga educator</strong> with{' '}
+              <strong>16+ years of teaching and practice</strong>, who has
+              supported <strong>1,000+ clients</strong> and trained{' '}
+              <strong>500+ teachers</strong>.
+            </p>
+            <p>
+              Over the years, he saw a common pattern. People with persistent
+              back, neck and knee discomfort were often told to stretch more,
+              strengthen more or simply push through it, without understanding
+              how they were actually moving.
+            </p>
+            <p>
+              That led him to develop a more structured approach that combines
+              breath work, supported movement, strengthening and real-time
+              correction to help people build better movement patterns
+              progressively.
+            </p>
+          </div>
+
+          <blockquote
+            className="mt-6 rounded-2xl border-l-2 py-4 pl-5 pr-5 text-[15px] italic leading-relaxed"
+            style={{
+              borderColor: C.lavender,
+              background: C.white,
+              color: C.ink,
+            }}
+          >
+            “You don&apos;t need to push through pain. You need to learn how to
+            support your body and move with greater awareness.”
+          </blockquote>
+
+          <p
+            className="mt-5 text-[14.5px] leading-relaxed"
+            style={{ color: C.inkSoft }}
+          >
+            That&apos;s the thinking behind the Inner Brace Method™, and this
+            5-Day Challenge gives you the opportunity to experience the approach
+            live before deciding what comes next.
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── section 8 · why this works (PDF p8) ─────────────────────────────── */
+
+/* One accent per step, so the five stages of the method are visually
+   countable. Same construction as the Experience grid: the bed is the accent
+   held back to a pale wash, the glyph is its matching ink. */
+const MECH_ACCENTS: { bed: string; fg: string }[] = [
+  { bed: 'rgba(159,218,203,0.34)', fg: C.mintInk },     // 01 unload
+  { bed: 'rgba(140,207,227,0.30)', fg: C.skyInk },      // 02 brace
+  { bed: 'rgba(169,154,203,0.24)', fg: C.lavenderInk }, // 03 move
+  { bed: 'rgba(114,183,122,0.24)', fg: C.greenInk },    // 04 strengthen
+  { bed: 'rgba(244,178,140,0.30)', fg: C.peachInk },    // 05 retrain
+];
+
+const MECHANISM = [
+  {
+    n: '01',
+    icon: Wind,
+    title: 'Unload Before You Stretch',
+    body: 'Take pressure off the areas already doing too much before asking them to move further.',
+  },
+  {
+    n: '02',
+    icon: ShieldCheck,
+    title: 'Brace Before You Strengthen',
+    body: "Reconnect your body's deeper support before adding more load.",
+  },
+  {
+    n: '03',
+    icon: FunctionIcon,
+    title: 'Move Without Forcing',
+    body: 'Use breath, props and controlled mobility to restore movement without pushing through stiffness.',
+  },
+  {
+    n: '04',
+    icon: Barbell,
+    title: 'Strengthen What Supports You',
+    body: "Build strength through your core, hips, spine and joints so the load isn't concentrated in one area.",
+  },
+  {
+    n: '05',
+    icon: Lightning,
+    title: 'Retrain Everyday Movement',
+    body: 'Take that new support into sitting, standing, bending, walking and the movements you do every day.',
+  },
+];
+
+function Mechanism() {
+  return (
+    <section className="px-4 py-16 sm:py-24" style={{ background: C.white }}>
+      <SectionHeading
+        sub={
+          <>
+            Most programmes either tell you to stretch more, strengthen more, or
+            rest more. But if the same back, neck or knee discomfort keeps
+            returning, doing more of the same isn&apos;t necessarily the answer.
+            The Inner Brace Method™ changes{' '}
+            <strong style={{ color: C.ink }}>what you do</strong>, and{' '}
+            <strong style={{ color: C.ink }}>the order you do it in</strong>.
+          </>
+        }
+      >
+        Why This <span style={{ color: C.goldDeep }}>Works</span>.
+      </SectionHeading>
+
+      <ul className="mx-auto mt-11 grid max-w-[1120px] gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        {MECHANISM.map(({ n, icon: Icon, title, body }, idx) => (
+          <li
+            key={n}
+            className="rounded-2xl border p-5"
+            style={{ borderColor: C.line, background: C.canvas }}
+          >
+            <div className="flex items-start justify-between">
+              <span
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl"
+                style={{ background: MECH_ACCENTS[idx % MECH_ACCENTS.length].bed }}
+              >
+                <Icon
+                  weight="bold"
+                  className="h-4 w-4"
+                  style={{ color: MECH_ACCENTS[idx % MECH_ACCENTS.length].fg }}
+                />
+              </span>
+              <span
+                className="font-heading text-[12px] font-bold tracking-[0.1em]"
+                style={{ color: C.inkMuted }}
+              >
+                {n}
+              </span>
+            </div>
+            <h3
+              className="mt-4 font-heading text-[15px] font-bold leading-snug"
+              style={{ color: C.ink }}
+            >
+              {title}
+            </h3>
+            <p
+              className="mt-2 text-[13px] leading-relaxed"
+              style={{ color: C.inkSoft }}
+            >
+              {body}
+            </p>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/* ── section 9 · what people notice (PDF p9) ─────────────────────────── */
+
+const NOTICE = [
+  'Less stiffness in the morning',
+  'Easier movement through the day',
+  'More comfortable sitting, standing & walking',
+  'Less tension through the back, neck & knees',
+  'Better mobility without forcing a stretch',
+  'More strength & stability in everyday movement',
+  'Greater confidence in how their body moves',
+  'A body that feels stronger, steadier & easier to move',
+];
+
+function Notice() {
+  return (
+    <section className="px-4 py-16 sm:py-24" style={{ background: C.canvas }}>
+      <SectionHeading>
+        That&apos;s why <span style={{ color: C.goldDeep }}>people</span> start
+        noticing…
+      </SectionHeading>
+
+      <ul className="mx-auto mt-10 grid max-w-[960px] gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {NOTICE.map((line) => (
+          <li
+            key={line}
+            className="flex items-center gap-3 rounded-2xl border px-4 py-3.5"
+            style={{ borderColor: C.line, background: C.white }}
+          >
+            <span
+              className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
+              style={{ background: 'rgba(159,218,203,0.34)' }}
+            >
+              <CheckCircle
+                weight="fill"
+                className="h-3.5 w-3.5"
+                style={{ color: C.mintInk }}
+              />
+            </span>
+            <span className="text-[13.5px] leading-snug" style={{ color: C.inkSoft }}>
+              {line}
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      {/* Required qualifier. Sits with the outcomes, never hidden in the footer. */}
+      <p
+        className="mx-auto mt-7 max-w-[960px] text-center text-[12.5px]"
+        style={{ color: C.inkMuted }}
+      >
+        Results vary from person to person.
+      </p>
+    </section>
+  );
+}
+
+/* ── section 10a · come to day one, then decide (PDF p10) ─────────────── */
+
+function Promise() {
+  return (
+    <section
+      className="px-4 py-20 sm:py-28"
+      style={{
+        background: `radial-gradient(ellipse 70% 40% at 50% 0%, rgba(38,140,179,0.08), transparent 60%), ${C.canvas}`,
+      }}
+    >
+      {/* The refund promise, given the Sreshtha promise-band treatment: sealed
+          medallion, gold flourish, serif centre-set. It is the single most
+          load-bearing sentence on the page, so it gets its own object rather
+          than being one more block of body copy. */}
+      <m.div
+        variants={fadeUp}
+        initial="hidden"
+        whileInView="show"
+        viewport={{ once: true, amount: 0.25 }}
+        className="sm-promise-card"
+      >
+        <div className="sm-promise-seal" aria-hidden="true">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M12 3 4 6v6c0 5 3.5 8.5 8 9 4.5-.5 8-4 8-9V6l-8-3Z" />
+            <path d="m9 12 2 2 4-4" />
+          </svg>
+        </div>
+
+        <h2
+          className="font-heading text-[clamp(28px,3.6vw,44px)] font-medium leading-[1.12] tracking-[-0.012em]"
+          style={{ color: C.ink, textWrap: 'balance' } as React.CSSProperties}
+        >
+          Come to Day One.{' '}
+          <span className="italic" style={{ color: C.goldDeep }}>
+            Then Decide.
+          </span>
+        </h2>
+
+        <p
+          className="mx-auto mt-6 max-w-[560px] text-[17px] leading-[1.65]"
+          style={{ color: C.inkSoft }}
+        >
+          Join Day 1 of the 5-Day Pain Reset Challenge and experience the Inner
+          Brace Method for yourself. If you attend Day 1 and decide it&apos;s not
+          for you, simply let us know by the end of the day and we&apos;ll refund
+          your {PRICE_LABEL} in full.
+        </p>
+
+        <p className="sm-promise-closer">
+          <span
+            className="font-heading text-[clamp(18px,1.6vw,21px)] italic leading-[1.5]"
+            style={{ color: C.goldDeep }}
+          >
+            That&apos;s it. Come to Day 1. Experience the approach. Then decide if
+            it&apos;s right for you.
+          </span>
+        </p>
+      </m.div>
+    </section>
+  );
+}
+
+/* ── section 10b · the two options (PDF p10) ─────────────────────────────
+   A section of its own, not a tail on the promise: it gets the masthead
+   treatment, its own band, and the full section rhythm. */
+
+function TwoOptions() {
+  return (
+    <section className="px-4 py-16 sm:py-24" style={{ background: C.white }}>
+      <div className="mx-auto mb-4 flex max-w-3xl justify-center">
+        <SectionEyebrow text="The Choice" />
+      </div>
+      <SectionHeading>
+        From Here, You Have{' '}
+        <span style={{ color: C.goldDeep }}>Two Options</span>.
+      </SectionHeading>
+
+      <div className="mx-auto mt-12 grid max-w-[900px] gap-4 sm:grid-cols-2">
+        <div
+          className="rounded-2xl border p-6"
+          style={{ borderColor: C.line, background: C.white }}
+        >
+          <span
+            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em]"
+            style={{ background: C.sand, color: C.inkMuted }}
+          >
+            <Minus weight="bold" className="h-3 w-3" />
+            Option 1
+          </span>
+          <p
+            className="mt-4 text-[14px] leading-relaxed"
+            style={{ color: C.inkSoft }}
+          >
+            Keep stretching, resting and trying random exercises, hoping the
+            stiffness eventually settles, without really understanding what your
+            body needs to move and strengthen differently.
+          </p>
+        </div>
+
+        <div
+          className="rounded-2xl p-6"
+          style={{
+            background: C.ink,
+            boxShadow: '0 22px 50px -26px rgba(24,59,86,0.5)',
+          }}
+        >
+          <span
+            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em]"
+            style={{ background: 'rgba(242,200,91,0.22)', color: '#F7E3AF' }}
+          >
+            <Plus weight="bold" className="h-3 w-3" />
+            Option 2
+          </span>
+          <p
+            className="mt-4 text-[14px] leading-relaxed"
+            style={{ color: 'rgba(250,245,234,0.88)' }}
+          >
+            Take the next step and experience the Inner Brace Method through 5
+            days of live, coach-led movement, breath work and strengthening, so
+            you can learn how to support your body and start moving with greater
+            strength, stability and ease.
+          </p>
+          <a
+            href="/checkout"
+            className="mt-6 inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full px-6 py-3.5 font-heading text-[14.5px] font-bold transition-transform duration-200 hover:-translate-y-0.5"
+            style={{ background: C.white, color: C.ink }}
+          >
+            Start Your 5-Day Reset · {PRICE_LABEL}
+            <ArrowRight weight="bold" className="h-4 w-4" />
+          </a>
+          <p
+            className="mt-3 text-center text-[12.5px]"
+            style={{ color: 'rgba(250,245,234,0.7)' }}
+          >
+            Refundable If You Don&apos;t Love Day One
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── section 11 · FAQ (PDF p11) ──────────────────────────────────────── */
+
+const FAQS = [
+  {
+    q: 'Is this just another stretching or exercise routine?',
+    a: 'No. This is a live, coach-led programme built specifically for back, neck and knee pain, using a named method, the Inner Brace Method. Every session is sequenced around what your body needs to unload and support first, not a generic set of stretches.',
+  },
+  {
+    q: "I've tried exercise routines before and they didn't help, or made things worse. Why would this be different?",
+    a: "A generic routine isn't sequenced for a back, neck or knee that's already guarding and the wrong movement on an irritated area can make things worse. That's exactly why the Inner Brace Method starts by taking the load off before asking anything to stretch or strengthen. Nothing is forced, and every movement is adapted live by your coach.",
+  },
+  {
+    q: 'My employer already gives me a free app for this. Why would I pay for a challenge?',
+    a: "Those apps are useful, but they're self-guided — nobody is watching how you move or correcting you in real time. This challenge is live, with a coach adjusting what you're doing as you're doing it. It's a different kind of support, not a replacement.",
+  },
+  {
+    q: "Isn't physiotherapy enough?",
+    a: "Physiotherapy is a great first step, and this isn't a replacement for medical care. What we often hear is that the exercises help while the sessions are happening, and things drift back afterwards. This challenge focuses on the ongoing part, learning to move differently day to day, for longer than a six-week course.",
+  },
+  {
+    q: "I've already spent money on this problem. Why would this be different?",
+    a: "Because most approaches focus on where it hurts, not on why the load keeps landing there in the first place. This method starts by unloading the area, then rebuilding the support around it, the sequence itself is what's different, not just another set of exercises.",
+  },
+  {
+    q: 'Will this fix my pain in 5 days?',
+    a: "No and we won't tell you it will. Five days is enough to safely experience the method, understand what your body needs, and see your own progress from Day 1 to Day 4. Most people notice a real shift by session three or four; lasting change comes from the months that follow, not the five days alone.",
+  },
+  {
+    q: "What if I can't make the live session time?",
+    a: `Every session runs twice a day, ${SESSION_TIMES}, so you can pick whichever fits. Live sessions are how the coaching and real-time correction work, so we don't offer indefinite replays.`,
+  },
+  {
+    q: 'What happens after the 5 days?',
+    a: "Day 5 is where we talk about what your 5 days actually showed you, and how to keep building on it if you'd like to continue. There's no obligation, it's entirely your decision.",
+  },
+  {
+    q: 'Is this safe if I have a diagnosed condition?',
+    a: 'If you have a diagnosed condition where your clinician has advised against certain movement, please check with them first. This programme is a complement to medical care, not a replacement for it.',
+  },
+];
+
+function Faq() {
+  const [open, setOpen] = useState<number | null>(0);
+  return (
+    <section className="px-4 py-16 sm:py-24" style={{ background: C.canvas }}>
+      <SectionHeading>Frequently Asked Questions</SectionHeading>
+
+      <ul className="mx-auto mt-10 grid max-w-[820px] gap-3">
+        {FAQS.map((f, i) => {
+          const isOpen = open === i;
+          return (
+            <li
+              key={f.q}
+              className="overflow-hidden rounded-2xl border"
+              style={{ borderColor: C.line, background: C.white }}
+            >
+              <button
+                type="button"
+                onClick={() => setOpen(isOpen ? null : i)}
+                aria-expanded={isOpen}
+                className="flex w-full items-start justify-between gap-4 px-5 py-4 text-left"
+              >
+                <span
+                  className="font-heading text-[15px] font-bold leading-snug"
+                  style={{ color: C.ink }}
+                >
+                  {f.q}
+                </span>
+                <span
+                  className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
+                  style={{ background: 'rgba(242,200,91,0.28)' }}
+                >
+                  {isOpen ? (
+                    <Minus weight="bold" className="h-3 w-3" style={{ color: C.yellowInk }} />
+                  ) : (
+                    <Plus weight="bold" className="h-3 w-3" style={{ color: C.yellowInk }} />
+                  )}
+                </span>
+              </button>
+              {isOpen && (
+                <p
+                  className="px-5 pb-5 text-[14px] leading-relaxed"
+                  style={{ color: C.inkSoft }}
+                >
+                  {f.a}
+                </p>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
+/* ── section 12 · important information (PDF p12) ────────────────────── */
+
+function LegalNotice() {
+  return (
+    <section className="px-4 py-14 sm:py-20" style={{ background: C.white }}>
+      <div
+        className="mx-auto max-w-[820px] rounded-2xl border p-7 sm:p-9"
+        style={{ borderColor: C.line, background: C.canvas }}
+      >
+        <h2
+          className="font-heading text-[19px] font-bold"
+          style={{ color: C.ink }}
+        >
+          Important Information Before You Start
+        </h2>
+
+        <div
+          className="mt-4 space-y-3.5 text-[13.5px] leading-relaxed"
+          style={{ color: C.inkSoft }}
+        >
+          <p>
+            SuperMe is a yoga and movement education service. It is not a medical
+            service and is not a substitute for medical care. Nothing on this page
+            is medical advice, a diagnosis, or a treatment plan.
+          </p>
+          <p>
+            The 5-Day Pain Reset is designed to provide guided movement, breath
+            work, mobility and strengthening education. It is not intended to
+            diagnose, treat or manage a diagnosed medical condition.
+          </p>
+          <p>
+            Atul Mishra is a yoga teacher with a postgraduate diploma in Yoga
+            Education from Kaivalyadhama and an E-RYT 500 certification with Yoga
+            Alliance. He is not a doctor, physiotherapist or registered clinician.
+            The 5-Day Pain Reset is therefore not a replacement for physiotherapy
+            or any medical care you are currently receiving.
+          </p>
+          <p>
+            Please speak with your GP or clinician before starting, particularly
+            if you are recovering from an acute injury or surgery, have not been
+            cleared to exercise, or have been advised that movement is not
+            appropriate for you.
+          </p>
+          <p>
+            During any session, do not push through pain. If something hurts, stop
+            the movement and tell the teacher.
+          </p>
+
+          <h3
+            className="pt-2 font-heading text-[15px] font-bold"
+            style={{ color: C.ink }}
+          >
+            About The Results You See On This Page
+          </h3>
+          <p>
+            Any timelines or outcomes mentioned on this page come from individual
+            client case files and experiences. They are not typical results,
+            predictive of what you will experience, or guaranteed. Your body,
+            history, movement patterns and circumstances are different, so your
+            experience may be different too.
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── footer ──────────────────────────────────────────────────────────── */
+
+function Footer() {
+  return (
+    <footer
+      className="px-4 py-10 text-center text-[12.5px]"
+      style={{ background: C.ink, color: 'rgba(250,245,234,0.6)' }}
+    >
+      <p>
+        Starts {START_DATE} · Live on Zoom · {PRICE_LABEL}, refunded in full if
+        day one is not for you
+      </p>
+      <p className="mt-2">© 2026 MyEntourage Sàrl, Lausanne. All rights reserved.</p>
+    </footer>
+  );
+}
+
+export default function BelowFold() {
+  /* LazyMotion is not decoration: it mounts the single IntersectionObserver
+     that adds `bw-in` to revealed elements. Without it every .bw-reveal-*
+     stays at opacity 0 once .bw-js is on the document. */
+  return (
+    <LazyMotion features={domAnimation}>
+      <Experience />
+      <Schedule />
+      <SessionsBand />
+      <Recognition />
+      <Testimonials />
+      <Guide />
+      <Mechanism />
+      <Notice />
+      <Promise />
+      <TwoOptions />
+      <Faq />
+      <LegalNotice />
+      <Footer />
+    </LazyMotion>
+  );
+}
