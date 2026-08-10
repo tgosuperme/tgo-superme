@@ -4,7 +4,7 @@
 
 :root {
   --canvas: #ffffff;
-  --ink: #183b56;
+  --ink: #002062;
 }
 
 * {
@@ -165,11 +165,11 @@ button {
     radial-gradient(ellipse 90% 60% at 50% 0%, rgba(79, 168, 199, 0.08), transparent 65%),
     #ffffff;
   box-shadow:
-    0 0 0 1px rgba(24, 59, 86, 0.10),
+    0 0 0 1px rgba(0, 32, 98, 0.10),
     0 0 0 7px #ffffff,
     0 0 0 8px rgba(159, 218, 203, 0.7),
     0 0 60px -10px rgba(79, 168, 199, 0.14),
-    0 50px 90px -40px rgba(24, 59, 86, 0.16);
+    0 50px 90px -40px rgba(0, 32, 98, 0.16);
 }
 .sm-promise-card > * {
   position: relative;

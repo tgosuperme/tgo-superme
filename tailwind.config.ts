@@ -13,23 +13,23 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
-          DEFAULT: '#4FA8C7',
-          deep: '#268CB3',
-          sky: '#8CCFE3',
-          light: '#E8F6FB',
-          pale: '#F5FBFE',
-          navy: '#183B56',
+          DEFAULT: '#1054C2',  // primary blue: buttons, links, icons
+          deep: '#002062',     // deep brand navy: dark sections, footer
+          sky: '#2AAAEF',      // bright sky: highlights, selected states
+          light: '#E8F3FC',    // pale blue: cards, pills, subtle surfaces
+          pale: '#F4F9FE',     // very light blue: section backgrounds
+          navy: '#002062',
         },
         /* Accents. Small elements only: badges, pills, icon beds, stat glyphs. */
-        mint: { DEFAULT: '#9FDACB', ink: '#32836E' },
-        green: { DEFAULT: '#72B77A', ink: '#43844B' },
-        coral: { DEFAULT: '#E98B7A', ink: '#D73F24' },
-        peach: { DEFAULT: '#F4B28C', ink: '#C45313' },
-        yellow: { DEFAULT: '#F2C85B', ink: '#966F0C' },
-        lavender: { DEFAULT: '#A99ACB', ink: '#806AB2' },
-        rose: { DEFAULT: '#D36C7E', ink: '#C94B61' },
-        ink: { DEFAULT: '#183B56', soft: '#526B7A', muted: '#526B7A' },
-        line: { DEFAULT: '#DEEFF4', strong: '#C5E2EA' },
+        mint: { DEFAULT: '#2EC4B6', ink: '#1E8379', bed: '#E6F8F6' },
+        green: { DEFAULT: '#22C55E', ink: '#178740', bed: '#E4F8EC' },
+        coral: { DEFAULT: '#FF6B6B', ink: '#C15151', bed: '#FFEDED' },
+        peach: { DEFAULT: '#FFB26D', ink: '#9B6C42', bed: '#FFF6ED' },
+        yellow: { DEFAULT: '#FFC107', ink: '#967104', bed: '#FFF8E1' },
+        lavender: { DEFAULT: '#8B7DFF', ink: '#7367D3', bed: '#F1EFFF' },
+        rose: { DEFAULT: '#F43F5E', ink: '#D93853', bed: '#FEE8EC' },
+        ink: { DEFAULT: '#002062', soft: '#4A5B80', muted: '#4A5B80' },
+        line: { DEFAULT: '#DCE9F9', strong: '#C3DCF5' },
       },
       fontFamily: {
         heading: ['var(--font-heading)', 'Georgia', 'serif'],
@@ -38,9 +38,9 @@ const config: Config = {
       },
       borderRadius: { pill: '999px' },
       boxShadow: {
-        soft: '0 4px 24px -8px rgba(24, 59, 86, 0.10)',
-        card: '0 12px 40px -16px rgba(24, 59, 86, 0.14)',
-        glow: '0 14px 30px -12px rgba(38, 140, 179, 0.55)',
+        soft: '0 4px 24px -8px rgba(0, 32, 98, 0.10)',
+        card: '0 12px 40px -16px rgba(0, 32, 98, 0.14)',
+        glow: '0 14px 30px -12px rgba(16, 84, 194, 0.45)',
       },
       keyframes: {
         float: {

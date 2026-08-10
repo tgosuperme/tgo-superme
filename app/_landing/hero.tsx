@@ -56,8 +56,8 @@ export function OfferStrip() {
 /* ── the three information pills under the CTA ────────────────────────── */
 const PILLS = [
   { icon: CalendarBlank, text: `Starts ${START_DATE}`, bed: C.lightBlue, fg: C.skyInk },
-  { icon: Clock, text: SESSION_TIMES, bed: '#FDF1E4', fg: C.peachInk },
-  { icon: VideoCamera, text: 'Live on Zoom', bed: '#EAF6F0', fg: C.mintInk },
+  { icon: Clock, text: SESSION_TIMES, bed: C.peachBed, fg: C.peachInk },
+  { icon: VideoCamera, text: 'Live on Zoom', bed: C.mintBed, fg: C.mintInk },
 ];
 
 /* ── 2. Hero ──────────────────────────────────────────────────────────── */
@@ -67,13 +67,18 @@ export function Hero() {
       <div className="mx-auto grid max-w-[1180px] items-center gap-12 px-5 md:px-8 lg:grid-cols-[1.02fr_0.98fr] lg:gap-16">
         {/* ══ LEFT ══════════════════════════════════════════════════════ */}
         <div className="text-center lg:text-left">
+          {/* Eyebrow in primary blue, not the derived skyInk it used to carry.
+              At 11px on the pale-blue pill the text needs 4.5:1: skyInk only
+              reached 4.04 and bright sky #2AAAEF is 2.30, so neither can hold
+              it. Primary blue is 6.08:1 here. Bright sky moves to the dot,
+              which is a mark rather than type and has no floor to clear. */}
           <span
             className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em]"
-            style={{ background: C.lightBlue, color: C.skyInk }}
+            style={{ background: C.lightBlue, color: C.blue }}
           >
             <span
               className="inline-block h-1.5 w-1.5 rounded-full"
-              style={{ background: C.blue }}
+              style={{ background: C.sky }}
             />
             For Adults 35+ With Persistent Back, Neck or Knee Pain
           </span>
@@ -181,7 +186,7 @@ export function Hero() {
               </div>
               <span
                 className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-[0.12em]"
-                style={{ background: C.yellow, color: '#4A3405' }}
+                style={{ background: C.yellow, color: C.navy }}
               >
                 <Clock weight="bold" className="h-3 w-3" />
                 {SESSION_TIMES}
@@ -255,10 +260,10 @@ export function Hero() {
    Four items, each with a circular icon on its own pale pastel. The figures
    stay navy, so the colour reads as accent rather than decoration. */
 const STATS = [
-  { icon: Student, big: '16+ Years', small: 'Teaching & practice', bed: '#EAF6F0', fg: C.mintInk },
-  { icon: Heart, big: '1,000+', small: 'Clients supported', bed: '#FCEDE9', fg: C.coralInk },
+  { icon: Student, big: '16+ Years', small: 'Teaching & practice', bed: C.mintBed, fg: C.mintInk },
+  { icon: Heart, big: '1,000+', small: 'Clients supported', bed: C.coralBed, fg: C.coralInk },
   { icon: UsersThree, big: '500+', small: 'Teachers trained', bed: C.lightBlue, fg: C.skyInk },
-  { icon: ShieldCheck, big: 'E-RYT 500', small: 'Yoga Alliance certified', bed: '#F1EDF7', fg: C.lavenderInk },
+  { icon: ShieldCheck, big: 'E-RYT 500', small: 'Yoga Alliance certified', bed: C.lavenderBed, fg: C.lavenderInk },
 ];
 
 function StatsBar() {

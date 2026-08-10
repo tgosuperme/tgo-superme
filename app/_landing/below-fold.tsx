@@ -83,8 +83,8 @@ const ACCENTS: { bed: string; fg: string }[] = [
   { bed: 'rgba(79,168,199,0.16)', fg: C.skyInk },      // brand blue
   { bed: 'rgba(159,218,203,0.34)', fg: C.mintInk },    // mint
   { bed: 'rgba(233,139,122,0.26)', fg: C.coralInk },   // coral
-  { bed: 'rgba(244,178,140,0.30)', fg: C.peachInk },   // peach
-  { bed: 'rgba(242,200,91,0.30)', fg: C.yellowInk },   // yellow
+  { bed: 'rgba(255,178,109,0.30)', fg: C.peachInk },   // peach
+  { bed: 'rgba(255,193,7,0.30)', fg: C.yellowInk },   // yellow
   { bed: 'rgba(169,154,203,0.26)', fg: C.lavenderInk },// lavender
   { bed: 'rgba(114,183,122,0.26)', fg: C.greenInk },   // green
 ];
@@ -335,7 +335,7 @@ function SessionsBand() {
       >
         <span
           className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[10.5px] font-bold uppercase tracking-[0.2em]"
-          style={{ background: 'rgba(244,178,140,0.22)', color: '#F9D9C2' }}
+          style={{ background: 'rgba(255,178,109,0.22)', color: '#FFE9D6' }}
         >
           <Clock weight="bold" className="h-3 w-3" />
           Live Sessions, Twice A Day
@@ -344,7 +344,10 @@ function SessionsBand() {
           className="mt-5 font-heading text-[clamp(24px,3.6vw,36px)] font-bold leading-tight"
           style={{ color: C.white }}
         >
-          {SESSION_TIMES}, live on Zoom.
+          {/* Bright sky, not goldDeep: this h2 sits on the navy band, where
+              primary blue is 2.22:1 and bright sky is 5.85:1. The one place the
+              highlight flips colour, because the ground flipped. */}
+          {SESSION_TIMES}, <span style={{ color: C.sky }}>live on Zoom</span>.
         </h2>
         <p className="mt-3 text-[15px]" style={{ color: 'rgba(250,245,234,0.75)' }}>
           Pick whichever time fits your day.
@@ -407,8 +410,8 @@ function Recognition() {
               style={{ color: C.inkSoft }}
             >
               {pre}
-              {/* blueFill, not the brand blue: at 14.5px the phrase needs
-                  4.5:1 and #4FA8C7 only reaches 2.7:1 */}
+              {/* blueFill is now the primary blue itself: #1054C2 is 6.84:1 on
+                  white, so the old darker derived step is no longer needed */}
               <strong style={{ color: C.blueFill, fontWeight: 600 }}>{hl}</strong>
               {post}
             </span>
@@ -422,15 +425,19 @@ function Recognition() {
 /* ── section 6 · testimonials (PDF p6) ───────────────────────────────── */
 
 /**
- * The PDF marks four testimonial slots but ships no assets, so the rail renders
- * empty frames at the right aspect ratio. Drop the clips into
- * public/testimonials and fill this array; the layout will not shift.
+ * Three client clips, served from Vercel Blob rather than bundled, so they never
+ * touch the deploy size or the critical path.
+ *
+ * No poster art exists yet, so the frames show the video itself: preload
+ * "metadata" pulls just the header and first frame, which the browser paints as
+ * an implicit poster. That is a few KB per clip, not the whole file. When real
+ * thumbnails land, add `poster` here and nothing else has to change.
  */
-const TESTIMONIALS: { name: string; caption: string; src?: string }[] = [
-  { name: 'Testimonial 1', caption: '' },
-  { name: 'Testimonial 2', caption: '' },
-  { name: 'Testimonial 3', caption: '' },
-  { name: 'Testimonial 4', caption: '' },
+const BLOB = 'https://pm4wnvllwxriwvmg.public.blob.vercel-storage.com';
+const TESTIMONIALS: { name: string; caption: string; src: string; poster?: string }[] = [
+  { name: 'Testimonial 1', caption: '', src: `${BLOB}/testimonial-1.mp4` },
+  { name: 'Testimonial 2', caption: '', src: `${BLOB}/testimonial-2.mp4` },
+  { name: 'Testimonial 3', caption: '', src: `${BLOB}/testimonial-3.mp4` },
 ];
 
 function Testimonials() {
@@ -441,25 +448,25 @@ function Testimonials() {
         <span style={{ color: C.goldDeep }}>Could &amp; Couldn&apos;t Do</span>
       </SectionHeading>
 
-      <ul className="mx-auto mt-11 grid max-w-[1080px] grid-cols-2 gap-4 lg:grid-cols-4">
+      {/* Three across from sm up. On the narrowest phones they stack one per
+          row and the rail is capped, because a 9:14 portrait clip at full
+          viewport width is taller than the screen. */}
+      <ul className="mx-auto mt-11 grid max-w-[340px] grid-cols-1 gap-4 sm:max-w-[1080px] sm:grid-cols-3 sm:gap-5">
         {TESTIMONIALS.map((t) => (
           <li
             key={t.name}
             className="aspect-[9/14] overflow-hidden rounded-2xl border"
             style={{ borderColor: C.line, background: C.sand }}
           >
-            <div
-              className="flex h-full w-full flex-col items-center justify-center gap-1.5 px-3 text-center"
-              style={{ color: C.inkMuted }}
-            >
-              <span
-                className="rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em]"
-                style={{ background: 'rgba(242,200,91,0.24)', color: C.yellowInk }}
-              >
-                {t.name}
-              </span>
-              <span className="text-[11.5px] leading-snug">Awaiting clip</span>
-            </div>
+            <video
+              src={t.src}
+              poster={t.poster}
+              controls
+              playsInline
+              preload="metadata"
+              className="h-full w-full object-cover"
+              aria-label={t.name}
+            />
           </li>
         ))}
       </ul>
@@ -473,12 +480,13 @@ function Guide() {
   return (
     <section className="px-4 py-16 sm:py-24" style={{ background: C.canvas }}>
       <div className="mx-auto grid max-w-[1060px] items-center gap-10 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)]">
-        {/* Portrait cluster: Atul's own portrait in the tall frame, two
-            practice shots stacked beside it. The sources are 4160x6240 and
-            6000x4000 camera files, several EXIF-rotated, so all four were
-            re-cropped and re-encoded into public/atul at display size.
-            NOTE: the practice photographs are a demonstrator, not Atul, so
-            their alt text must not name him. */}
+        {/* Portrait cluster: all three frames are Atul himself, from his own
+            shoot in public/Atul_s image. The sources are 4000x6000 and
+            6000x4000 camera files at 8 to 11MB, several EXIF-rotated, so each
+            was exif-transposed, centre-cropped to its frame's aspect and
+            re-encoded into public/atul at display size (275/128/119KB).
+            The earlier note that these were a demonstrator no longer applies:
+            it is him in every frame, so the alt text names him. */}
         <div className="grid grid-cols-[1.25fr_1fr] gap-3">
           <div
             className="overflow-hidden rounded-2xl border"
@@ -486,8 +494,8 @@ function Guide() {
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/atul/atul-portrait.jpg"
-              alt="Atul Mishra"
+              src="/atul/atul-warrior.jpg"
+              alt="Atul Mishra in a standing warrior posture"
               width={900}
               height={1200}
               className="aspect-[3/4] h-full w-full object-cover"
@@ -501,8 +509,8 @@ function Guide() {
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/atul/practice-seated.jpg"
-                alt="A seated forward stretch from the Inner Brace Method"
+                src="/atul/atul-seated.jpg"
+                alt="Atul Mishra in a seated balance from the Inner Brace Method"
                 width={800}
                 height={800}
                 className="aspect-square h-full w-full object-cover"
@@ -515,8 +523,8 @@ function Guide() {
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/atul/practice-standing.jpg"
-                alt="A supported standing pose from the Inner Brace Method"
+                src="/atul/atul-side-angle.jpg"
+                alt="Atul Mishra in a standing side-angle posture from the Inner Brace Method"
                 width={800}
                 height={800}
                 className="aspect-square h-full w-full object-cover"
@@ -596,7 +604,7 @@ const MECH_ACCENTS: { bed: string; fg: string }[] = [
   { bed: 'rgba(140,207,227,0.30)', fg: C.skyInk },      // 02 brace
   { bed: 'rgba(169,154,203,0.24)', fg: C.lavenderInk }, // 03 move
   { bed: 'rgba(114,183,122,0.24)', fg: C.greenInk },    // 04 strengthen
-  { bed: 'rgba(244,178,140,0.30)', fg: C.peachInk },    // 05 retrain
+  { bed: 'rgba(255,178,109,0.30)', fg: C.peachInk },    // 05 retrain
 ];
 
 const MECHANISM = [
@@ -865,7 +873,7 @@ function TwoOptions() {
         >
           <span
             className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em]"
-            style={{ background: 'rgba(242,200,91,0.22)', color: '#F7E3AF' }}
+            style={{ background: 'rgba(255,193,7,0.22)', color: '#FFEEBA' }}
           >
             <Plus weight="bold" className="h-3 w-3" />
             Option 2
@@ -944,7 +952,10 @@ function Faq() {
   const [open, setOpen] = useState<number | null>(0);
   return (
     <section className="px-4 py-16 sm:py-24" style={{ background: C.canvas }}>
-      <SectionHeading>Frequently Asked Questions</SectionHeading>
+      <SectionHeading>
+        Frequently Asked{' '}
+        <span style={{ color: C.goldDeep }}>Questions</span>
+      </SectionHeading>
 
       <ul className="mx-auto mt-10 grid max-w-[820px] gap-3">
         {FAQS.map((f, i) => {
@@ -969,7 +980,7 @@ function Faq() {
                 </span>
                 <span
                   className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
-                  style={{ background: 'rgba(242,200,91,0.28)' }}
+                  style={{ background: 'rgba(255,193,7,0.28)' }}
                 >
                   {isOpen ? (
                     <Minus weight="bold" className="h-3 w-3" style={{ color: C.yellowInk }} />
@@ -1007,7 +1018,8 @@ function LegalNotice() {
           className="font-heading text-[19px] font-bold"
           style={{ color: C.ink }}
         >
-          Important Information Before You Start
+          Important Information{' '}
+          <span style={{ color: C.goldDeep }}>Before You Start</span>
         </h2>
 
         <div

@@ -24,66 +24,88 @@ import { CHECKOUT_CONFIG } from '@/lib/checkout-config';
 export const C = {
   /* ── environment ── */
   white: '#FFFFFF',
-  paleBlue: '#F5FBFE',
-  lightBlue: '#E8F6FB',
+  paleBlue: '#F4F9FE',   // section backgrounds
+  lightBlue: '#E8F3FC',  // cards, pills, subtle surfaces
 
   /* ── blue ── */
-  sky: '#8CCFE3',       // light blue accent: 1.7:1 on white, so surfaces only
-  blue: '#4FA8C7',      // primary brand blue
-  blueFill: '#227FA2',  // derived: strong blue #268CB3 is 3.8:1 with a white
-                        // label, so buttons use it one step darker (4.5:1)
-  blueDeep: '#268CB3',  // CTA / strong blue
-  navy: '#183B56',      // main text, deep navy
+  sky: '#2AAAEF',       // bright sky: highlights, selected states. 2.6:1 on
+                        // white, so surfaces and large marks only, never body text
+  blue: '#1054C2',      // primary blue: buttons, links, icons, important UI
+  blueFill: '#1054C2',  // NOT derived any more. The old teal was 3.8:1 with a
+                        // white label so buttons needed a darker step; primary
+                        // blue is 6.84:1 and carries white type as-is.
+  blueDeep: '#002062',  // deep brand navy: dark sections, footer, strong text
+  navy: '#002062',
 
-  /* ── accents (beds, pills, badges) ── */
-  mint: '#9FDACB',
-  green: '#72B77A',
-  coral: '#E98B7A',
-  peach: '#F4B28C',
-  yellow: '#F2C85B',
-  lavender: '#A99ACB',
-  rose: '#D36C7E',
+  /* ── accents (beds, pills, badges). Secondary to the blue, never competing ── */
+  mint: '#2EC4B6',
+  green: '#22C55E',
+  coral: '#FF6B6B',
+  peach: '#FFB26D',
+  yellow: '#FFC107',
+  lavender: '#8B7DFF',
+  rose: '#F43F5E',
 
-  /* ── accent inks: glyphs and text only, never a surface (all derived) ── */
-  mintInk: '#32836E',
-  greenInk: '#43844B',
-  coralInk: '#D73F24',
-  peachInk: '#C45313',
-  yellowInk: '#966F0C',
-  lavenderInk: '#806AB2',
-  skyInk: '#267F9A',
+  /* ── accent beds: the 12% tint each accent sits on ── */
+  mintBed: '#E6F8F6',
+  greenBed: '#E4F8EC',
+  coralBed: '#FFEDED',
+  peachBed: '#FFF6ED',
+  yellowBed: '#FFF8E1',
+  lavenderBed: '#F1EFFF',
+  roseBed: '#FEE8EC',
+  skyBed: '#E5F5FD',
+
+  /* ── accent inks: glyphs and text only, never a surface (all derived).
+     Every accent is too light to read as text on white: yellow is 1.6:1, peach
+     1.8:1, mint 2.2:1, coral 2.8:1. Each ink below is its accent darkened to
+     exactly 4.5:1 on white, so it also clears 3.9:1+ on its own bed. ── */
+  mintInk: '#1E8379',
+  greenInk: '#178740',
+  coralInk: '#C15151',
+  peachInk: '#9B6C42',
+  yellowInk: '#967104',
+  lavenderInk: '#7367D3',
+  roseInk: '#D93853',
+  skyInk: '#1F7DB0',
 
   /* ── headline highlight set ───────────────────────────────────────────
-     Every accent is too pale to be read as text: on white, mint is 1.6:1,
-     yellow 1.6:1, coral 2.5:1 and brand blue 2.7:1. The headline is large and
-     bold, so the bar is 3.0:1, and each of these is its accent darkened to
-     exactly that. Same hue, readable weight. */
-  hlBlue: '#3E9FC1',
-  hlCoral: '#E57460',
-  hlMint: '#40A58B',
-  hlYellow: '#BD8D0F',
+     The headline is large and bold, so the bar is 3.0:1 rather than 4.5:1 and
+     each of these is its accent darkened to exactly that. Same hue, readable
+     weight. Primary blue already clears it outright, so it is used unchanged. */
+  hlBlue: '#1054C2',
+  hlCoral: '#F46666',
+  hlMint: '#26A498',
+  hlYellow: '#BA8C05',
 
   /* ── text and rules ── */
-  ink: '#183B56',       // navy, body and headings
-  inkSoft: '#526B7A',   // secondary text, slate blue
-  inkMuted: '#526B7A',  // same slate blue: the table defines one secondary tone
-  line: '#DEEFF4',
-  lineStrong: '#C5E2EA',
+  ink: '#002062',       // deep brand navy: body and headings, 15.2:1 on white
+  inkSoft: '#4A5B80',   // secondary text, navy desaturated toward slate
+  inkMuted: '#4A5B80',  // same tone: the table defines one secondary text colour
+  line: '#DCE9F9',
+  lineStrong: '#C3DCF5',
 
   /* ── legacy aliases kept so untouched sections still resolve ── */
-  gold: '#4FA8C7',
-  goldDeep: '#267F9A',
-  goldBright: '#8CCFE3',
-  goldSoft: '#E8F6FB',
-  canvas: '#F5FBFE',
-  canvas2: '#E8F6FB',
-  sand: '#E8F6FB',
+  gold: '#1054C2',
+  /* goldDeep is the SECTION-TITLE HIGHLIGHT: every h2 puts one phrase in it.
+     It has to stay distinct from C.ink or the highlight disappears, which is
+     exactly what happened when the palette moved and both became #002062.
+     Primary blue is 6.84:1 on white and 6.46:1 on the canvas, so it clears the
+     3.0:1 large-text bar with room. Bright sky #2AAAEF cannot do this job on a
+     light ground: it is 2.59:1 on white. Bright sky is used for the same
+     highlight on DARK sections, where it is 5.85:1 and primary blue is 2.22:1. */
+  goldDeep: '#1054C2',
+  goldBright: '#2AAAEF',
+  goldSoft: '#E8F3FC',
+  canvas: '#F4F9FE',
+  canvas2: '#E8F3FC',
+  sand: '#E8F3FC',
   black: '#0A0A0A',
-  brand: '#4FA8C7',
-  deep: '#183B56',
-  bright: '#8CCFE3',
-  blush: '#E8F6FB',
-  whisper: '#F5FBFE',
+  brand: '#1054C2',
+  deep: '#002062',
+  bright: '#2AAAEF',
+  blush: '#E8F3FC',
+  whisper: '#F4F9FE',
 };
 
 export const PRICE = CHECKOUT_CONFIG.amountGbpNumeric;
