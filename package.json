@@ -16,6 +16,7 @@
     "next": "14.2.x-latest",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "stripe": "^18.5.0",
     "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {

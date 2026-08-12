@@ -11,6 +11,13 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function CheckoutPage() {
-  return <CheckoutForm />;
+/* Stripe's cancel_url lands back here with ?cancelled=1, which the form reads
+   to explain the return. Passed down as a prop rather than read with
+   useSearchParams, so the client component keeps its static shell. */
+export default function CheckoutPage({
+  searchParams,
+}: {
+  searchParams: { cancelled?: string };
+}) {
+  return <CheckoutForm cancelled={searchParams.cancelled === '1'} />;
 }

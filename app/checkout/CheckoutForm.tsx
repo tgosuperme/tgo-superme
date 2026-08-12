@@ -36,10 +36,11 @@ import {
  * this funnel was reviewed against forbid them: a coupon field and any struck
  * "was" price with a savings line. There is one price and it is stated once.
  *
- * PAYMENT IS NOT WIRED. Submitting posts to /api/checkout, which currently
- * returns "not configured". This is a GBP offer, so it needs Stripe rather
- * than the Razorpay flow the reference funnel uses. See that route for the
- * seam.
+ * Submitting posts the buyer's details to /api/checkout, which opens a Stripe
+ * Checkout Session and returns its URL; the browser is then handed to Stripe,
+ * so no card details ever touch this form. Payment confirmation is not read
+ * from the redirect back: /thank-you re-checks the session with Stripe, and
+ * fulfilment happens in the webhook.
  */
 
 type Fields = { firstName: string; lastName: string; email: string; phone: string };
@@ -51,7 +52,7 @@ const INCLUDED = [
   { icon: ShieldCheck, text: 'Your own Day 1 to Day 4 progress score' },
 ];
 
-export default function CheckoutForm() {
+export default function CheckoutForm({ cancelled = false }: { cancelled?: boolean }) {
   const [f, setF] = useState<Fields>({ firstName: '', lastName: '', email: '', phone: '' });
   const [touched, setTouched] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -160,6 +161,19 @@ export default function CheckoutForm() {
             <p className="mt-1 text-[13.5px]" style={{ color: C.inkMuted }}>
               We send your Zoom link and joining note to this email.
             </p>
+
+            {/* Coming back from an abandoned Stripe session otherwise looks
+                identical to a dead button. */}
+            {cancelled && (
+              <p
+                className="mt-4 rounded-2xl p-3 text-[13px] leading-snug"
+                style={{ background: C.lightBlue, color: C.ink }}
+              >
+                You came back before the payment finished, so nothing was
+                charged and your place is not held yet. Add your details again
+                and you are two minutes from done.
+              </p>
+            )}
 
             <form onSubmit={submit} noValidate className="mt-7 grid gap-4">
               <div className="grid grid-cols-[minmax(0,1fr)] gap-4 sm:grid-cols-2">
