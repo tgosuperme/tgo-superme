@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   ArrowRight,
   CalendarBlank,
+  CaretDown,
   CheckCircle,
   Clock,
   Lock,
@@ -17,6 +18,7 @@ import { useState } from 'react';
 
 import PaymentLogos from '@/components/PaymentLogos';
 
+import { legoBrick, legoDelay } from '../_landing/lego-style';
 import {
   C,
   PRICE_LABEL,
@@ -57,6 +59,9 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
   const [touched, setTouched] = useState(false);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState('');
+  /* Starts open, so the offer is visible without an interaction. Only the
+     mobile disclosure reads this; above lg the summary is always expanded. */
+  const [summaryOpen, setSummaryOpen] = useState(true);
 
   const set = (k: keyof Fields) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setF((s) => ({ ...s, [k]: e.target.value }));
@@ -126,7 +131,11 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
       </header>
 
       <div className="mx-auto max-w-[1120px] px-5 py-10 md:px-8 md:py-14">
-        <div className="max-w-[620px]">
+        {/* Centred on phones, left-aligned from sm up. A left-set eyebrow,
+            heading and standfirst read as a fragment of a wider layout when the
+            column is the whole screen; centring makes the narrow view look
+            composed rather than cropped. Desktop is unchanged. */}
+        <div className="max-w-[620px] text-center sm:text-left">
           <span
             className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[10.5px] font-bold uppercase tracking-[0.16em]"
             style={{ background: C.lightBlue, color: C.skyInk }}
@@ -152,6 +161,7 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
           {/* summary renders first on mobile so the buyer sees the offer
               before the fields */}
           <section
+            data-lego=""
             className="order-2 rounded-3xl p-6 sm:p-8 lg:order-1"
             style={{ background: C.white, border: `1px solid ${C.line}` }}
           >
@@ -205,11 +215,8 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
               <button
                 type="submit"
                 disabled={busy}
-                className="group mt-2 inline-flex min-h-[56px] w-full items-center justify-center gap-2.5 rounded-full text-[15.5px] font-semibold text-white transition-transform duration-300 hover:-translate-y-0.5 disabled:cursor-progress disabled:opacity-70"
-                style={{
-                  background: C.blueFill,
-                  boxShadow: '0 14px 30px -12px rgba(38,140,179,0.55)',
-                }}
+                className="lego-press lego-pulse-glow group mt-2 inline-flex min-h-[56px] w-full items-center justify-center gap-2.5 rounded-full text-[15.5px] font-semibold text-white disabled:cursor-progress disabled:opacity-70"
+                style={{ background: C.blueFill }}
               >
                 {busy ? 'Opening secure checkout…' : `Pay ${PRICE_LABEL} & Reserve My Place`}
                 {!busy && (
@@ -235,22 +242,68 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
 
           {/* ── order summary ──────────────────────────────────────── */}
           <aside
+            data-lego=""
             className="order-1 self-start rounded-3xl p-6 sm:p-7 lg:order-2 lg:sticky lg:top-6"
-            style={{ background: C.paleBlue, border: `1px solid ${C.line}` }}
+            style={{
+              ...legoDelay(1, 110),
+              background: C.paleBlue,
+              border: `1px solid ${C.line}`,
+            }}
           >
-            <h2
-              className="text-[10.5px] font-bold uppercase tracking-[0.18em]"
-              style={{ color: C.inkMuted }}
+            {/* Mobile: a disclosure, open by default. The summary sits ABOVE
+                the form on a phone (order-1), so left expanded it pushes the
+                first field most of a screen down — but collapsing it by
+                default would hide what the buyer is paying for at the exact
+                moment they are deciding. Open-but-collapsible is the version
+                that costs nothing either way.
+
+                Desktop is untouched: the same element is inert above lg
+                (`lg:pointer-events-none`), the caret is hidden, and the body
+                is forced open with `lg:!grid-rows-[1fr]`. */}
+            <button
+              type="button"
+              onClick={() => setSummaryOpen((o) => !o)}
+              aria-expanded={summaryOpen}
+              aria-controls="order-summary-body"
+              className="flex w-full items-center justify-between gap-3 text-left lg:pointer-events-none lg:cursor-default"
             >
-              Order summary
-            </h2>
+              <h2
+                className="text-[10.5px] font-bold uppercase tracking-[0.18em]"
+                style={{ color: C.inkMuted }}
+              >
+                Order summary
+              </h2>
+              <span className="flex items-center gap-2 lg:hidden">
+                <span
+                  className="font-heading text-[15px] font-bold"
+                  style={{ color: C.ink }}
+                >
+                  {PRICE_LABEL}
+                </span>
+                <CaretDown
+                  weight="bold"
+                  aria-hidden
+                  className={`h-3.5 w-3.5 transition-transform duration-300 ${
+                    summaryOpen ? 'rotate-180' : ''
+                  }`}
+                  style={{ color: C.inkMuted }}
+                />
+              </span>
+            </button>
 
             <div
-              className="mt-4 flex items-start gap-3 rounded-2xl p-3.5"
+              id="order-summary-body"
+              className={`grid transition-[grid-template-rows] duration-300 ease-out lg:!grid-rows-[1fr] ${
+                summaryOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+              }`}
+            >
+              <div className="overflow-hidden">
+            <div
+              className="lego-hover-sm mt-4 flex items-start gap-3 rounded-2xl p-3.5"
               style={{ background: C.white, border: `1px solid ${C.line}` }}
             >
               <span
-                className="grid h-12 w-12 shrink-0 place-items-center rounded-xl"
+                className="lego-stud grid h-12 w-12 shrink-0 place-items-center rounded-xl"
                 style={{ background: C.blueFill }}
               >
                 <span className="font-heading text-[10px] font-bold uppercase tracking-[0.14em] text-white">
@@ -283,8 +336,13 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
               What that includes
             </p>
             <ul className="mt-2.5 grid gap-2">
-              {INCLUDED.map(({ icon: Icon, text }) => (
-                <li key={text} className="flex items-start gap-2.5">
+              {INCLUDED.map(({ icon: Icon, text }, idx) => (
+                <li
+                  key={text}
+                  data-lego=""
+                  className="flex items-start gap-2.5"
+                  style={legoBrick(idx, 60)}
+                >
                   <span
                     className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full"
                     style={{ background: 'rgba(159,218,203,0.34)' }}
@@ -324,6 +382,8 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
               Come to Day One. If it is not for you, tell us by the end of that
               day and we refund the {PRICE_LABEL} in full.
             </p>
+              </div>
+            </div>
           </aside>
         </div>
       </div>

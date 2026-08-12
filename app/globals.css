@@ -146,6 +146,376 @@ button {
 .bw-hover-lift-sm { transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1); }
 .bw-hover-lift-sm:hover { transform: translateY(-3px) !important; }
 
+/* ══════════════════════════════════════════════════════════════════════════
+ *  THE LEGO SYSTEM
+ *
+ *  One motion idea used everywhere: a piece is brought down from above, it
+ *  overshoots its slot by a hair, and it CLICKS into place. That overshoot and
+ *  recovery is the whole trick — a plain ease-out reads as "faded in", the
+ *  small bounce past the resting point reads as "seated".
+ *
+ *  Three verbs:
+ *    .lego-in     entrance. Snaps into its slot when scrolled to.
+ *    .lego-hover  hover. Lifts off the studs, and presses back down on click.
+ *    .lego-pulse  attention. A slow ring, only ever on things you can act on.
+ *
+ *  Entrances are driven by data-lego / data-lego-loop plus one shared
+ *  IntersectionObserver (see app/_landing/lego.tsx), the same pattern the
+ *  scroll reveals above already use. Hidden states sit behind `.bw-js` so
+ *  no-JS users and crawlers still see everything.
+ * ═══════════════════════════════════════════════════════════════════════ */
+
+/* The click. 0 → 55% is the drop; everything after is the piece settling. */
+@keyframes lego-snap {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -34px, 0) scale(0.93) rotate(var(--lego-tilt, -1.5deg));
+  }
+  50% {
+    opacity: 1;
+    transform: translate3d(0, 5px, 0) scale(1.015) rotate(0deg);
+  }
+  68% {
+    transform: translate3d(0, -3px, 0) scale(0.995) rotate(0deg);
+  }
+  84% {
+    transform: translate3d(0, 1.5px, 0) scale(1.003) rotate(0deg);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Sideways variant, for pieces that slide in from the rail rather than drop. */
+@keyframes lego-snap-x {
+  0% {
+    opacity: 0;
+    transform: translate3d(var(--lego-from, -26px), -14px, 0) scale(0.95);
+  }
+  55% {
+    opacity: 1;
+    transform: translate3d(calc(var(--lego-from, -26px) * -0.09), 3px, 0) scale(1.012);
+  }
+  76% {
+    transform: translate3d(0, -2px, 0) scale(0.997);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* The stud pop, for the small icon tile inside a piece. Runs slightly behind
+   its parent so the tile lands after the brick it sits on. */
+@keyframes lego-stud {
+  0% { opacity: 0; transform: translate3d(0, -12px, 0) scale(0.6); }
+  60% { opacity: 1; transform: translate3d(0, 0, 0) scale(1.12); }
+  80% { transform: scale(0.97); }
+  100% { opacity: 1; transform: none; }
+}
+
+.bw-js [data-lego],
+.bw-js [data-lego-loop] {
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+.bw-js [data-lego].lego-in,
+.bw-js [data-lego-loop].lego-in {
+  animation: lego-snap 0.72s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--lego-d, 0ms);
+}
+
+.bw-js [data-lego='x'].lego-in,
+.bw-js [data-lego-loop='x'].lego-in {
+  animation-name: lego-snap-x;
+}
+
+.bw-js [data-lego-stud] { opacity: 0; }
+.bw-js [data-lego-stud].lego-in {
+  animation: lego-stud 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation-delay: calc(var(--lego-d, 0ms) + 130ms);
+}
+
+/* Once the animation has finished, hand the transform back to :hover. Without
+   this the `both` fill-mode pins the element and the hover lift never lands. */
+.bw-js [data-lego].lego-done,
+.bw-js [data-lego-loop].lego-done,
+.bw-js [data-lego-stud].lego-done {
+  animation: none;
+  opacity: 1;
+}
+
+/* ── hover: off the studs, then pressed back on ──────────────────────────── */
+.lego-hover {
+  transition:
+    transform 0.32s cubic-bezier(0.34, 1.4, 0.64, 1),
+    box-shadow 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.32s ease;
+}
+.lego-hover:hover {
+  transform: translate3d(0, -6px, 0) scale(1.014);
+  box-shadow:
+    0 2px 0 0 rgba(16, 84, 194, 0.16),
+    0 18px 34px -18px rgba(0, 32, 98, 0.34);
+}
+.lego-hover:active {
+  transform: translate3d(0, -1px, 0) scale(0.994);
+  transition-duration: 0.09s;
+}
+
+/* Quieter sibling, for list rows and pills where a 6px lift is too much. */
+.lego-hover-sm {
+  transition:
+    transform 0.28s cubic-bezier(0.34, 1.4, 0.64, 1),
+    box-shadow 0.28s ease,
+    border-color 0.28s ease;
+}
+.lego-hover-sm:hover {
+  transform: translate3d(0, -3px, 0);
+  box-shadow: 0 12px 22px -16px rgba(0, 32, 98, 0.34);
+}
+.lego-hover-sm:active {
+  transform: translate3d(0, 0, 0) scale(0.996);
+  transition-duration: 0.09s;
+}
+
+/* The stud tile reacts to the whole piece being hovered, not to itself, so the
+   card reads as one object rather than two things that animate separately. */
+.lego-stud {
+  transition: transform 0.34s cubic-bezier(0.34, 1.6, 0.64, 1);
+}
+.lego-hover:hover .lego-stud,
+.lego-hover-sm:hover .lego-stud,
+.lego-hover-icon:hover .lego-stud {
+  transform: translate3d(0, -2px, 0) rotate(-6deg) scale(1.1);
+}
+
+/* Soft hover: a small rise, no scale, no tilt. For the largest cards, where
+   the full brick lift is too much travel for the area being moved. */
+.lego-hover-soft {
+  transition:
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.3s ease;
+}
+.lego-hover-soft:hover {
+  transform: translate3d(0, -4px, 0);
+  box-shadow: 0 16px 30px -20px rgba(0, 32, 98, 0.34);
+}
+.lego-hover-soft:active {
+  transform: translate3d(0, -1px, 0);
+  transition-duration: 0.09s;
+}
+.lego-hover-soft:hover .lego-stud {
+  transform: translate3d(0, -2px, 0) scale(1.03);
+}
+
+/* Icon-only hover. Same generous hover target as the lift variants, but the
+   piece itself never moves — only its glyph does. For rows where the text is
+   the payload (the stats bar's figures) and shifting it costs more than the
+   feedback is worth. */
+.lego-hover-icon {
+  transition: none;
+}
+.lego-hover-icon:hover,
+.lego-hover-icon:active {
+  transform: none;
+}
+
+/* Buttons: the same click, plus the arrow nudging forward. */
+.lego-press {
+  transition:
+    transform 0.26s cubic-bezier(0.34, 1.45, 0.64, 1),
+    box-shadow 0.26s ease;
+}
+.lego-press:hover { transform: translate3d(0, -3px, 0); }
+.lego-press:active { transform: translate3d(0, 1px, 0) scale(0.985); transition-duration: 0.08s; }
+
+/* ── pulse: only on things the reader can act on ─────────────────────────── */
+@keyframes lego-pulse-ring {
+  0% { transform: scale(0.96); opacity: 0.55; }
+  70% { transform: scale(1.28); opacity: 0; }
+  100% { transform: scale(1.28); opacity: 0; }
+}
+.lego-pulse { position: relative; }
+.lego-pulse::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--pulse-color, rgba(16, 84, 194, 0.4));
+  animation: lego-pulse-ring 2.4s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Dot flavour, for the eyebrow markers.
+   NOT `.lego-pulse`: that ring is a ::after at z-index -1, which needs to
+   overflow its element to be seen. On a 6px dot the ring clears the edge by
+   under a pixel and disappears behind the pill. An expanding box-shadow grows
+   outward from the dot instead, so it stays visible at any size. */
+@keyframes lego-pulse-dot {
+  0% { box-shadow: 0 0 0 0 var(--dot-pulse, rgba(16, 84, 194, 0.5)); }
+  70% { box-shadow: 0 0 0 6px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.lego-pulse-dot {
+  animation: lego-pulse-dot 2.2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+/* Glow flavour, for a filled CTA where a ring would be lost against the fill. */
+@keyframes lego-pulse-glow {
+  0%, 100% { box-shadow: 0 12px 26px -12px rgba(16, 84, 194, 0.55), 0 0 0 0 rgba(42, 170, 239, 0); }
+  50% { box-shadow: 0 12px 26px -12px rgba(16, 84, 194, 0.55), 0 0 0 7px rgba(42, 170, 239, 0.14); }
+}
+.lego-pulse-glow { animation: lego-pulse-glow 2.8s ease-in-out infinite; }
+.lego-pulse-glow:hover { animation-play-state: paused; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+ *  THE 5-DAY TIMELINE
+ *
+ *  The rail fills as you scroll, and each numbered node lights when the fill
+ *  reaches it. Progress is one CSS variable (--tl-p, 0 → 1) written by a
+ *  rAF-throttled scroll handler; everything else here is pure CSS off that
+ *  variable, so scrolling never triggers a React render per frame.
+ *
+ *  The node's centring transform and its snap animation are on DIFFERENT
+ *  elements (.tl-node positions, .tl-node-inner animates) because a single
+ *  element cannot be both centred on the rail and keyframing its transform.
+ * ═══════════════════════════════════════════════════════════════════════ */
+.tl-rail {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 19px;
+  width: 3px;
+  transform: translateX(-50%);
+  border-radius: 3px;
+  background: #dce9f9;
+  overflow: hidden;
+}
+.tl-fill {
+  position: absolute;
+  inset: 0;
+  transform-origin: top center;
+  transform: scaleY(var(--tl-p, 0));
+  background: linear-gradient(180deg, #2aaaef 0%, #1054c2 55%, #002062 100%);
+  border-radius: 3px;
+  transition: transform 0.12s linear;
+}
+
+.tl-node {
+  position: absolute;
+  top: 22px;
+  left: 19px;
+  transform: translateX(-50%);
+  z-index: 2;
+}
+.tl-node-inner {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #c3dcf5;
+  color: #4a5b80;
+  font-family: var(--font-heading), Georgia, serif;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  transition:
+    background 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+    color 0.3s ease,
+    box-shadow 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Lit: filled with the brand gradient, white numeral, and a glow that reads as
+   the rail's light spilling out of the node rather than a drop shadow. */
+.tl-node.is-on .tl-node-inner {
+  background: linear-gradient(160deg, #2aaaef 0%, #1054c2 62%, #002062 100%);
+  border-color: rgba(42, 170, 239, 0.55);
+  color: #ffffff;
+  box-shadow:
+    0 0 0 5px rgba(42, 170, 239, 0.14),
+    0 0 18px 2px rgba(42, 170, 239, 0.5),
+    0 8px 18px -8px rgba(0, 32, 98, 0.5);
+  animation: lego-snap 0.62s cubic-bezier(0.34, 1.45, 0.64, 1);
+}
+
+/* The ring that leaves the node at the moment it lights. */
+.tl-node-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+}
+.tl-node.is-on .tl-node-ring {
+  background: rgba(42, 170, 239, 0.42);
+  animation: lego-pulse-ring 2.2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  z-index: -1;
+}
+
+@media (min-width: 640px) {
+  .tl-rail { left: 50%; }
+  /* Even rows sit in the left column, so their node hangs off the RIGHT edge;
+     odd rows are the mirror. Both land dead centre on the rail. */
+  .tl-node-right { left: auto; right: 0; transform: translateX(50%); }
+  .tl-node-left { left: 0; right: auto; transform: translateX(-50%); }
+}
+
+/* ── the dealt card stack (Why This Works, mobile only) ──────────────────
+ *  Each card sticks one header-height lower than the one before it, so the
+ *  run piles up like cards dealt onto a table. See the note on MechanismCard
+ *  in below-fold.tsx for the three things that break this.
+ *
+ *  `top` is driven by --stack-i (the card's index), set inline. 58px is the
+ *  header strip: a 36px icon tile plus the card's 20px top padding, rounded.
+ *
+ *  Scoped to a max-width query rather than a Tailwind `sm:` prefix because
+ *  `position` has to be unset above the breakpoint, and unsetting sticky
+ *  cleanly is easier from one place than with utility overrides. */
+@media (max-width: 639px) {
+  .sm-stack-card {
+    position: sticky;
+    top: calc(14px + var(--stack-i, 0) * 58px);
+    /* The pile needs the cards to keep their own shadow, or the parked ones
+       read as one flat block rather than separate pieces. */
+    filter: drop-shadow(0 -4px 12px rgba(0, 32, 98, 0.07));
+  }
+
+  /* An entrance transform on a sticky element fights the stick — the card
+     jumps as the animation lands. The stack is the motion here instead. */
+  .bw-js .sm-stack-card [data-lego],
+  .bw-js .sm-stack-card [data-lego-stud] {
+    opacity: 1 !important;
+    animation: none !important;
+    transform: none !important;
+  }
+
+  /* Nor should a parked card lift on touch: the "hover" state sticks after a
+     tap on mobile and leaves one card of the pile floating. */
+  .sm-stack-card .lego-hover:hover {
+    transform: none;
+    box-shadow: none;
+  }
+}
+
+/* ── the sticky bottom CTA ───────────────────────────────────────────────── */
+@keyframes lego-dock {
+  0% { opacity: 0; transform: translate3d(0, 100%, 0); }
+  62% { opacity: 1; transform: translate3d(0, -6px, 0); }
+  80% { transform: translate3d(0, 2px, 0); }
+  100% { opacity: 1; transform: none; }
+}
+.sm-dock {
+  animation: lego-dock 0.78s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: 0.35s;
+}
+
 /* ──────────────────────────────────────────────────────────────────────
  *  Promise card. Ported from the Sreshtha funnel's promise band: layered
  *  frame, gold medallion seal, and a thin gold flourish rule broken by a
@@ -279,4 +649,30 @@ button {
     opacity: 1;
     transform: none;
   }
+
+  /* Same for the lego system: the piece is simply already in its slot. The
+     hover lift and the timeline's colour change both survive — neither is
+     vestibular, and losing them would cost the reader real feedback. */
+  .bw-js [data-lego],
+  .bw-js [data-lego-loop],
+  .bw-js [data-lego-stud] {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+  }
+  .lego-pulse::after,
+  .tl-node.is-on .tl-node-ring {
+    animation: none !important;
+    opacity: 0 !important;
+  }
+  .lego-pulse-glow,
+  .tl-node.is-on .tl-node-inner {
+    animation: none !important;
+  }
+  .sm-dock {
+    animation: none !important;
+    opacity: 1;
+    transform: none;
+  }
+  .tl-fill { transition: none !important; }
 }

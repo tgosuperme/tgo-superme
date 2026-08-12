@@ -9,19 +9,39 @@
 import dynamic from 'next/dynamic';
 
 import { Hero, OfferStrip } from './_landing/hero';
-import { C } from './_landing/shared';
+import { C, CHECKOUT_HREF, PRICE_LABEL, SESSION_TIMES, START_DATE } from './_landing/shared';
+import StickyCta from './_landing/sticky-cta';
 
 const BelowFold = dynamic(() => import('./_landing/below-fold'));
 
+/**
+ * overflow-x-CLIP on <main>, not hidden. `overflow-x: hidden` computes the
+ * other axis to `auto`, which makes the element a scroll container — and a
+ * scroll container becomes the containing block for every `position: sticky`
+ * descendant. That silently broke the Why This Works card stack: the cards
+ * were sticky, but they were sticking to <main> rather than the viewport, so
+ * nothing ever pinned. `clip` does the same visual job without creating a
+ * scrollport, so sticky keeps resolving against the viewport.
+ */
 export default function Page() {
   return (
     <main
-      className="overflow-x-hidden font-body"
+      className="overflow-x-clip font-body"
       style={{ background: C.white, color: C.ink }}
     >
       <OfferStrip />
       <Hero />
       <BelowFold />
+      {/* Docked from the first screen — see the note in sticky-cta.tsx. It
+          renders its own flow spacer, so the footer is never covered. */}
+      <StickyCta
+        href={CHECKOUT_HREF}
+        title="5-Day Pain Reset"
+        trailing={PRICE_LABEL}
+        label={`Start Your 5-Day Reset · ${PRICE_LABEL}`}
+        date={START_DATE}
+        times={SESSION_TIMES}
+      />
     </main>
   );
 }

@@ -27,6 +27,7 @@ import {
   ArrowRight,
   Barbell,
   CalendarBlank,
+  CaretDown,
   CheckCircle,
   Clock,
   Eye,
@@ -41,15 +42,20 @@ import {
   Wind,
   X,
 } from '@phosphor-icons/react/dist/ssr';
-import { useState } from 'react';
+import Link from 'next/link';
+import { useEffect, useRef, useState } from 'react';
 
+import Bonuses from './bonuses';
+import { legoBrick, legoDelay } from './lego-style';
 import { domAnimation, LazyMotion, m, type Variants } from './motion-lite';
 import {
   C,
+  LEGAL_LINKS,
   PRICE_LABEL,
   SectionEyebrow,
   SectionHeading,
   SESSION_TIMES,
+  SESSIONS_LABEL,
   START_DATE,
 } from './shared';
 
@@ -159,13 +165,7 @@ function Experience() {
           </m.p>
         </m.div>
 
-        <m.div
-          variants={stagger}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, amount: 0.15 }}
-          className="mt-14 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3"
-        >
+        <div className="mt-14 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {EXPERIENCE.map(({ icon: Icon, title, body }, idx) => {
             // 7 cards leave a single orphan in the last row at both breakpoints
             // (2-col: 3 rows + 1 · 3-col: 2 rows + 1). The orphan spans the full
@@ -184,13 +184,12 @@ function Experience() {
               .filter(Boolean)
               .join(' ');
             return (
-              <m.article
+              <article
                 key={title}
-                variants={fadeUp}
-                whileHover={{ y: -4 }}
-                transition={{ duration: 0.3, ease: EASE }}
-                className={`relative overflow-hidden rounded-2xl p-7 ${placement}`}
+                data-lego=""
+                className={`lego-hover relative overflow-hidden rounded-2xl p-7 ${placement}`}
                 style={{
+                  ...legoBrick(idx),
                   background: 'white',
                   border: `1px solid ${C.line}`,
                   /* a 3px accent rule along the top edge: enough to tie the
@@ -199,8 +198,12 @@ function Experience() {
                 }}
               >
                 <span
-                  className="grid h-12 w-12 place-items-center rounded-xl"
-                  style={{ background: ACCENTS[idx % ACCENTS.length].bed }}
+                  data-lego-stud=""
+                  className="lego-stud grid h-12 w-12 place-items-center rounded-xl"
+                  style={{
+                    ...legoBrick(idx),
+                    background: ACCENTS[idx % ACCENTS.length].bed,
+                  }}
                 >
                   <Icon
                     weight="duotone"
@@ -220,10 +223,10 @@ function Experience() {
                 >
                   {body}
                 </p>
-              </m.article>
+              </article>
             );
           })}
-        </m.div>
+        </div>
       </div>
     </section>
   );
@@ -259,10 +262,78 @@ const DAYS = [
   },
 ];
 
+/**
+ * Scroll-linked progress for the timeline.
+ *
+ * Writes `--tl-p` (0 → 1) straight onto the <ol> node from a rAF-throttled
+ * scroll handler, so the rail fills without React re-rendering once per frame.
+ * The node states are toggled by classList for the same reason — the only
+ * React state here is `active`, which changes five times per pass at most.
+ *
+ * The "read line" sits at 62% of the viewport height rather than the middle:
+ * a node should light as it arrives at the comfortable reading position, not
+ * once it has already gone past.
+ */
+function useTimelineProgress(count: number) {
+  const olRef = useRef<HTMLOListElement>(null);
+  const [active, setActive] = useState(-1);
+
+  useEffect(() => {
+    const ol = olRef.current;
+    if (!ol) return;
+
+    // Reduced motion: show the finished state and never listen to scroll.
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      ol.style.setProperty('--tl-p', '1');
+      setActive(count - 1);
+      return;
+    }
+
+    let raf = 0;
+    const measure = () => {
+      raf = 0;
+      const box = ol.getBoundingClientRect();
+      if (!box.height) return;
+
+      const line = window.innerHeight * 0.62;
+      const p = Math.min(1, Math.max(0, (line - box.top) / box.height));
+      ol.style.setProperty('--tl-p', p.toFixed(4));
+
+      /* offsetTop is no use here: each node's offsetParent is its own <li>,
+         not the list. Both rects are current, so the difference is the node's
+         position within the rail. */
+      const travelled = p * box.height;
+      let last = -1;
+      ol.querySelectorAll<HTMLElement>('[data-tl-node]').forEach((node, i) => {
+        const r = node.getBoundingClientRect();
+        if (travelled >= r.top + r.height / 2 - box.top) last = i;
+      });
+      setActive(last);
+    };
+
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(measure);
+    };
+
+    measure();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [count]);
+
+  return { olRef, active };
+}
+
 function Schedule() {
   /* Structure stays on the primary blue: heading, rail and nodes. The only
      accent in the section is the day pill, one colour for all five, which is
      what keeps the run reading as continuous. */
+  const { olRef, active } = useTimelineProgress(DAYS.length);
+
   return (
     <section className="px-4 py-16 sm:py-24" style={{ background: C.canvas }}>
       <SectionHeading sub="A step-by-step 5-day progression, with each session building on the last.">
@@ -270,55 +341,70 @@ function Schedule() {
       </SectionHeading>
 
       {/* Alternating rail. The spine is a single centred line on desktop and
-          slides to the left edge on mobile, where a zig-zag has no room. */}
-      <ol className="relative mx-auto mt-12 max-w-[900px]">
-        <span
-          aria-hidden
-          className="absolute bottom-0 left-[15px] top-0 w-px sm:left-1/2"
-          style={{ background: C.line }}
-        />
-        {DAYS.map((d, i) => (
-          <li
-            key={d.n}
-            className={`relative mb-5 pl-11 sm:mb-8 sm:w-1/2 sm:pl-0 ${
-              i % 2 === 0 ? 'sm:pr-11 sm:text-right' : 'sm:ml-auto sm:pl-11'
-            }`}
-          >
-            <span
-              className="absolute left-[7px] top-6 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold text-white sm:left-auto sm:top-7"
-              style={{
-                background: C.gold,
-                ...(i % 2 === 0 ? { right: -8 } : { left: -8 }),
-              }}
+          slides to the left edge on mobile, where a zig-zag has no room.
+          The fill inside it is scaled by --tl-p as you scroll. */}
+      <ol ref={olRef} className="relative mx-auto mt-12 max-w-[900px]">
+        <span aria-hidden className="tl-rail">
+          <span className="tl-fill" />
+        </span>
+
+        {DAYS.map((d, i) => {
+          const left = i % 2 === 0; // card in the left column on desktop
+          return (
+            <li
+              key={d.n}
+              className={`relative mb-6 pl-14 sm:mb-9 sm:w-1/2 sm:pl-0 ${
+                left ? 'sm:pr-12 sm:text-right' : 'sm:ml-auto sm:pl-12'
+              }`}
             >
-              {i + 1}
-            </span>
-            <div
-              className="rounded-2xl border p-6"
-              style={{ borderColor: C.line, background: C.white }}
-            >
+              {/* The node. Positioning lives on the outer span and the snap
+                  animation on the inner one, because a single element cannot
+                  both hold a centring translate and keyframe its transform. */}
               <span
-                className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em]"
-                style={{ background: 'rgba(233,139,122,0.20)', color: C.coralInk }}
+                data-tl-node
+                className={`tl-node ${left ? 'tl-node-right' : 'tl-node-left'} ${
+                  i <= active ? 'is-on' : ''
+                }`}
               >
-                <CalendarBlank weight="bold" className="h-3 w-3" />
-                {d.n}
+                <span aria-hidden className="tl-node-ring" />
+                <span className="tl-node-inner">{i + 1}</span>
               </span>
-              <h3
-                className="mt-3 font-heading text-[18px] font-bold"
-                style={{ color: C.ink }}
+
+              {/* data-lego-loop, not data-lego: this is the one run on the
+                  page that replays on every scroll pass, per the brief. */}
+              <div
+                data-lego-loop="x"
+                className="lego-hover rounded-2xl border p-6"
+                style={{
+                  ...legoDelay(0),
+                  ['--lego-from' as string]: left ? '26px' : '-26px',
+                  borderColor: i <= active ? C.lineStrong : C.line,
+                  background: C.white,
+                }}
               >
-                {d.title}
-              </h3>
-              <p
-                className="mt-2 text-[13.5px] leading-relaxed"
-                style={{ color: C.inkSoft }}
-              >
-                {d.body}
-              </p>
-            </div>
-          </li>
-        ))}
+                <span
+                  className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em]"
+                  style={{ background: 'rgba(233,139,122,0.20)', color: C.coralInk }}
+                >
+                  <CalendarBlank weight="bold" className="lego-stud h-3 w-3" />
+                  {d.n}
+                </span>
+                <h3
+                  className="mt-3 font-heading text-[18px] font-bold"
+                  style={{ color: C.ink }}
+                >
+                  {d.title}
+                </h3>
+                <p
+                  className="mt-2 text-[13.5px] leading-relaxed"
+                  style={{ color: C.inkSoft }}
+                >
+                  {d.body}
+                </p>
+              </div>
+            </li>
+          );
+        })}
       </ol>
     </section>
   );
@@ -333,12 +419,15 @@ function SessionsBand() {
         className="mx-auto max-w-[900px] rounded-3xl px-6 py-12 text-center sm:px-12"
         style={{ background: C.ink }}
       >
+        {/* Label, times and start date are all env-driven — see .env.example.
+            Nothing in this band is written into the markup. */}
         <span
+          data-lego=""
           className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[10.5px] font-bold uppercase tracking-[0.2em]"
           style={{ background: 'rgba(255,178,109,0.22)', color: '#FFE9D6' }}
         >
           <Clock weight="bold" className="h-3 w-3" />
-          Live Sessions, Twice A Day
+          {SESSIONS_LABEL}
         </span>
         <h2
           className="mt-5 font-heading text-[clamp(24px,3.6vw,36px)] font-bold leading-tight"
@@ -355,11 +444,18 @@ function SessionsBand() {
         <div className="mx-auto mt-7 flex max-w-[400px] flex-col items-center">
           <a
             href="/checkout"
-            className="inline-flex min-h-[56px] w-full items-center justify-center gap-2 rounded-full px-7 py-4 font-heading text-[15px] font-bold transition-transform duration-200 hover:-translate-y-0.5"
-            style={{ background: C.white, color: C.ink }}
+            className="lego-press lego-pulse group inline-flex min-h-[56px] w-full items-center justify-center gap-2 rounded-full px-7 py-4 font-heading text-[15px] font-bold"
+            style={{
+              background: C.white,
+              color: C.ink,
+              ['--pulse-color' as string]: 'rgba(255,255,255,0.5)',
+            }}
           >
             Start Your 5-Day Reset · {PRICE_LABEL}
-            <ArrowRight weight="bold" className="h-4 w-4" />
+            <ArrowRight
+              weight="bold"
+              className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5"
+            />
           </a>
           <p
             className="mt-3 text-[13px] font-medium"
@@ -393,14 +489,15 @@ function Recognition() {
         Does this <span style={{ color: C.goldDeep }}>sound like you</span>?
       </SectionHeading>
       <ul className="mx-auto mt-10 grid max-w-[760px] gap-3">
-        {RECOGNITION.map(([pre, hl, post]) => (
+        {RECOGNITION.map(([pre, hl, post], idx) => (
           <li
             key={hl}
-            className="flex items-start gap-3.5 rounded-2xl border px-5 py-4"
-            style={{ borderColor: C.line, background: C.white }}
+            data-lego=""
+            className="lego-hover-sm flex items-start gap-3.5 rounded-2xl border px-5 py-4"
+            style={{ ...legoDelay(idx), borderColor: C.line, background: C.white }}
           >
             <span
-              className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
+              className="lego-stud mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
               style={{ background: 'rgba(233,139,122,0.20)' }}
             >
               <X weight="bold" className="h-2.5 w-2.5" style={{ color: C.coralInk }} />
@@ -452,11 +549,15 @@ function Testimonials() {
           row and the rail is capped, because a 9:14 portrait clip at full
           viewport width is taller than the screen. */}
       <ul className="mx-auto mt-11 grid max-w-[340px] grid-cols-1 gap-4 sm:max-w-[1080px] sm:grid-cols-3 sm:gap-5">
-        {TESTIMONIALS.map((t) => (
+        {TESTIMONIALS.map((t, idx) => (
           <li
             key={t.name}
+            data-lego=""
+            /* No hover lift. The card IS the video player: moving it under the
+               cursor fights the scrub bar and the play button the reader is
+               aiming at. Entrance animation only. */
             className="aspect-[9/14] overflow-hidden rounded-2xl border"
-            style={{ borderColor: C.line, background: C.sand }}
+            style={{ ...legoBrick(idx, 110), borderColor: C.line, background: C.sand }}
           >
             <video
               src={t.src}
@@ -479,16 +580,43 @@ function Testimonials() {
 function Guide() {
   return (
     <section className="px-4 py-16 sm:py-24" style={{ background: C.canvas }}>
-      <div className="mx-auto grid max-w-[1060px] items-center gap-10 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)]">
-        {/* Portrait cluster: all three frames are Atul himself, from his own
-            shoot in public/Atul_s image. The sources are 4000x6000 and
-            6000x4000 camera files at 8 to 11MB, several EXIF-rotated, so each
-            was exif-transposed, centre-cropped to its frame's aspect and
+      {/* Two layouts, one DOM order.
+
+          Mobile reads eyebrow → heading → portraits → description: the reader
+          should know WHO they are looking at before the photographs, and get
+          the credentials after. The DOM is written in exactly that order.
+
+          Desktop keeps the original two columns — portraits left, the whole
+          text block right — by placing the three children explicitly: images
+          into column 1 spanning both rows, heading into row 1 of column 2,
+          description into row 2. Nothing is duplicated and nothing is hidden. */}
+      <div className="mx-auto flex max-w-[1060px] flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)] lg:grid-rows-[auto_1fr] lg:gap-x-10 lg:gap-y-0">
+        {/* ── 1 · eyebrow + heading ──
+            Centred on phones, where this block is the top of the section and a
+            left-set eyebrow reads as a fragment. The body copy below stays
+            left-aligned at every width: centred paragraphs are hard to read. */}
+        <div className="text-center lg:col-start-2 lg:row-start-1 lg:self-end lg:text-left">
+          <SectionEyebrow text="Meet Your Guide" />
+          <h2
+            className="mt-4 font-heading text-[clamp(26px,4vw,40px)] font-bold leading-[1.15]"
+            style={{ color: C.ink }}
+          >
+            Who Is <span style={{ color: C.goldDeep }}>Atul</span>, And Why Does
+            He Teach You To Move Differently?
+          </h2>
+        </div>
+
+        {/* ── 2 · portrait cluster ──
+            All three frames are Atul himself, from his own shoot in
+            public/Atul_s image. The sources are 4000x6000 and 6000x4000 camera
+            files at 8 to 11MB, several EXIF-rotated, so each was
+            exif-transposed, centre-cropped to its frame's aspect and
             re-encoded into public/atul at display size (275/128/119KB).
             The earlier note that these were a demonstrator no longer applies:
             it is him in every frame, so the alt text names him. */}
-        <div className="grid grid-cols-[1.25fr_1fr] gap-3">
+        <div className="grid grid-cols-[1.25fr_1fr] gap-3 lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:self-center">
           <div
+            data-lego=""
             className="overflow-hidden rounded-2xl border"
             style={{ borderColor: C.line, background: C.canvas }}
           >
@@ -504,8 +632,9 @@ function Guide() {
           </div>
           <div className="grid gap-3">
             <div
+              data-lego=""
               className="overflow-hidden rounded-2xl border"
-              style={{ borderColor: C.line, background: C.canvas }}
+              style={{ ...legoDelay(1, 110), borderColor: C.line, background: C.canvas }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -518,8 +647,9 @@ function Guide() {
               />
             </div>
             <div
+              data-lego=""
               className="overflow-hidden rounded-2xl border"
-              style={{ borderColor: C.line, background: C.canvas }}
+              style={{ ...legoDelay(2, 110), borderColor: C.line, background: C.canvas }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -534,18 +664,10 @@ function Guide() {
           </div>
         </div>
 
-        <div>
-          <SectionEyebrow text="Meet Your Guide" />
-          <h2
-            className="mt-4 font-heading text-[clamp(26px,4vw,40px)] font-bold leading-[1.15]"
-            style={{ color: C.ink }}
-          >
-            Who Is <span style={{ color: C.goldDeep }}>Atul</span>, And Why Does
-            He Teach You To Move Differently?
-          </h2>
-
+        {/* ── 3 · the description, quote and closer ── */}
+        <div className="lg:col-start-2 lg:row-start-2">
           <div
-            className="mt-5 space-y-4 text-[14.5px] leading-relaxed"
+            className="space-y-4 text-[14.5px] leading-relaxed lg:mt-5"
             style={{ color: C.inkSoft }}
           >
             <p>
@@ -659,46 +781,116 @@ function Mechanism() {
       </SectionHeading>
 
       <ul className="mx-auto mt-11 grid max-w-[1120px] gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        {MECHANISM.map(({ n, icon: Icon, title, body }, idx) => (
-          <li
-            key={n}
-            className="rounded-2xl border p-5"
-            style={{ borderColor: C.line, background: C.canvas }}
-          >
-            <div className="flex items-start justify-between">
-              <span
-                className="inline-flex h-9 w-9 items-center justify-center rounded-xl"
-                style={{ background: MECH_ACCENTS[idx % MECH_ACCENTS.length].bed }}
-              >
-                <Icon
-                  weight="bold"
-                  className="h-4 w-4"
-                  style={{ color: MECH_ACCENTS[idx % MECH_ACCENTS.length].fg }}
-                />
-              </span>
-              <span
-                className="font-heading text-[12px] font-bold tracking-[0.1em]"
-                style={{ color: C.inkMuted }}
-              >
-                {n}
-              </span>
-            </div>
-            <h3
-              className="mt-4 font-heading text-[15px] font-bold leading-snug"
-              style={{ color: C.ink }}
-            >
-              {title}
-            </h3>
-            <p
-              className="mt-2 text-[13px] leading-relaxed"
-              style={{ color: C.inkSoft }}
-            >
-              {body}
-            </p>
-          </li>
+        {MECHANISM.map((step, idx) => (
+          <MechanismCard key={step.n} step={step} idx={idx} />
         ))}
       </ul>
     </section>
+  );
+}
+
+/**
+ * One step of the method, in two shapes from the SAME markup.
+ *
+ * Desktop (sm and up) is untouched from the original: a flat grid, icon
+ * top-left, number top-right, title below, body below that.
+ *
+ * Mobile is a DEALT STACK. Each card is `position: sticky` at a top offset one
+ * header-height further down than the card before it, so as you scroll a card
+ * parks and the next one slides up over it, leaving only its header strip
+ * showing. By the last card the four before it read as a pile of tabs — the
+ * five stages of the method visible at once, in order, without five full
+ * paragraphs of scrolling.
+ *
+ * Three things this depends on, all easy to break:
+ *
+ *  1. The card must be OPAQUE. It is covering the one beneath it; a
+ *     translucent background would show both sets of type at once.
+ *  2. No ancestor may have `overflow: hidden` or a `transform`. Either one
+ *     silently turns `position: sticky` into `position: static` — the classic
+ *     way this effect dies. The section and the <ul> are therefore left plain.
+ *  3. The title must sit BESIDE the icon on the header row, not under it, so
+ *     the strip left showing is one line tall and actually names the step.
+ *
+ * The lego entrance is dropped on mobile for these cards: an entrance
+ * transform on a sticky element fights the stick, and the stack is the motion
+ * here anyway. Above sm it comes back.
+ */
+function MechanismCard({
+  step,
+  idx,
+}: {
+  step: (typeof MECHANISM)[number];
+  idx: number;
+}) {
+  const { n, icon: Icon, title, body } = step;
+  const accent = MECH_ACCENTS[idx % MECH_ACCENTS.length];
+
+  return (
+    <li
+      className="sm-stack-card sm:!static"
+      style={{
+        /* Each card parks 58px lower than the last, which is the height of the
+           header strip plus its padding. Read by the CSS in globals.css. */
+        ['--stack-i' as string]: idx,
+        zIndex: idx + 1,
+      }}
+    >
+      {/* sm:h-full is what levels the row on desktop. The grid item is the
+          <li>, which stretches by default, but the card the reader actually
+          sees is this inner div — without a height it wraps its own copy and
+          the five cards end up with ragged bottoms, because the bodies are
+          two, three and four lines long. Left off below sm, where the cards
+          are a sticky stack and each one must keep its natural height. */}
+      <div
+        data-lego=""
+        className="lego-hover rounded-2xl border p-5 sm:h-full"
+        style={{
+          ...legoBrick(idx, 80),
+          borderColor: C.line,
+          /* Opaque, not C.canvas's translucency — see note 1 above. */
+          background: C.canvas,
+        }}
+      >
+        {/* Header strip: the part that stays visible once the card is parked. */}
+        <div className="flex w-full items-center gap-3 sm:block">
+          <span className="flex shrink-0 items-center sm:mb-0 sm:w-full sm:justify-between">
+            <span
+              data-lego-stud=""
+              className="lego-stud inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
+              style={{ ...legoBrick(idx, 80), background: accent.bed }}
+            >
+              <Icon weight="bold" className="h-4 w-4" style={{ color: accent.fg }} />
+            </span>
+            <span
+              className="ml-auto hidden font-heading text-[12px] font-bold tracking-[0.1em] sm:inline"
+              style={{ color: C.inkMuted }}
+            >
+              {n}
+            </span>
+          </span>
+
+          <h3
+            className="min-w-0 flex-1 font-heading text-[15px] font-bold leading-snug sm:mt-4"
+            style={{ color: C.ink }}
+          >
+            {title}
+          </h3>
+
+          {/* The step number rides the header row on mobile. */}
+          <span
+            className="ml-auto shrink-0 font-heading text-[12px] font-bold tracking-[0.1em] sm:hidden"
+            style={{ color: C.inkMuted }}
+          >
+            {n}
+          </span>
+        </div>
+
+        <p className="mt-2 text-[13px] leading-relaxed" style={{ color: C.inkSoft }}>
+          {body}
+        </p>
+      </div>
+    </li>
   );
 }
 
@@ -723,15 +915,31 @@ function Notice() {
         noticing…
       </SectionHeading>
 
-      <ul className="mx-auto mt-10 grid max-w-[960px] gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {NOTICE.map((line) => (
+      {/* 8 items into 3 columns leaves 2 stranded hard-left on the last row
+          with a column-wide hole beside them. Fixed by making the desktop grid
+          SIX columns and giving every card a 2-column span — visually
+          identical to a 3-column grid, but now a half-column offset exists.
+          The first of the two orphans starts at column 2, so the pair occupies
+          columns 2–5 and sits dead centre.
+
+          A 3-column grid cannot do this: centring two items across three
+          tracks needs fractional placement, and col-span-3 on each would stack
+          them on separate rows instead of keeping them side by side. */}
+      <ul className="mx-auto mt-10 grid max-w-[960px] gap-3 sm:grid-cols-2 lg:grid-cols-6">
+        {NOTICE.map((line, idx) => {
+          const orphans = NOTICE.length % 3;
+          const startsTail = orphans === 2 && idx === NOTICE.length - 2;
+          return (
           <li
             key={line}
-            className="flex items-center gap-3 rounded-2xl border px-4 py-3.5"
-            style={{ borderColor: C.line, background: C.white }}
+            data-lego=""
+            className={`lego-hover-sm flex items-center gap-3 rounded-2xl border px-4 py-3.5 lg:col-span-2 ${
+              startsTail ? 'lg:col-start-2' : ''
+            }`}
+            style={{ ...legoBrick(idx, 60), borderColor: C.line, background: C.white }}
           >
             <span
-              className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
+              className="lego-stud inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
               style={{ background: 'rgba(159,218,203,0.34)' }}
             >
               <CheckCircle
@@ -744,7 +952,8 @@ function Notice() {
               {line}
             </span>
           </li>
-        ))}
+          );
+        })}
       </ul>
 
       {/* Required qualifier. Sits with the outcomes, never hidden in the footer. */}
@@ -844,11 +1053,16 @@ function TwoOptions() {
 
       <div className="mx-auto mt-12 grid max-w-[900px] gap-4 sm:grid-cols-2">
         <div
-          className="rounded-2xl border p-6"
-          style={{ borderColor: C.line, background: C.white }}
+          data-lego="x"
+          className="lego-hover rounded-2xl border p-6"
+          style={{
+            ['--lego-from' as string]: '-30px',
+            borderColor: C.line,
+            background: C.white,
+          }}
         >
           <span
-            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em]"
+            className="lego-stud inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em]"
             style={{ background: C.sand, color: C.inkMuted }}
           >
             <Minus weight="bold" className="h-3 w-3" />
@@ -865,14 +1079,17 @@ function TwoOptions() {
         </div>
 
         <div
-          className="rounded-2xl p-6"
+          data-lego="x"
+          className="lego-hover rounded-2xl p-6"
           style={{
+            ['--lego-from' as string]: '30px',
+            ['--lego-d' as string]: '110ms',
             background: C.ink,
             boxShadow: '0 22px 50px -26px rgba(24,59,86,0.5)',
           }}
         >
           <span
-            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em]"
+            className="lego-stud inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em]"
             style={{ background: 'rgba(255,193,7,0.22)', color: '#FFEEBA' }}
           >
             <Plus weight="bold" className="h-3 w-3" />
@@ -889,11 +1106,18 @@ function TwoOptions() {
           </p>
           <a
             href="/checkout"
-            className="mt-6 inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full px-6 py-3.5 font-heading text-[14.5px] font-bold transition-transform duration-200 hover:-translate-y-0.5"
-            style={{ background: C.white, color: C.ink }}
+            className="lego-press lego-pulse group mt-6 inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full px-6 py-3.5 font-heading text-[14.5px] font-bold"
+            style={{
+              background: C.white,
+              color: C.ink,
+              ['--pulse-color' as string]: 'rgba(255,255,255,0.45)',
+            }}
           >
             Start Your 5-Day Reset · {PRICE_LABEL}
-            <ArrowRight weight="bold" className="h-4 w-4" />
+            <ArrowRight
+              weight="bold"
+              className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5"
+            />
           </a>
           <p
             className="mt-3 text-center text-[12.5px]"
@@ -963,14 +1187,22 @@ function Faq() {
           return (
             <li
               key={f.q}
+              data-lego=""
+              /* No hover lift: the row is already a button, and lifting a
+                 stack of accordion rows on hover makes the list jitter as the
+                 cursor crosses it. The +/- glyph carries the affordance. */
               className="overflow-hidden rounded-2xl border"
-              style={{ borderColor: C.line, background: C.white }}
+              style={{
+                ...legoDelay(i, 45),
+                borderColor: isOpen ? C.lineStrong : C.line,
+                background: C.white,
+              }}
             >
               <button
                 type="button"
                 onClick={() => setOpen(isOpen ? null : i)}
                 aria-expanded={isOpen}
-                className="flex w-full items-start justify-between gap-4 px-5 py-4 text-left"
+                className="group flex w-full items-start justify-between gap-4 px-5 py-4 text-left"
               >
                 <span
                   className="font-heading text-[15px] font-bold leading-snug"
@@ -979,7 +1211,7 @@ function Faq() {
                   {f.q}
                 </span>
                 <span
-                  className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
+                  className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-transform duration-300 group-hover:scale-110 group-active:scale-95"
                   style={{ background: 'rgba(255,193,7,0.28)' }}
                 >
                   {isOpen ? (
@@ -1081,11 +1313,37 @@ function Footer() {
       className="px-4 py-10 text-center text-[12.5px]"
       style={{ background: C.ink, color: 'rgba(250,245,234,0.6)' }}
     >
-      <p>
-        Starts {START_DATE} · Live on Zoom · {PRICE_LABEL}, refunded in full if
-        day one is not for you
+      {/* One sentence on desktop; two centred lines on a phone, split at the
+          natural break between WHEN it runs and WHAT it costs. The separator
+          before the price is dropped on mobile — a line that opens with a
+          middot reads as a broken list item. Both halves are inline-block so
+          each one wraps as its own unit rather than reflowing into the other. */}
+      <p className="mx-auto max-w-[640px]">
+        <span className="inline-block">
+          Starts {START_DATE} · Live on Zoom
+        </span>
+        <span aria-hidden className="hidden sm:inline">
+          {' · '}
+        </span>
+        <span className="block sm:inline">
+          {PRICE_LABEL}, refunded in full if day one is not for you
+        </span>
       </p>
-      <p className="mt-2">© 2026 MyEntourage Sàrl, Lausanne. All rights reserved.</p>
+
+      <ul className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+        {LEGAL_LINKS.map(({ href, label }) => (
+          <li key={href}>
+            <Link
+              href={href}
+              className="transition-colors duration-200 hover:text-white"
+            >
+              {label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+
+      <p className="mt-4">© 2026 MyEntourage Sàrl, Lausanne. All rights reserved.</p>
     </footer>
   );
 }
@@ -1101,6 +1359,10 @@ export default function BelowFold() {
       <SessionsBand />
       <Recognition />
       <Testimonials />
+      {/* The bonuses sit here, immediately above Meet Your Guide, so the
+          reader has seen the proof and knows what lands in their inbox before
+          they are introduced to the person delivering it. */}
+      <Bonuses />
       <Guide />
       <Mechanism />
       <Notice />

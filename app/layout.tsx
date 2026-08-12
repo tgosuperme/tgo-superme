@@ -3,6 +3,7 @@ import { Inter_Tight, Lora } from 'next/font/google';
 
 import { CHECKOUT_CONFIG } from '@/lib/checkout-config';
 
+import LegoObserver from './_landing/lego';
 import './globals.css';
 
 /**
@@ -71,6 +72,10 @@ export default function RootLayout({
             __html: "document.documentElement.classList.add('bw-js')",
           }}
         />
+        {/* One pair of observers for the whole document, mounted here rather
+            than per-page so the lego entrances work identically on the landing
+            page, the checkout and the thank-you page. Renders nothing. */}
+        <LegoObserver />
         {children}
       </body>
     </html>
