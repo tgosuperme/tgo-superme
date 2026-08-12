@@ -110,9 +110,27 @@ export const C = {
 
 export const PRICE = CHECKOUT_CONFIG.amountGbpNumeric;
 export const PRICE_LABEL = `${CHECKOUT_CONFIG.currencySymbol}${CHECKOUT_CONFIG.amountGbpString}`;
+export const CURRENCY_SYMBOL = CHECKOUT_CONFIG.currencySymbol;
+export const CHECKOUT_HREF = CHECKOUT_CONFIG.checkoutPath;
+export const THANK_YOU_HREF = CHECKOUT_CONFIG.thankYouPath;
+
+/* Every date and time string on the site comes through these four, and each
+   one is an env variable — see .env.example. Nothing below should ever hard-
+   code a date, a session time or the "twice a day" label again. */
 export const START_DATE = CHECKOUT_CONFIG.startDate;
 export const SESSION_TIMES = CHECKOUT_CONFIG.sessionTimes;
-export const CHECKOUT_HREF = CHECKOUT_CONFIG.checkoutPath;
+export const SESSIONS_LABEL = CHECKOUT_CONFIG.sessionsLabel;
+export const SESSION_TIMES_TZ = CHECKOUT_CONFIG.sessionTimesWithZone;
+
+export const WHATSAPP_COMMUNITY_URL = CHECKOUT_CONFIG.whatsappCommunityUrl;
+export const CONTACT_EMAIL = CHECKOUT_CONFIG.contactEmail;
+
+/** The three legal pages, in the order they appear in every footer. */
+export const LEGAL_LINKS = [
+  { href: CHECKOUT_CONFIG.privacyPath, label: 'Privacy Policy' },
+  { href: CHECKOUT_CONFIG.termsPath, label: 'Terms of Use' },
+  { href: CHECKOUT_CONFIG.refundsPath, label: 'Refund Policy' },
+];
 
 export function SectionEyebrow({ text }: { text: string }) {
   return (
@@ -120,9 +138,13 @@ export function SectionEyebrow({ text }: { text: string }) {
       className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[10.5px] font-bold uppercase tracking-[0.2em]"
       style={{ background: C.goldSoft, color: C.goldDeep }}
     >
+      {/* 6px rather than the old 4px, with a slow outward pulse. */}
       <span
-        className="inline-block h-1 w-1 rounded-full"
-        style={{ background: C.gold }}
+        className="lego-pulse-dot inline-block h-1.5 w-1.5 shrink-0 rounded-full"
+        style={{
+          background: C.gold,
+          ['--dot-pulse' as string]: 'rgba(16,84,194,0.5)',
+        }}
       />
       {text}
     </span>
@@ -140,11 +162,8 @@ export function PrimaryCTA({
   return (
     <Link
       href={href}
-      className="group inline-flex min-h-[56px] w-full items-center justify-center gap-2 rounded-full px-7 py-4 font-heading text-[15px] font-bold text-white shadow-lg transition-all duration-200 hover:-translate-y-0.5 sm:w-auto"
-      style={{
-        background: C.blueFill,
-        boxShadow: '0 12px 26px -12px rgba(38,140,179,0.55)',
-      }}
+      className="lego-press lego-pulse-glow group inline-flex min-h-[56px] w-full items-center justify-center gap-2 rounded-full px-7 py-4 font-heading text-[15px] font-bold text-white sm:w-auto"
+      style={{ background: C.blueFill }}
     >
       {label}
       <ArrowRight

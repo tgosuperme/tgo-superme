@@ -26,6 +26,7 @@ import {
 } from '@phosphor-icons/react/dist/ssr';
 import Link from 'next/link';
 
+import { legoBrick, legoDelay } from './lego-style';
 import {
   C,
   CHECKOUT_HREF,
@@ -77,8 +78,11 @@ export function Hero() {
             style={{ background: C.lightBlue, color: C.blue }}
           >
             <span
-              className="inline-block h-1.5 w-1.5 rounded-full"
-              style={{ background: C.sky }}
+              className="lego-pulse-dot inline-block h-2 w-2 shrink-0 rounded-full"
+              style={{
+                background: C.sky,
+                ['--dot-pulse' as string]: 'rgba(42,170,239,0.6)',
+              }}
             />
             For Adults 35+ With Persistent Back, Neck or Knee Pain
           </span>
@@ -111,11 +115,8 @@ export function Hero() {
           <div className="mt-8 flex justify-center lg:justify-start">
             <Link
               href={CHECKOUT_HREF}
-              className="group inline-flex min-h-[56px] w-full items-center justify-center gap-2.5 rounded-full px-8 text-[15.5px] font-semibold text-white transition-transform duration-300 hover:-translate-y-0.5 sm:w-auto"
-              style={{
-                background: C.blueFill,
-                boxShadow: '0 14px 30px -12px rgba(38,140,179,0.6)',
-              }}
+              className="lego-press lego-pulse-glow group inline-flex min-h-[56px] w-full items-center justify-center gap-2.5 rounded-full px-8 text-[15.5px] font-semibold text-white sm:w-auto"
+              style={{ background: C.blueFill }}
             >
               Start Your 5-Day Reset · {PRICE_LABEL}
               <ArrowRight
@@ -134,18 +135,20 @@ export function Hero() {
           </p>
 
           <ul className="mt-7 flex flex-wrap justify-center gap-2.5 lg:justify-start">
-            {PILLS.map(({ icon: Icon, text, bed, fg }) => (
+            {PILLS.map(({ icon: Icon, text, bed, fg }, idx) => (
               <li
                 key={text}
-                className="inline-flex items-center gap-2 rounded-full py-2 pl-2 pr-4 text-[13px] font-medium"
+                data-lego=""
+                className="lego-hover-sm inline-flex items-center gap-2 rounded-full py-2 pl-2 pr-4 text-[13px] font-medium"
                 style={{
+                  ...legoBrick(idx, 90),
                   background: C.white,
                   border: `1px solid ${C.line}`,
                   color: C.ink,
                 }}
               >
                 <span
-                  className="inline-flex h-6 w-6 items-center justify-center rounded-full"
+                  className="lego-stud inline-flex h-6 w-6 items-center justify-center rounded-full"
                   style={{ background: bed }}
                 >
                   <Icon weight="bold" className="h-3 w-3" style={{ color: fg }} />
@@ -159,8 +162,13 @@ export function Hero() {
         {/* ══ RIGHT — the offer card ════════════════════════════════════ */}
         <div>
           <div
+            data-lego=""
+            /* No hover lift: this card holds the video player, and shifting the
+               whole panel under the cursor fights the play button inside it.
+               The play button keeps its own press and pulse. */
             className="overflow-hidden rounded-[26px] bg-white"
             style={{
+              ...legoDelay(2, 90),
               border: `1px solid ${C.lineStrong}`,
               boxShadow: '0 24px 60px -34px rgba(24,59,86,0.22)',
             }}
@@ -175,7 +183,7 @@ export function Hero() {
                 <button
                   type="button"
                   aria-label="Play the introduction"
-                  className="grid h-16 w-16 place-items-center rounded-full transition-transform duration-300 hover:scale-105"
+                  className="lego-press lego-pulse grid h-16 w-16 place-items-center rounded-full"
                   style={{
                     background: C.blueFill,
                     boxShadow: '0 12px 26px -10px rgba(38,140,179,0.6)',
@@ -226,11 +234,8 @@ export function Hero() {
 
               <Link
                 href={CHECKOUT_HREF}
-                className="group mt-5 inline-flex min-h-[54px] w-full items-center justify-center gap-2.5 rounded-2xl text-[15.5px] font-semibold text-white transition-transform duration-300 hover:-translate-y-0.5"
-                style={{
-                  background: C.blueFill,
-                  boxShadow: '0 14px 30px -12px rgba(38,140,179,0.55)',
-                }}
+                className="lego-press lego-pulse-glow group mt-5 inline-flex min-h-[54px] w-full items-center justify-center gap-2.5 rounded-2xl text-[15.5px] font-semibold text-white"
+                style={{ background: C.blueFill }}
               >
                 Reserve My Spot
                 <ArrowRight
@@ -276,11 +281,21 @@ function StatsBar() {
           boxShadow: '0 14px 40px -30px rgba(24,59,86,0.28)',
         }}
       >
-        {STATS.map(({ icon: Icon, big, small, bed, fg }) => (
-          <li key={big} className="flex items-center gap-3.5">
+        {STATS.map(({ icon: Icon, big, small, bed, fg }, idx) => (
+          /* lego-hover-icon, not lego-hover-sm: the whole row is the hover
+             target so the hit area stays generous, but only the glyph moves.
+             Lifting a stat's figure and caption drags the eye off the number,
+             which is the one thing in the row worth reading. */
+          <li
+            key={big}
+            data-lego=""
+            className="lego-hover-icon flex items-center gap-3.5 rounded-2xl"
+            style={legoBrick(idx, 85)}
+          >
             <span
-              className="grid h-11 w-11 shrink-0 place-items-center rounded-full"
-              style={{ background: bed }}
+              data-lego-stud=""
+              className="lego-stud grid h-11 w-11 shrink-0 place-items-center rounded-full"
+              style={{ ...legoBrick(idx, 85), background: bed }}
             >
               <Icon weight="bold" className="h-5 w-5" style={{ color: fg }} />
             </span>
