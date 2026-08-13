@@ -49,6 +49,7 @@ import {
 import Link from 'next/link';
 
 import { legoBrick, legoDelay } from '../_landing/lego-style';
+import MobileCtaBar, { MOBILE_CTA_BAR_SPACE } from '../_landing/mobile-cta-bar';
 import {
   C,
   LEGAL_LINKS,
@@ -69,12 +70,14 @@ export type ThankYouProps = {
 };
 
 /**
- * The one action on this page, used twice — the green step-1 card and the
- * closing navy band. Both call it, so the label and the href are defined once.
+ * The one action on this page, used three times — the green step-1 card, the
+ * closing navy band, and the docked mobile bar. All three call it, so the
+ * label and the href are defined once.
  *
  * `tone` only picks the pill's colours for the ground it sits on: white pill
  * with green type on the green card, white pill with navy type on the navy
- * band. The WhatsApp glyph stays WhatsApp green in both.
+ * band, and green fill with white type in the docked bar, which sits on the
+ * page's own white. The WhatsApp glyph stays WhatsApp green on the light ones.
  *
  * When the env URL is unset the button still renders, in a flat non-clickable
  * state, so the layout and the instruction hold. There is deliberately no
@@ -84,16 +87,21 @@ function JoinButton({
   className = '',
   tone,
   label,
+  compact = false,
 }: {
   className?: string;
-  tone: 'onGreen' | 'onNavy';
+  tone: 'onGreen' | 'onNavy' | 'solid';
   label: string;
+  /** The docked-bar size. Shorter, tighter, and smaller type. */
+  compact?: boolean;
 }) {
+  const light = tone !== 'solid';
+
   const inner = (
     <>
       <WhatsappLogo
         weight="fill"
-        className="h-5 w-5"
+        className={compact ? 'h-4 w-4' : 'h-5 w-5'}
         style={{ color: tone === 'onNavy' ? C.greenInk : undefined }}
       />
       {label}
@@ -104,14 +112,29 @@ function JoinButton({
     </>
   );
 
-  const shape =
-    'group inline-flex min-h-[54px] items-center justify-center gap-2.5 rounded-full px-8 text-[15px] font-bold';
+  const shape = compact
+    ? 'group inline-flex min-h-[48px] shrink-0 items-center justify-center gap-2 rounded-full px-5 text-[14px] font-semibold'
+    : 'group inline-flex min-h-[54px] items-center justify-center gap-2.5 rounded-full px-8 text-[15px] font-bold';
+
+  /* Only the two in-flow buttons are watched. The docked one must NOT be, or
+     the bar would observe itself, read as permanently on screen, and hide for
+     good. */
+  const watched = compact ? undefined : '';
 
   if (!HAS_INVITE) {
     return (
       <span
+        data-join-cta={watched}
         className={`${shape} ${className} cursor-default`}
-        style={{ background: 'rgba(255,255,255,0.4)', color: '#FFFFFF' }}
+        /* The two in-flow buttons sit on the green card and the navy band, so a
+           white wash with white type reads as a disabled pill there. The docked
+           one sits on the bar's own white, where that would be invisible — it
+           gets a pale bed and muted ink instead. */
+        style={
+          light
+            ? { background: 'rgba(255,255,255,0.4)', color: '#FFFFFF' }
+            : { background: C.lightBlue, color: C.inkMuted }
+        }
       >
         {inner}
       </span>
@@ -123,12 +146,17 @@ function JoinButton({
       href={WHATSAPP_COMMUNITY_URL}
       target="_blank"
       rel="noopener noreferrer"
-      className={`lego-press lego-pulse ${shape} ${className}`}
-      style={{
-        background: C.white,
-        color: tone === 'onNavy' ? C.ink : C.greenInk,
-        ['--pulse-color' as string]: 'rgba(255,255,255,0.45)',
-      }}
+      data-join-cta={watched}
+      className={`lego-press ${light ? 'lego-pulse' : 'lego-pulse-glow'} ${shape} ${className}`}
+      style={
+        light
+          ? {
+              background: C.white,
+              color: tone === 'onNavy' ? C.ink : C.greenInk,
+              ['--pulse-color' as string]: 'rgba(255,255,255,0.45)',
+            }
+          : { background: C.greenInk, color: C.white }
+      }
     >
       {inner}
     </a>
@@ -711,7 +739,29 @@ export default function ThankYou({
         <p className="mt-4 text-[12px]">
           © 2026 MyEntourage Sàrl, Lausanne. All rights reserved.
         </p>
+
+        {/* The docked bar's height, reserved inside the footer rather than
+            after it — a spacer below the footer would put a pale strip under
+            the navy. Mobile and tablet only, like the bar. */}
+        <div
+          aria-hidden
+          className="lg:hidden"
+          style={{ height: MOBILE_CTA_BAR_SPACE - 24 }}
+        />
       </footer>
+
+      {/* ── docked CTA · mobile and tablet ─────────────────────────────
+          Not gated on HAS_INVITE. A missing invite makes the button flat and
+          non-clickable, the same as the two in-flow ones — the page keeps
+          saying there is one step left either way. */}
+      <MobileCtaBar
+        watch="[data-join-cta]"
+        label="Step 1 of 1"
+        trailing="Join WhatsApp"
+        note="Your Zoom links come through it"
+      >
+        <JoinButton compact tone="solid" label="Join Now" />
+      </MobileCtaBar>
     </main>
   );
 }

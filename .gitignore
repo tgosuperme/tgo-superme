@@ -30,6 +30,10 @@ yarn-error.log*
 .env
 .env.local
 .env*.local
+# the dotless typo. Next.js does not load it, so it is easy to create by
+# mistake and not notice — and the patterns above do not catch it.
+env.local
+env*.local
 
 # vercel
 .vercel

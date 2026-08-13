@@ -30,6 +30,7 @@ import {
 
 import { BONUS_TOTAL, BONUSES } from '../_landing/bonus-data';
 import { legoBrick, legoDelay } from '../_landing/lego-style';
+import MobileCtaBar, { MOBILE_CTA_BAR_SPACE } from '../_landing/mobile-cta-bar';
 import {
   C,
   CURRENCY_SYMBOL,
@@ -285,7 +286,9 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
               </p>
             )}
 
-            <form onSubmit={submit} noValidate className="mt-7 grid gap-4">
+            {/* The id is load-bearing: the docked mobile bar's button submits
+                this form from outside it with `form="checkout-form"`. */}
+            <form id="checkout-form" onSubmit={submit} noValidate className="mt-7 grid gap-4">
               <div className="grid grid-cols-[minmax(0,1fr)] gap-4 sm:grid-cols-2">
                 <Field id="firstName" label="First name" placeholder="Priya"
                   value={f.firstName} onChange={set('firstName')} onBlur={blur('firstName')}
@@ -342,6 +345,7 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
               <button
                 type="submit"
                 disabled={busy}
+                data-checkout-cta=""
                 className="lego-press lego-pulse-glow group mt-2 inline-flex min-h-[56px] w-full items-center justify-center gap-2.5 rounded-full text-[15.5px] font-semibold text-white disabled:cursor-progress disabled:opacity-70"
                 style={{ background: C.blueFill }}
               >
@@ -584,6 +588,54 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
           </aside>
         </div>
       </div>
+
+      {/* Reserves the docked bar's height in normal flow, so the last thing on
+          the page is never sat on. Mobile and tablet only, like the bar. */}
+      <div
+        aria-hidden
+        className="lg:hidden"
+        style={{ height: MOBILE_CTA_BAR_SPACE }}
+      />
+
+      {/* ── docked CTA · mobile and tablet ─────────────────────────── */}
+      <MobileCtaBar
+        watch="[data-checkout-cta]"
+        label="5-Day Pain Reset"
+        trailing={PRICE_LABEL}
+        note={
+          <>
+            <ShieldCheck weight="fill" className="h-3 w-3 shrink-0" style={{ color: C.mintInk }} />
+            Refund by end of Day One
+          </>
+        }
+      >
+        {/* Outside the <form>, so it is associated by id instead. That runs the
+            same `submit` handler — including the validation reveal — rather
+            than a second, drifting copy of it. */}
+        <button
+          type="submit"
+          form="checkout-form"
+          disabled={busy}
+          className="lego-press lego-pulse-glow group inline-flex min-h-[48px] shrink-0 items-center justify-center gap-2 rounded-full px-5 text-[14px] font-semibold text-white disabled:cursor-progress disabled:opacity-70"
+          style={{ background: C.blueFill }}
+        >
+          {busy ? (
+            'Opening…'
+          ) : (
+            <>
+              {/* The full label needs room the narrowest phones do not have. */}
+              <span className="min-[400px]:hidden">Pay {PRICE_LABEL}</span>
+              <span className="hidden min-[400px]:inline">
+                Pay {PRICE_LABEL} &amp; Reserve
+              </span>
+              <ArrowRight
+                weight="bold"
+                className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5"
+              />
+            </>
+          )}
+        </button>
+      </MobileCtaBar>
     </main>
   );
 }
