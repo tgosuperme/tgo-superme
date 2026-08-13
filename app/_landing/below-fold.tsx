@@ -541,7 +541,12 @@ function Testimonials() {
   return (
     <section className="px-4 py-16 sm:py-24" style={{ background: C.white }}>
       <SectionHeading sub="From working professionals and busy parents to people who had stopped moving the way they used to, these are real people who used the Inner Brace Method to improve their mobility, build strength and move with greater ease.">
-        Real People Who Refused To Let Pain Decide What They{' '}
+        {/* Three deliberate lines on desktop, broken on sense rather than
+            wherever the measure happens to run out. Below lg the breaks are
+            display:none, so the headline wraps naturally on a phone. */}
+        Real People Who Refused To Let
+        <br className="hidden lg:inline" /> Pain Decide What They
+        <br className="hidden lg:inline" />{' '}
         <span style={{ color: C.goldDeep }}>Could &amp; Couldn&apos;t Do</span>
       </SectionHeading>
 

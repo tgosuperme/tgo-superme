@@ -111,6 +111,7 @@ async function onPaid(session: Stripe.Checkout.Session) {
        only holds a phone if the session was told to collect one, and this one
        is not. */
     phone: m.phone ?? session.customer_details?.phone ?? '',
+    city: m.city ?? session.customer_details?.address?.city ?? '',
 
     amount: (minor / 100).toFixed(2),
     amount_minor: minor,

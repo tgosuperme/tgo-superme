@@ -25,6 +25,9 @@ export type SalePayload = {
   full_name: string;
   email: string;
   phone: string;
+  /* Collected on the checkout form. Empty for any sale taken before the field
+     was added, so the sheet column can be blank on older rows. */
+  city: string;
 
   /* what they paid */
   amount: string; // decimal, e.g. "6.00", so the sheet reads as currency

@@ -30,7 +30,11 @@ type Body = {
   firstName?: string;
   lastName?: string;
   email?: string;
+  /** Already E.164 from the form, e.g. "+447700900000". */
   phone?: string;
+  /** ISO 3166-1 alpha-2 the buyer picked, kept for segmenting later. */
+  phoneCountry?: string;
+  city?: string;
 };
 
 export async function POST(req: Request) {
@@ -45,12 +49,38 @@ export async function POST(req: Request) {
   const lastName = (body.lastName ?? '').trim();
   const email = (body.email ?? '').trim();
   const phone = (body.phone ?? '').trim();
+  /* Two letters or nothing: this only ever comes from our own <select>, so
+     anything else is a crafted request and is dropped rather than argued with. */
+  const phoneCountry = /^[A-Za-z]{2}$/.test(body.phoneCountry ?? '')
+    ? (body.phoneCountry as string).toUpperCase()
+    : '';
+  /* Collected on the form and carried through to the webhook. Capped at 100
+     characters: Stripe rejects metadata values over 500, and a city that long
+     is a paste accident rather than a place. */
+  const city = (body.city ?? '').trim().slice(0, 100);
 
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  /* Re-checked here, not just in the form. The client validation is for the
+     buyer's benefit; this is the part that actually holds, because a crafted
+     POST never touches the form at all. Kept deliberately looser than the
+     client rules — the server's job is to reject junk, not to second-guess a
+     real person's name or an unusual dialling plan. */
+  if (!email || !/^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/.test(email)) {
     return Response.json({ error: 'A valid email is required.' }, { status: 400 });
   }
-  if (!firstName) {
+  if (firstName.length < 2) {
     return Response.json({ error: 'A first name is required.' }, { status: 400 });
+  }
+  if (lastName.length < 1) {
+    return Response.json({ error: 'A last name is required.' }, { status: 400 });
+  }
+  /* E.164 allows 15 digits at most; anything under 8 including the country
+     code cannot be a reachable mobile. */
+  const phoneDigits = phone.replace(/\D/g, '');
+  if (phoneDigits.length < 8 || phoneDigits.length > 15) {
+    return Response.json({ error: 'A valid mobile number is required.' }, { status: 400 });
+  }
+  if (city.length < 2) {
+    return Response.json({ error: 'A city or town is required.' }, { status: 400 });
   }
 
   if (!stripeConfigured()) {
@@ -94,6 +124,8 @@ export async function POST(req: Request) {
         firstName,
         lastName,
         phone,
+        phoneCountry,
+        city,
         startDate: CHECKOUT_CONFIG.startDate,
         sessionTimes: CHECKOUT_CONFIG.sessionTimes,
       },
