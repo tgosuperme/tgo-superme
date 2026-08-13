@@ -18,12 +18,12 @@ import {
   Clock,
   Heart,
   Lock,
-  Play,
   ShieldCheck,
   Student,
   UsersThree,
   VideoCamera,
 } from '@phosphor-icons/react/dist/ssr';
+import Image from 'next/image';
 import Link from 'next/link';
 
 import { legoBrick, legoDelay } from './lego-style';
@@ -44,8 +44,11 @@ export function OfferStrip() {
       className="w-full px-4 py-2.5 text-center text-[12.5px] font-medium"
       style={{ background: C.lightBlue, color: C.ink }}
     >
+      {/* Two centred lines on a phone, split between WHAT the offer is and
+          WHEN it runs. One line from sm up, where it fits. */}
       <span className="font-semibold">Special offer:</span> 5-Day Pain Reset
       Challenge for {PRICE_LABEL}
+      <br className="sm:hidden" />
       <span className="mx-2" style={{ color: C.blue }}>
         ·
       </span>
@@ -84,7 +87,12 @@ export function Hero() {
                 ['--dot-pulse' as string]: 'rgba(42,170,239,0.6)',
               }}
             />
-            For Adults 35+ With Persistent Back, Neck or Knee Pain
+            {/* Wrapped so the two mobile lines centre against each other
+                rather than ragging off the dot. */}
+            <span className="text-center">
+              For Adults 35+ With Persistent Back,
+              <br className="sm:hidden" /> Neck or Knee Pain
+            </span>
           </span>
 
           {/* Four words carry colour, one accent each: the promise word in
@@ -163,9 +171,6 @@ export function Hero() {
         <div>
           <div
             data-lego=""
-            /* No hover lift: this card holds the video player, and shifting the
-               whole panel under the cursor fights the play button inside it.
-               The play button keeps its own press and pulse. */
             className="overflow-hidden rounded-[26px] bg-white"
             style={{
               ...legoDelay(2, 90),
@@ -173,32 +178,32 @@ export function Hero() {
               boxShadow: '0 24px 60px -34px rgba(24,59,86,0.22)',
             }}
           >
-            {/* Video slot: pale blue field, blue play button, colourful timing
-                badge. Fixed 16:10 so nothing shifts when the still lands. */}
+            {/* The system image replaces the old video slot and its play
+                button. There is no introduction video, so a play control was
+                promising something that did not exist.
+
+                priority + fetchPriority: this is now the hero's largest paint
+                on desktop, so it must not be lazy-loaded. The intrinsic size
+                is passed so the box is reserved before the bytes land and
+                nothing shifts. */}
             <div
               className="relative m-3 overflow-hidden rounded-[18px]"
-              style={{ background: C.paleBlue }}
+              style={{ background: C.white }}
             >
-              <div className="flex aspect-[16/10] w-full items-center justify-center">
-                <button
-                  type="button"
-                  aria-label="Play the introduction"
-                  className="lego-press lego-pulse grid h-16 w-16 place-items-center rounded-full"
-                  style={{
-                    background: C.blueFill,
-                    boxShadow: '0 12px 26px -10px rgba(38,140,179,0.6)',
-                  }}
-                >
-                  <Play weight="fill" className="ml-0.5 h-6 w-6 text-white" />
-                </button>
-              </div>
-              <span
-                className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-[0.12em]"
-                style={{ background: C.yellow, color: C.navy }}
-              >
-                <Clock weight="bold" className="h-3 w-3" />
-                {SESSION_TIMES}
-              </span>
+              {/* No overlay badge. The old one sat top-left over the video
+                  field, which was empty; on this artwork it lands on the Inner
+                  Brace Method roundel. The session times are already carried by
+                  the offer strip above, the pills under the CTA and the docked
+                  bar, so nothing is lost by dropping it. */}
+              <Image
+                src="/bonuses/system-image.png"
+                alt="The 5-Day Pain Reset system: live Zoom sessions twice daily, WhatsApp community support, and the four guides"
+                width={1586}
+                height={992}
+                sizes="(max-width: 1024px) 92vw, 560px"
+                priority
+                className="h-auto w-full"
+              />
             </div>
 
             <div className="px-6 pb-6 pt-3">

@@ -28,66 +28,19 @@
 import { CheckCircle, Lightning } from '@phosphor-icons/react/dist/ssr';
 import Image from 'next/image';
 
+import { BONUS_TOTAL, BONUSES, savingPercent } from './bonus-data';
 import { legoBrick, legoDelay } from './lego-style';
-import { C, CURRENCY_SYMBOL, SectionEyebrow, SectionHeading } from './shared';
+import {
+  C,
+  CURRENCY_SYMBOL,
+  PRICE,
+  PRICE_LABEL,
+  SectionEyebrow,
+  SectionHeading,
+} from './shared';
 
-type Bonus = {
-  n: string;
-  title: string;
-  value: number;
-  body: string;
-  src: string;
-  alt: string;
-  /** Bed + ink for the badge and value line: one accent each, so the four
-      read as a deliberate set rather than four unrelated products. */
-  bed: string;
-  ink: string;
-};
-
-const BONUSES: Bonus[] = [
-  {
-    n: 'Bonus 1',
-    title: 'The Back Pain Relief Guide',
-    value: 9,
-    body: 'The five postures and two breathing techniques Atul uses to take the load off a guarding lower back, in the order that matters: unload first, strengthen after.',
-    src: '/bonuses/back-pain-relief-guide.png',
-    alt: 'The Back Pain Relief Guide',
-    bed: C.coralBed,
-    ink: C.coralInk,
-  },
-  {
-    n: 'Bonus 2',
-    title: 'The Knee Support Guide',
-    value: 6,
-    body: 'Learn which of the two knees you actually have, load-related or arthritic, and the exact strengthening work Atul uses to take pressure off the joint without ever bending a sore knee first.',
-    src: '/bonuses/knee-support-guide.png',
-    alt: 'The Knee Support Guide',
-    bed: C.mintBed,
-    ink: C.mintInk,
-  },
-  {
-    n: 'Bonus 3',
-    title: 'The Neck & Shoulder Relief Guide',
-    value: 7,
-    body: "Atul's posture corrections and daily habit fixes for a neck that's been carrying a decade of screen time, paired with a calming breath practice to ease tension through the shoulders.",
-    src: '/bonuses/neck-shoulder-relief-guide.png',
-    alt: 'The Neck and Shoulder Relief Guide',
-    bed: C.lavenderBed,
-    ink: C.lavenderInk,
-  },
-  {
-    n: 'Bonus 4',
-    title: 'The Unload Breath Guide',
-    value: 5,
-    body: 'Four techniques explained simply, Nadi Shodhana, Ujjayi, diaphragmatic breathing and Kapalabhati: which one calms which kind of tension, and why breath comes before every movement in the Inner Brace Method.',
-    src: '/bonuses/unload-breath-guide.png',
-    alt: 'The Unload Breath Guide',
-    bed: C.peachBed,
-    ink: C.peachInk,
-  },
-];
-
-const TOTAL = BONUSES.reduce((sum, b) => sum + b.value, 0);
+const TOTAL = BONUS_TOTAL;
+const SAVING_PCT = savingPercent(PRICE);
 
 /* Inverted from the rest of the page: the copy sits on the page's pale blue,
    and the cover panel above it is white. That flip means the "instant access"
@@ -113,35 +66,19 @@ export default function Bonuses() {
       </div>
       <SectionHeading sub="Four guides written by Atul, sent the moment you register, so you arrive on Day One already knowing what your body needs.">
         Everything You Get{' '}
+        {/* Desktop breaks the headline into its two natural halves. Below lg it
+            wraps on its own, so the break is suppressed. */}
+        <br className="hidden lg:inline" />
         <span style={{ color: C.goldDeep }}>The Moment You Join</span>
       </SectionHeading>
 
+      {/* The system image used to head this block. It now opens the hero, and
+          running it twice on one page made the second showing read as a
+          mistake rather than a recap — so the section goes straight to the
+          four guides it is actually about. */}
       <div className="mx-auto mt-12 max-w-[1060px]">
-        {/* ── the system, as one wide piece ───────────────────────────── */}
-        <figure
-          data-lego
-          /* No hover: it is a full-bleed illustration, not a control, and
-             lifting a 1060px panel under the cursor is a lot of movement for
-             something you cannot click. Entrance animation only. */
-          className="overflow-hidden rounded-3xl"
-          style={{
-            border: `1px solid ${C.line}`,
-            background: COVER_BED,
-            boxShadow: '0 24px 60px -40px rgba(0,32,98,0.35)',
-          }}
-        >
-          <Image
-            src="/bonuses/system-image.png"
-            alt="The complete 5-Day Pain Reset system: live sessions, WhatsApp support, step-by-step guides and the four bonus guides"
-            width={1586}
-            height={992}
-            sizes="(max-width: 1100px) 100vw, 1060px"
-            className="h-auto w-full"
-          />
-        </figure>
-
         {/* ── the four guides, 2 × 2 ─────────────────────────────────── */}
-        <ul className="mt-5 grid gap-5 sm:grid-cols-2">
+        <ul className="grid gap-5 sm:grid-cols-2">
           {BONUSES.map((b, i) => (
             <li
               key={b.title}
@@ -189,9 +126,17 @@ export default function Bonuses() {
                 >
                   {b.title}
                 </h3>
-                <p className="mt-1 text-[13px] font-semibold" style={{ color: b.ink }}>
-                  ({CURRENCY_SYMBOL}
-                  {b.value} value)
+                {/* Sized up from 13px: at that size the value read as a
+                    footnote to the title rather than as part of the offer. */}
+                <p
+                  className="mt-1.5 font-heading text-[17px] font-bold leading-none"
+                  style={{ color: b.ink }}
+                >
+                  {CURRENCY_SYMBOL}
+                  {b.value}
+                  <span className="ml-1.5 text-[12px] font-semibold uppercase tracking-[0.1em]">
+                    value
+                  </span>
                 </p>
                 <p
                   className="mt-2.5 flex-1 text-[13.5px] leading-relaxed"
@@ -226,29 +171,53 @@ export default function Bonuses() {
           ))}
         </ul>
 
-        {/* ── the total ──────────────────────────────────────────────── */}
+        {/* ── the value block ────────────────────────────────────────── */}
         <div
           data-lego=""
-          className="lego-hover-sm mx-auto mt-5 flex max-w-[560px] flex-col items-center justify-between gap-2 rounded-3xl px-7 py-6 text-center sm:flex-row sm:text-left"
+          className="lego-hover-sm mx-auto mt-5 max-w-[560px] rounded-3xl px-7 py-7 text-center"
           style={{
             ...legoDelay(4, 90),
             background: C.paleBlue,
             border: `1px solid ${C.line}`,
           }}
         >
-          <span
+          <p
             className="text-[11px] font-bold uppercase tracking-[0.18em]"
             style={{ color: C.inkMuted }}
           >
             Total value of the four guides
-          </span>
-          <span
-            className="font-heading text-[30px] font-bold leading-none"
-            style={{ color: C.goldDeep }}
+          </p>
+
+          <p className="mt-3 flex flex-wrap items-baseline justify-center gap-x-3 gap-y-1">
+            {/* The struck value is decoration around the real number, so it is
+                aria-hidden and the readable price carries the meaning. */}
+            <span
+              aria-hidden
+              className="font-heading text-[26px] font-bold leading-none line-through"
+              style={{ color: C.inkMuted, textDecorationThickness: '2px' }}
+            >
+              {CURRENCY_SYMBOL}
+              {TOTAL}
+            </span>
+            <span
+              className="font-heading text-[40px] font-bold leading-none"
+              style={{ color: C.goldDeep }}
+            >
+              {PRICE_LABEL}
+            </span>
+          </p>
+
+          <p
+            className="mx-auto mt-3.5 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em]"
+            style={{ background: C.greenBed, color: C.greenInk }}
           >
-            {CURRENCY_SYMBOL}
-            {TOTAL}
-          </span>
+            <Lightning weight="fill" className="h-3 w-3" />
+            You save {SAVING_PCT}%
+          </p>
+
+          <p className="mt-3 text-[12.5px]" style={{ color: C.inkMuted }}>
+            All four are included with your place on the challenge.
+          </p>
         </div>
       </div>
     </section>
