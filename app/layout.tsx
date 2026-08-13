@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter_Tight, Lora } from 'next/font/google';
+import { Inter } from 'next/font/google';
 
 import { CHECKOUT_CONFIG } from '@/lib/checkout-config';
 
@@ -7,23 +7,23 @@ import LegoObserver from './_landing/lego';
 import './globals.css';
 
 /**
- * Typography follows the Dr Deepali pairing rather than the postpartum one:
- * Lora for display, Inter Tight for body. A serif headline reads considered
- * rather than energetic, which is the register this audience needs.
+ * One face, Inter, across the whole site. The Lora + Inter Tight pairing it
+ * replaces is gone entirely.
+ *
+ * Hierarchy is carried by WEIGHT and SIZE rather than by a change of face:
+ * 400 body, 500/600 for emphasis and UI labels, 700/800 for headlines. Both
+ * CSS variables resolve to the same font on purpose, so every existing
+ * font-heading and font-body class keeps working and the roles stay named for
+ * whenever a second face comes back.
+ *
+ * One family, one download: the extra weights ride the axis Inter already
+ * ships, so they cost nothing beyond what is being loaded anyway.
  */
-const heading = Lora({
+const inter = Inter({
   subsets: ['latin'],
-  weight: ['500', '600', '700'],
-  variable: '--font-heading',
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-sans',
   display: 'swap',
-});
-
-const body = Inter_Tight({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-body',
-  display: 'swap',
-  preload: false,
 });
 
 const PRICE = `${CHECKOUT_CONFIG.currencySymbol}${CHECKOUT_CONFIG.amountGbpString}`;
@@ -61,7 +61,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en-GB" className={`${heading.variable} ${body.variable}`}>
+    <html lang="en-GB" className={inter.variable}>
       <body>
         {/* Marks the document as JS-capable BEFORE first paint, so the CSS
             scroll reveals (.bw-js .bw-reveal-*) only hide content when JS is

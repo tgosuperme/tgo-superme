@@ -20,7 +20,7 @@ body {
   margin: 0;
   background: var(--canvas);
   color: var(--ink);
-  font-family: var(--font-body), system-ui, sans-serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -32,11 +32,20 @@ body {
   line-height: 1.6;
 }
 
+/* Inter is a grotesque, not the serif this replaced: at headline sizes it
+   needs negative tracking to stop looking loose, where the serif wanted none.
+   Weight is left to the utility classes, which already carry font-bold. */
 h1,
 h2,
 h3 {
-  font-family: var(--font-heading), Georgia, serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  letter-spacing: -0.02em;
   margin: 0;
+}
+
+/* The tightest setting is reserved for the biggest lines. */
+h1 {
+  letter-spacing: -0.03em;
 }
 
 p {
@@ -421,7 +430,7 @@ button {
   background: #ffffff;
   border: 2px solid #c3dcf5;
   color: #4a5b80;
-  font-family: var(--font-heading), Georgia, serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
   font-size: 14px;
   font-weight: 700;
   line-height: 1;

@@ -32,9 +32,12 @@ const config: Config = {
         line: { DEFAULT: '#DCE9F9', strong: '#C3DCF5' },
       },
       fontFamily: {
-        heading: ['var(--font-heading)', 'Georgia', 'serif'],
-        body: ['var(--font-body)', 'system-ui', 'sans-serif'],
-        editorial: ['var(--font-heading)', 'Georgia', 'serif'],
+        /* All three resolve to Inter. The role names stay so the markup does
+           not have to change, and so a second face could be reintroduced in
+           one place if the brand ever grows one. */
+        heading: ['var(--font-sans)', 'system-ui', 'sans-serif'],
+        body: ['var(--font-sans)', 'system-ui', 'sans-serif'],
+        editorial: ['var(--font-sans)', 'system-ui', 'sans-serif'],
       },
       borderRadius: { pill: '999px' },
       boxShadow: {

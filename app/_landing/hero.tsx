@@ -26,6 +26,8 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 
+import BrandMark from '@/components/BrandMark';
+
 import { legoBrick, legoDelay } from './lego-style';
 import {
   C,
@@ -57,6 +59,19 @@ export function OfferStrip() {
   );
 }
 
+/* ── 1b. Site header ──────────────────────────────────────────────────────
+   The logo alone, centred on mobile and left-aligned from sm up. No nav: this
+   is a single-offer page and every link out of it is a way to not buy. */
+export function SiteHeader() {
+  return (
+    <header className="bg-white">
+      <div className="mx-auto flex max-w-[1180px] items-center justify-center px-5 py-4 sm:justify-start md:px-8">
+        <BrandMark height={42} priority />
+      </div>
+    </header>
+  );
+}
+
 /* ── the three information pills under the CTA ────────────────────────── */
 const PILLS = [
   { icon: CalendarBlank, text: `Starts ${START_DATE}`, bed: C.lightBlue, fg: C.skyInk },
@@ -67,7 +82,9 @@ const PILLS = [
 /* ── 2. Hero ──────────────────────────────────────────────────────────── */
 export function Hero() {
   return (
-    <section data-hero className="bg-white pb-6 pt-10 md:pt-14 lg:pt-16">
+    /* Top padding is lighter than it was: the header now sits above this
+       and supplies most of the breathing room the hero used to make. */
+    <section data-hero className="bg-white pb-6 pt-4 md:pt-7 lg:pt-9">
       <div className="mx-auto grid max-w-[1180px] items-center gap-12 px-5 md:px-8 lg:grid-cols-[1.02fr_0.98fr] lg:gap-16">
         {/* ══ LEFT ══════════════════════════════════════════════════════ */}
         <div className="text-center lg:text-left">

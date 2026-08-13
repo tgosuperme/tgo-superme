@@ -8,7 +8,7 @@
  */
 import dynamic from 'next/dynamic';
 
-import { Hero, OfferStrip } from './_landing/hero';
+import { Hero, OfferStrip, SiteHeader } from './_landing/hero';
 import { C, CHECKOUT_HREF, PRICE_LABEL, SESSION_TIMES, START_DATE } from './_landing/shared';
 import StickyCta from './_landing/sticky-cta';
 
@@ -30,6 +30,7 @@ export default function Page() {
       style={{ background: C.white, color: C.ink }}
     >
       <OfferStrip />
+      <SiteHeader />
       <Hero />
       <BelowFold />
       {/* Docked from the first screen — see the note in sticky-cta.tsx. It
