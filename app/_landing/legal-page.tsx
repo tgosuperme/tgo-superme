@@ -14,8 +14,10 @@
  * Every "get in touch" route on all three pages resolves to one address, from
  * NEXT_PUBLIC_CONTACT_EMAIL.
  */
-import { ArrowLeft, ShieldCheck } from '@phosphor-icons/react/dist/ssr';
+import { ArrowLeft } from '@phosphor-icons/react/dist/ssr';
 import Link from 'next/link';
+
+import BrandMark from '@/components/BrandMark';
 
 import { legoDelay } from './lego-style';
 import { C, CONTACT_EMAIL, LEGAL_LINKS } from './shared';
@@ -49,16 +51,8 @@ export default function LegalPage({
       {/* ── header ─────────────────────────────────────────────────── */}
       <header style={{ background: C.white, borderBottom: `1px solid ${C.line}` }}>
         <div className="mx-auto flex max-w-[1120px] items-center justify-between gap-4 px-5 py-4 md:px-8">
-          <Link href="/" className="flex items-center gap-2.5">
-            <span
-              className="lego-stud grid h-9 w-9 place-items-center rounded-xl"
-              style={{ background: C.blueFill }}
-            >
-              <ShieldCheck weight="fill" className="h-4 w-4 text-white" />
-            </span>
-            <span className="font-heading text-[17px] font-bold" style={{ color: C.ink }}>
-              SuperMe
-            </span>
+          <Link href="/" aria-label="SuperMe home" className="inline-flex items-center">
+            <BrandMark height={34} />
           </Link>
           <Link
             href="/"

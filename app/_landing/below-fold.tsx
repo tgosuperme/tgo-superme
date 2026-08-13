@@ -14,6 +14,7 @@
  *   9  What people notice ......... page 9
  * 10a  Come to Day One (promise) ... page 10
  * 10b  The two options .......... page 10
+ * 10c  The people behind this .... NOT in the PDF, written from the about page
  *  11  FAQ ........................ page 11
  *  12  Important information ...... page 12
  *
@@ -45,13 +46,17 @@ import {
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 
+import BrandMark from '@/components/BrandMark';
+
 import Bonuses from './bonuses';
 import { legoBrick, legoDelay } from './lego-style';
 import { domAnimation, LazyMotion, m, type Variants } from './motion-lite';
 import {
   C,
+  CtaNote,
   LEGAL_LINKS,
   PRICE_LABEL,
+  PrimaryCTA,
   SectionEyebrow,
   SectionHeading,
   SESSION_TIMES,
@@ -1177,6 +1182,253 @@ const FAQS = [
   },
 ];
 
+/* ── section 10c · the people behind this challenge ───────────────────────
+   Sits after the close and before the FAQ, and deliberately does NOT sell
+   again. Its job is the last surviving objection: who are these people, and
+   why trust a £6 Zoom link? So it runs on authority and on taking the blame
+   off the reader, and every principle re-explains a feature of the challenge
+   they have already read about, which is what stops it reading as a corporate
+   about-us block.
+
+   HARD RULE, set by Atul and true for the WHOLE funnel, not just this section:
+   SuperMe is never presented as a platform or a marketplace of experts. The
+   reader meets SuperMe as the brand behind this challenge and Atul as its
+   teacher, nothing more. That rules out an assessment that matches you to
+   someone, an expert roster or acceptance rate, vetting described as something
+   done to a pool of applicants, a services catalogue, and algorithms that pick
+   people for you.
+
+   Nor is the SuperMe-to-Atul relationship ever described: not hired, not
+   selected, not vetted, not "he got here". The funnel never establishes one
+   anywhere else, so inventing it here would raise a question the page cannot
+   answer. Atul is simply the teacher; SuperMe simply runs the challenge.
+
+   Founder photos are the ones published on mysuperme.com/about, re-cropped to
+   matching squares so the two heads sit at the same scale. */
+
+const PRINCIPLES = [
+  {
+    icon: ShieldCheck,
+    bed: C.skyBed,
+    fg: C.skyInk,
+    title: 'Trust is earned, not assumed',
+    body: 'E-RYT 500 certified. A postgraduate diploma in Yoga Education from Kaivalyadhama. 16+ years of teaching. Every credential and every number on this page can be evidenced, and nothing goes on it until it can.',
+  },
+  {
+    icon: VideoCamera,
+    bed: C.mintBed,
+    fg: C.mintInk,
+    title: 'Human connection over convenience',
+    body: 'Convenience would be a video you press play on and follow alone. We would rather you were actually seen: five days live on Zoom, with a teacher watching how you move and correcting you in the moment.',
+  },
+  {
+    icon: Ruler,
+    bed: C.peachBed,
+    fg: C.peachInk,
+    title: 'Precision over volume',
+    body: 'We would rather get one thing right than give you twenty things to try. So this is one method, one teacher, five days. Nothing else to choose between.',
+  },
+  {
+    icon: CheckCircle,
+    bed: C.lavenderBed,
+    fg: C.lavenderInk,
+    title: 'Progress, not performance',
+    body: 'Nobody is asking you to be impressive. You show up at 7 AM or 7 PM, you do the small thing properly, and you do it again the next day. That is the whole ask.',
+  },
+];
+
+const FOUNDERS = [
+  {
+    photo: '/brand/founders/sriram-natarajan.jpg',
+    name: 'Sriram Natarajan',
+    role: 'Co-founder',
+    body: 'Comes from technology and venture-building. Leads the direction, the growth and the commercial side of SuperMe.',
+  },
+  {
+    photo: '/brand/founders/stephane-bezencon.jpg',
+    name: 'Stéphane Daniel Bezençon',
+    role: 'Co-founder',
+    body: 'Precise and considered by nature. Oversees operations and the standard every session run under the SuperMe name has to meet.',
+  },
+];
+
+function Initiative() {
+  return (
+    <section className="px-4 py-16 sm:py-24" style={{ background: C.white }}>
+      <div className="mx-auto max-w-[1060px]">
+        <m.div
+          variants={fadeUp}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, amount: 0.25 }}
+          className="text-center"
+        >
+          <SectionEyebrow text="THE PEOPLE BEHIND THIS CHALLENGE" />
+          <h2
+            className="mx-auto mt-4 max-w-[820px] font-heading text-[clamp(26px,4vw,40px)] font-bold leading-[1.15]"
+            style={{ color: C.ink }}
+          >
+            The hard part was never the exercise. It was{' '}
+            <span style={{ color: C.goldDeep }}>knowing who to listen to.</span>
+          </h2>
+
+          <p
+            className="mx-auto mt-5 max-w-[720px] text-[15px] leading-relaxed sm:text-[15.5px]"
+            style={{ color: C.inkSoft }}
+          >
+            Most people carrying pain have been passed between opinions for
+            years. Stretch more. Rest it. Push through. By the time you find
+            someone worth your time, you have already given up twice.
+          </p>
+        </m.div>
+
+        {/* The mission, framed as its own object rather than run on as more
+            body copy. It is the pivot from the reader's problem to the
+            company, so it has to land as a statement, not as a sentence you
+            skim past. */}
+        <m.div
+          variants={fadeUp}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, amount: 0.3 }}
+          className="mx-auto mt-10 max-w-[760px] rounded-3xl px-6 py-7 text-center sm:px-10"
+          style={{ background: C.canvas, border: `1px solid ${C.line}` }}
+        >
+          <p
+            className="font-heading text-[clamp(18px,2.5vw,25px)] font-bold leading-[1.35]"
+            style={{ color: C.ink }}
+          >
+            <span style={{ color: C.goldDeep }}>Becoming more, every day.</span>{' '}
+            Not transformation. Not reinvention. Small, consistent,
+            expert-guided progress.
+          </p>
+        </m.div>
+
+        {/* ── principles ───────────────────────────────────────────────── */}
+        <p
+          className="mt-14 text-center text-[10.5px] font-bold uppercase tracking-[0.2em]"
+          style={{ color: C.inkMuted }}
+        >
+          What we hold ourselves to
+        </p>
+
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          {PRINCIPLES.map(({ icon: Icon, bed, fg, title, body }, i) => (
+            <m.div
+              key={title}
+              variants={fadeUpSm}
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ delay: i * 0.06 }}
+              className="rounded-2xl border p-6 sm:p-7"
+              style={{ borderColor: C.line, background: C.white }}
+            >
+              <span
+                className="grid h-10 w-10 place-items-center rounded-xl"
+                style={{ background: bed }}
+              >
+                <Icon weight="bold" className="h-5 w-5" style={{ color: fg }} />
+              </span>
+              <h3
+                className="mt-4 font-heading text-[17px] font-bold leading-snug"
+                style={{ color: C.ink }}
+              >
+                {title}
+              </h3>
+              <p
+                className="mt-2 text-[14px] leading-relaxed"
+                style={{ color: C.inkSoft }}
+              >
+                {body}
+              </p>
+            </m.div>
+          ))}
+        </div>
+
+        {/* ── founders ─────────────────────────────────────────────────── */}
+        <p
+          className="mt-14 text-center text-[10.5px] font-bold uppercase tracking-[0.2em]"
+          style={{ color: C.inkMuted }}
+        >
+          Our founders
+        </p>
+
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          {FOUNDERS.map(({ photo, name, role, body }) => (
+            <m.div
+              key={name}
+              variants={fadeUpSm}
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, amount: 0.3 }}
+              className="flex flex-col items-center gap-4 rounded-2xl border p-6 text-center sm:flex-row sm:items-start sm:gap-5 sm:text-left"
+              style={{ borderColor: C.line, background: C.canvas }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={photo}
+                alt={name}
+                width={440}
+                height={440}
+                className="h-[92px] w-[92px] shrink-0 rounded-full object-cover"
+                style={{ border: `1px solid ${C.lineStrong}` }}
+                loading="lazy"
+              />
+              <span className="min-w-0">
+                <span
+                  className="block font-heading text-[16.5px] font-bold leading-snug"
+                  style={{ color: C.ink }}
+                >
+                  {name}
+                </span>
+                <span
+                  className="mt-1 block text-[10.5px] font-bold uppercase tracking-[0.16em]"
+                  style={{ color: C.goldDeep }}
+                >
+                  {role}
+                </span>
+                <span
+                  className="mt-2.5 block text-[13.5px] leading-relaxed"
+                  style={{ color: C.inkSoft }}
+                >
+                  {body}
+                </span>
+              </span>
+            </m.div>
+          ))}
+        </div>
+
+        <p
+          className="mx-auto mt-6 max-w-[720px] text-center text-[12.5px] leading-relaxed"
+          style={{ color: C.inkMuted }}
+        >
+          SuperMe is operated by MyEntourage Sàrl, Lausanne, Switzerland, and
+          works with people across the UK, EU and Switzerland. SuperMe is a yoga
+          and movement education service, not a medical service.
+        </p>
+
+        {/* ── the quiet mop-up click ─────────────────────────────────────
+            No closing paragraph above it by choice: the close is one section
+            up, and a second summing-up here made this read as a pause in the
+            page rather than a reassurance. */}
+        <m.div
+          variants={fadeUp}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, amount: 0.3 }}
+          className="mt-11 flex flex-col items-center"
+        >
+          <PrimaryCTA label={`Hold my place for ${PRICE_LABEL}`} />
+          <CtaNote
+            text={`Come to Day One. If it is not for you, tell us by the end of that day and we refund the ${PRICE_LABEL} in full.`}
+          />
+        </m.div>
+      </div>
+    </section>
+  );
+}
+
 function Faq() {
   const [open, setOpen] = useState<number | null>(0);
   return (
@@ -1318,6 +1570,12 @@ function Footer() {
       className="px-4 py-10 text-center text-[12.5px]"
       style={{ background: C.ink, color: 'rgba(250,245,234,0.6)' }}
     >
+      {/* Solid white here: the navy half of the logo would disappear into this
+          background at full colour. */}
+      <span className="mb-5 inline-flex">
+        <BrandMark height={40} onDark />
+      </span>
+
       {/* One sentence on desktop; two centred lines on a phone, split at the
           natural break between WHEN it runs and WHAT it costs. The separator
           before the price is dropped on mobile — a line that opens with a
@@ -1373,6 +1631,7 @@ export default function BelowFold() {
       <Notice />
       <Promise />
       <TwoOptions />
+      <Initiative />
       <Faq />
       <LegalNotice />
       <Footer />

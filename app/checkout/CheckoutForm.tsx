@@ -17,6 +17,7 @@ import {
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 
+import BrandMark from '@/components/BrandMark';
 import PaymentLogos from '@/components/PaymentLogos';
 
 import {
@@ -201,17 +202,7 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
       {/* ── header ─────────────────────────────────────────────────── */}
       <header style={{ background: C.paleBlue, borderBottom: `1px solid ${C.line}` }}>
         <div className="mx-auto flex max-w-[1120px] items-center justify-between gap-4 px-5 py-4 md:px-8">
-          <span className="flex items-center gap-2.5">
-            <span
-              className="grid h-9 w-9 place-items-center rounded-xl"
-              style={{ background: C.blueFill }}
-            >
-              <ShieldCheck weight="fill" className="h-4 w-4 text-white" />
-            </span>
-            <span className="font-heading text-[17px] font-bold" style={{ color: C.ink }}>
-              SuperMe
-            </span>
-          </span>
+          <BrandMark height={34} priority />
           <Link
             href="/"
             className="inline-flex items-center gap-1.5 text-[13.5px] font-medium"
