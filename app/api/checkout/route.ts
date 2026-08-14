@@ -1,4 +1,7 @@
+import { randomUUID } from 'node:crypto';
+
 import { CHECKOUT_CONFIG } from '@/lib/checkout-config';
+import { browserContext, capiConfigured, sendCapiEvent } from '@/lib/meta-capi';
 import { getStripe, siteOrigin, stripeConfigured } from '@/lib/stripe';
 
 /**
@@ -35,6 +38,15 @@ type Body = {
   /** ISO 3166-1 alpha-2 the buyer picked, kept for segmenting later. */
   phoneCountry?: string;
   city?: string;
+  /* ── Meta match keys, read from the browser by the form ──────────────
+     These exist ONLY in the buyer's browser and only until they leave for
+     Stripe, so they are collected here and carried through the payment in
+     the session's metadata. See lib/meta-capi.ts for the full path. */
+  fbp?: string;
+  fbc?: string;
+  /** Minted in the browser for ic_event, so both halves share one id. */
+  icEventId?: string;
+  eventSourceUrl?: string;
 };
 
 export async function POST(req: Request) {
@@ -58,6 +70,25 @@ export async function POST(req: Request) {
      characters: Stripe rejects metadata values over 500, and a city that long
      is a paste accident rather than a place. */
   const city = (body.city ?? '').trim().slice(0, 100);
+
+  /* Metadata values are capped at 500 characters by Stripe, so every one of
+     these is trimmed to fit rather than risking a rejected session over a
+     tracking field. A truncated fbc is useless, but a failed checkout is
+     worse. */
+  const fbp = (body.fbp ?? '').trim().slice(0, 255);
+  const fbc = (body.fbc ?? '').trim().slice(0, 255);
+  const eventSourceUrl = (body.eventSourceUrl ?? '').trim().slice(0, 400);
+
+  /* THE IP AND USER AGENT MUST BE TAKEN HERE. The Stripe webhook that fires
+     the `sales` event is a request from Stripe's servers, so reading them
+     there would send Meta Stripe's datacentre instead of the buyer. */
+  const { clientIp, clientUserAgent } = browserContext(req);
+
+  /* One id, shared by the browser's `sales` event on the thank-you page and by
+     the server event from the webhook, so Meta collapses the pair into a
+     single conversion instead of counting the sale twice. */
+  const capiEventId = randomUUID();
+  const icEventId = (body.icEventId ?? '').trim().slice(0, 100);
 
   /* Re-checked here, not just in the form. The client validation is for the
      buyer's benefit; this is the part that actually holds, because a crafted
@@ -128,6 +159,15 @@ export async function POST(req: Request) {
         city,
         startDate: CHECKOUT_CONFIG.startDate,
         sessionTimes: CHECKOUT_CONFIG.sessionTimes,
+        /* Meta's parcel, opened again in the webhook. Stripe returns metadata
+           verbatim on checkout.session.completed, which is what makes this
+           work without a database. */
+        capiEventId,
+        fbp,
+        fbc,
+        clientIp,
+        clientUserAgent,
+        eventSourceUrl,
       },
       payment_intent_data: {
         description: `5-Day Pain Reset (${price}): ${firstName} ${lastName}`.trim(),
@@ -149,6 +189,45 @@ export async function POST(req: Request) {
         { error: 'Could not open the payment page. Please try again.' },
         { status: 502 },
       );
+    }
+
+    /* ── ic_event, server half ────────────────────────────────────────
+       Sent AFTER the session opens, so a Meta outage can never stop someone
+       paying, and awaited rather than fired and forgotten, because a
+       serverless function can be frozen the moment it returns a response and
+       a dangling promise would simply never be delivered.
+
+       Everything Meta can match on is already in hand at this point: the
+       details the buyer just typed, their real IP and user agent from THIS
+       request, and the cookies the form sent with it. */
+    if (capiConfigured() && icEventId) {
+      try {
+        await sendCapiEvent({
+          eventName: CHECKOUT_CONFIG.capi.events.initiateCheckout,
+          eventId: icEventId,
+          eventTime: Math.floor(Date.now() / 1000),
+          eventSourceUrl,
+          user: {
+            email,
+            phone,
+            firstName,
+            lastName,
+            city,
+            country: phoneCountry || 'GB',
+            fbp,
+            fbc,
+            clientIp,
+            clientUserAgent,
+          },
+          value: CHECKOUT_CONFIG.capi.value,
+          currency: CHECKOUT_CONFIG.capi.currency,
+        });
+      } catch (err) {
+        /* Logged, never thrown: the session is already open and the buyer is
+           about to be redirected. Losing an ic_event is a reporting gap;
+           failing this response is a lost sale. */
+        console.error('[checkout] ic_event failed', err);
+      }
     }
 
     return Response.json({ url: session.url });

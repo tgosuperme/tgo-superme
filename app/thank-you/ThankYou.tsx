@@ -149,6 +149,10 @@ function JoinButton({
       target="_blank"
       rel="noopener noreferrer"
       data-join-cta={watched}
+      /* Marks all three instances (both in-flow buttons and the docked one)
+         for the GA join_whatsapp listener. Separate from data-join-cta, which
+         only tags the two the mobile bar watches. */
+      data-ga-join=""
       className={`lego-press ${light ? 'lego-pulse' : 'lego-pulse-glow'} ${shape} ${className}`}
       style={
         light

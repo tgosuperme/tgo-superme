@@ -623,7 +623,12 @@ function Guide() {
             exif-transposed, centre-cropped to its frame's aspect and
             re-encoded into public/atul at display size (275/128/119KB).
             The earlier note that these were a demonstrator no longer applies:
-            it is him in every frame, so the alt text names him. */}
+            it is him in every frame, so the alt text names him.
+
+            The large frame is IMG_1367 from that same folder, cropped to the
+            3:4 the tile renders at and sized so he fills a little under 60% of
+            it, matching the presence of the warrior shot it replaced. Dropped
+            in uncropped he was a small figure in a lot of garden. */}
         <div className="grid grid-cols-[1.25fr_1fr] gap-3 lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:self-center">
           <div
             data-lego=""
@@ -632,8 +637,8 @@ function Guide() {
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/atul/atul-warrior.jpg"
-              alt="Atul Mishra in a standing warrior posture"
+              src="/atul/atul-primary.jpg"
+              alt="Atul Mishra seated cross-legged with his hands together at his chest"
               width={900}
               height={1200}
               className="aspect-[3/4] h-full w-full object-cover"

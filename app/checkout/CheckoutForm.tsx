@@ -18,6 +18,9 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 
 import BrandMark from '@/components/BrandMark';
+import { getFbc, newEventId, readCookie, trackCustom } from '@/components/MetaPixel';
+import { CHECKOUT_CONFIG } from '@/lib/checkout-config';
+import { GA_EVENTS, GA_VALUE, gaEvent } from '@/lib/ga';
 import PaymentLogos from '@/components/PaymentLogos';
 
 import {
@@ -34,7 +37,9 @@ import { legoBrick, legoDelay } from '../_landing/lego-style';
 import MobileCtaBar, { MOBILE_CTA_BAR_SPACE } from '../_landing/mobile-cta-bar';
 import {
   C,
+  CURRENCY_CODE,
   CURRENCY_SYMBOL,
+  PRICE,
   PRICE_LABEL,
   SESSION_TIMES,
   START_DATE,
@@ -67,6 +72,10 @@ type Fields = {
   city: string;
 };
 type FieldKey = keyof Fields;
+
+/* Challenge + bonuses, summed rather than written down, so the struck figure
+   on the order summary can never drift from the two lines it is made of. */
+const FULL_VALUE = PRICE + BONUS_TOTAL;
 
 const INCLUDED = [
   { icon: VideoCamera, text: 'Five live, coach-led sessions on Zoom' },
@@ -169,6 +178,25 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
     setFailed('');
     if (!valid || busy) return;
     setBusy(true);
+
+    /* Meta's browser-only match keys, read HERE because this is the last
+       moment they exist. The buyer is about to be handed to Stripe, and the
+       webhook that eventually fires the Conversions API event runs on Stripe's
+       infrastructure: no cookies, no fbclid, none of this. Sent with the rest
+       of the details and parked in the Checkout Session's metadata. */
+    const fbp = readCookie('_fbp');
+    const fbc = getFbc();
+
+    /* ic_event, browser half. The server half is sent from /api/checkout while
+       it opens the Stripe session, using this same id so Meta collapses the
+       pair into one conversion. */
+    const icEventId = newEventId();
+    trackCustom(CHECKOUT_CONFIG.capi.events.initiateCheckout, icEventId, {
+      value: PRICE,
+      currency: CURRENCY_CODE,
+    });
+    gaEvent(GA_EVENTS.initiateCheckout, GA_VALUE);
+
     try {
       const res = await fetch('/api/checkout', {
         method: 'POST',
@@ -182,6 +210,12 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
           phone: toE164(iso, f.phone),
           phoneCountry: iso,
           city: f.city.trim(),
+          fbp,
+          fbc,
+          icEventId,
+          /* The page the conversion started on. Stripe's success redirect is
+             a different URL, so it cannot be derived later. */
+          eventSourceUrl: window.location.href,
         }),
       });
       const json = await res.json().catch(() => ({}));
@@ -505,12 +539,14 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
                   >
                     {b.title}
                   </span>
-                  {/* Decoration around the real total below, so it is hidden
-                      from assistive tech rather than read out as a price. */}
+                  {/* Not struck, matching the bonus total below. These four
+                      add up to that total, which is then added to the
+                      challenge price to make the one struck figure at the
+                      bottom. Crossing them here would cross the same money
+                      twice and read as two separate discounts. */}
                   <span
-                    aria-hidden
-                    className="shrink-0 text-[13px] font-semibold line-through"
-                    style={{ color: C.inkMuted }}
+                    className="shrink-0 text-[13px] font-semibold"
+                    style={{ color: C.inkSoft }}
                   >
                     {CURRENCY_SYMBOL}
                     {b.value}
@@ -521,10 +557,14 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
 
             <div className="my-5 h-px" style={{ background: C.lineStrong }} />
 
+            {/* The two components of the struck total below, both stated
+                PLAINLY. Neither is struck here: they are what the £33 is made
+                of, and striking a number twice (once as a component, once
+                inside the total) reads as two different discounts. */}
             <div className="grid gap-2">
               <div className="flex items-baseline justify-between">
                 <span className="text-[13.5px]" style={{ color: C.inkSoft }}>
-                  Subtotal
+                  Challenge value
                 </span>
                 <span className="text-[13.5px] font-semibold" style={{ color: C.ink }}>
                   {PRICE_LABEL}
@@ -534,11 +574,7 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
                 <span className="text-[13.5px]" style={{ color: C.inkSoft }}>
                   Total bonus value
                 </span>
-                <span
-                  aria-hidden
-                  className="text-[13.5px] font-semibold line-through"
-                  style={{ color: C.inkMuted }}
-                >
+                <span className="text-[13.5px] font-semibold" style={{ color: C.ink }}>
                   {CURRENCY_SYMBOL}
                   {BONUS_TOTAL}
                 </span>
@@ -554,11 +590,25 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
               >
                 Total due today
               </span>
-              <span
-                className="font-heading text-[36px] font-bold leading-none"
-                style={{ color: C.goldDeep }}
-              >
-                {PRICE_LABEL}
+              <span className="flex items-baseline gap-2.5">
+                {/* The two lines above, added up and struck. DERIVED, never
+                    typed, so it can never disagree with them. aria-hidden
+                    because a screen reader announcing two prices in a row
+                    reads as a genuine change of price. */}
+                <span
+                  aria-hidden
+                  className="font-heading text-[20px] font-semibold leading-none line-through"
+                  style={{ color: C.inkMuted }}
+                >
+                  {CURRENCY_SYMBOL}
+                  {FULL_VALUE}
+                </span>
+                <span
+                  className="font-heading text-[36px] font-bold leading-none"
+                  style={{ color: C.goldDeep }}
+                >
+                  {PRICE_LABEL}
+                </span>
               </span>
             </div>
 

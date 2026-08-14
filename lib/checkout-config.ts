@@ -65,14 +65,27 @@ export const CHECKOUT_CONFIG = {
   currency: 'GBP',
   currencySymbol: '£',
 
+  /* Meta reporting. This funnel sends THREE CUSTOM events and no standard
+     ones: no AddToCart, no InitiateCheckout, no Purchase. The names below are
+     the only ones the browser Pixel and the Conversions API are allowed to
+     send, and the ad account optimises on them.
+
+         atc_event  a CTA tap on the landing page
+         ic_event   the pay button on the checkout page
+         sales      the confirmed payment, from the Stripe webhook
+
+     Each event is sent twice, once from the browser and once from the server,
+     sharing one event_id so Meta collapses the pair. See lib/meta-capi.ts. */
   capi: {
-    standardEventName: 'Purchase',
-    customEventName: 'sales',
+    events: {
+      addToCart: 'atc_event',
+      initiateCheckout: 'ic_event',
+      sale: 'sales',
+    },
+    contentName: '5-Day Pain Reset Challenge',
     value: PRICE_GBP,
     currency: 'GBP',
-    productionHosts: [] as string[],
-    fallbackEventSourceUrl: '',
-  },
+  } as const,
 
   checkoutPath: '/checkout',
   thankYouPath: '/thank-you',
