@@ -12,16 +12,21 @@ import Script from 'next/script';
  *      match keys and attribution gets noticeably worse.
  *   2. It captures `?fbclid` off the ad click into `_fbc`, which is the single
  *      best signal for tying a sale back to the exact ad.
- *   3. It fires the browser half of the funnel's three CUSTOM events.
+ *   3. It fires PageView, and nothing else.
  *
- * NO STANDARD CONVERSION EVENTS. This funnel does not send AddToCart,
- * InitiateCheckout or Purchase. It sends atc_event, ic_event and sales, which
- * is why every helper below uses fbq('trackCustom', ...) and never
- * fbq('track', ...). The names live in CHECKOUT_CONFIG.capi.events.
+ * ── THE BROWSER FIRES NO CONVERSION EVENTS ──────────────────────────────────
+ * PageView is the ONLY event this Pixel sends. atc_event, ic_event and `sales`
+ * are server-side only, via the Conversions API. There is deliberately no
+ * `trackCustom` helper here any more: exporting one is an open invitation to
+ * reintroduce a browser half, and a browser half that is not deduplicated
+ * against the server copy double-counts every conversion.
  *
- * PageView is the one exception and it stays: it is the Pixel's base page
- * signal, not a conversion, and removing it would break audience building and
- * stop the cookie being set on the landing page.
+ * PageView itself stays because it is the base page signal rather than a
+ * conversion, and removing it would break audience building and stop the
+ * cookies above being set at all — which would degrade every server event.
+ *
+ * The helpers that remain (readCookie, getFbc) exist to READ the cookies this
+ * script sets, so the server events can be given them. They send nothing.
  *
  * Renders nothing when NEXT_PUBLIC_META_PIXEL_ID is unset, so local and
  * preview environments do not pollute the ad account with test traffic.
@@ -60,32 +65,12 @@ fbq('track','PageView');`}
   );
 }
 
-/* ── browser-side helpers ────────────────────────────────────────────────── */
+/* ── browser-side helpers ─────────────────────────────────────────────────
+   Read-only. None of these send anything to Meta; they gather the values the
+   SERVER events need, because the four strongest match keys exist only in the
+   buyer's browser. */
 
-type Fbq = (...args: unknown[]) => void;
-function fbq(): Fbq | null {
-  const w = window as unknown as { fbq?: Fbq };
-  return typeof w.fbq === 'function' ? w.fbq : null;
-}
-
-/**
- * The browser half of one custom event.
- *
- * `trackCustom`, never `track`: fbq('track', 'atc_event') would be rejected as
- * an unknown STANDARD event rather than accepted as a custom one.
- *
- * eventId must be the same id the server sends for this action, so Meta
- * deduplicates the pair into a single conversion.
- */
-export function trackCustom(
-  eventName: string,
-  eventId: string,
-  params: Record<string, unknown> = {},
-) {
-  fbq()?.('trackCustom', eventName, params, { eventID: eventId });
-}
-
-/** A browser-side id for one action, shared with the server copy. */
+/** An id for one action, minted here and sent with the server event. */
 export function newEventId(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
     return crypto.randomUUID();

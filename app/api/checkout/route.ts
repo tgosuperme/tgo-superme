@@ -44,9 +44,25 @@ type Body = {
      the session's metadata. See lib/meta-capi.ts for the full path. */
   fbp?: string;
   fbc?: string;
-  /** Minted in the browser for ic_event, so both halves share one id. */
+  /** Minted in the browser; the ic_event is sent server-side from here. */
   icEventId?: string;
   eventSourceUrl?: string;
+  /* ── attribution, from lib/track.ts ──────────────────────────────────
+     Last-touch UTM, plus the first-touch entry point. Carried to the CRM row
+     through the session metadata, exactly like the match keys above. */
+  utm?: {
+    source?: string;
+    medium?: string;
+    campaign?: string;
+    content?: string;
+    term?: string;
+  };
+  fbclid?: string;
+  /** Click time in ms, for the fbc rebuild below. */
+  fbclidTs?: number;
+  gclid?: string;
+  referrer?: string;
+  landingUrl?: string;
 };
 
 export async function POST(req: Request) {
@@ -76,8 +92,36 @@ export async function POST(req: Request) {
      tracking field. A truncated fbc is useless, but a failed checkout is
      worse. */
   const fbp = (body.fbp ?? '').trim().slice(0, 255);
-  const fbc = (body.fbc ?? '').trim().slice(0, 255);
   const eventSourceUrl = (body.eventSourceUrl ?? '').trim().slice(0, 400);
+
+  /* ── attribution ──────────────────────────────────────────────────────
+     Referrer and landing URL are real URLs and can be long. Stripe rejects a
+     metadata value over 500 characters and the whole session with it, so both
+     are cut well short of that: a truncated audit field is a nuisance, a
+     failed checkout is a lost sale. */
+  const utm = body.utm ?? {};
+  const utmSource = (utm.source ?? '').trim().slice(0, 100);
+  const utmMedium = (utm.medium ?? '').trim().slice(0, 100);
+  const utmCampaign = (utm.campaign ?? '').trim().slice(0, 200);
+  const utmContent = (utm.content ?? '').trim().slice(0, 200);
+  const utmTerm = (utm.term ?? '').trim().slice(0, 200);
+  const gclid = (body.gclid ?? '').trim().slice(0, 255);
+  const referrer = (body.referrer ?? '').trim().slice(0, 400);
+  const landingUrl = (body.landingUrl ?? '').trim().slice(0, 400);
+  const fbclid = (body.fbclid ?? '').trim().slice(0, 255);
+
+  /* ── HYBRID fbc ───────────────────────────────────────────────────────
+     Prefer the real `_fbc` cookie the Pixel wrote. When it is absent — routine
+     on iOS and inside in-app browsers, where the Pixel may never have run —
+     rebuild it from the click id the capture layer stored.
+
+     This is the single highest-leverage field for both EMQ and for Meta
+     crediting the correct ad, so it is never left cookie-only. Rebuilt HERE,
+     once, so the same value reaches the ic_event, the session metadata, the
+     `sales` event and the CRM row. */
+  const cookieFbc = (body.fbc ?? '').trim().slice(0, 255);
+  const fbclidTs = Number(body.fbclidTs) > 0 ? Number(body.fbclidTs) : Date.now();
+  const fbc = cookieFbc || (fbclid ? `fb.1.${fbclidTs}.${fbclid}` : '');
 
   /* THE IP AND USER AGENT MUST BE TAKEN HERE. The Stripe webhook that fires
      the `sales` event is a request from Stripe's servers, so reading them
@@ -168,6 +212,17 @@ export async function POST(req: Request) {
         clientIp,
         clientUserAgent,
         eventSourceUrl,
+        /* ── attribution, for the CRM row ────────────────────────────
+           Stripe allows 50 metadata keys; this brings the total to 22. */
+        utmSource,
+        utmMedium,
+        utmCampaign,
+        utmContent,
+        utmTerm,
+        fbclid,
+        gclid,
+        referrer,
+        landingUrl,
       },
       payment_intent_data: {
         description: `5-Day Pain Reset (${price}): ${firstName} ${lastName}`.trim(),

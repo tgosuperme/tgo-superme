@@ -18,9 +18,9 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 
 import BrandMark from '@/components/BrandMark';
-import { getFbc, newEventId, readCookie, trackCustom } from '@/components/MetaPixel';
-import { CHECKOUT_CONFIG } from '@/lib/checkout-config';
+import { getFbc, newEventId, readCookie } from '@/components/MetaPixel';
 import { GA_EVENTS, GA_VALUE, gaEvent } from '@/lib/ga';
+import { restoreParams } from '@/lib/track';
 import PaymentLogos from '@/components/PaymentLogos';
 
 import {
@@ -37,7 +37,6 @@ import { legoBrick, legoDelay } from '../_landing/lego-style';
 import MobileCtaBar, { MOBILE_CTA_BAR_SPACE } from '../_landing/mobile-cta-bar';
 import {
   C,
-  CURRENCY_CODE,
   CURRENCY_SYMBOL,
   PRICE,
   PRICE_LABEL,
@@ -187,15 +186,16 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
     const fbp = readCookie('_fbp');
     const fbc = getFbc();
 
-    /* ic_event, browser half. The server half is sent from /api/checkout while
-       it opens the Stripe session, using this same id so Meta collapses the
-       pair into one conversion. */
+    /* The id for ic_event. The event itself is sent SERVER-side from
+       /api/checkout; the browser Pixel fires nothing but PageView. Minted here
+       so a double-submit collapses into one conversion at Meta's end. */
     const icEventId = newEventId();
-    trackCustom(CHECKOUT_CONFIG.capi.events.initiateCheckout, icEventId, {
-      value: PRICE,
-      currency: CURRENCY_CODE,
-    });
     gaEvent(GA_EVENTS.initiateCheckout, GA_VALUE);
+
+    /* Last-touch UTM + first-touch entry point, captured on whatever page the
+       buyer actually arrived on. Read at the last possible moment, and read
+       live-URL-first so a direct landing on /checkout?utm_... still counts. */
+    const attr = restoreParams();
 
     try {
       const res = await fetch('/api/checkout', {
@@ -216,6 +216,22 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
           /* The page the conversion started on. Stripe's success redirect is
              a different URL, so it cannot be derived later. */
           eventSourceUrl: window.location.href,
+          /* ── attribution, for the CRM row and the fbc rebuild ──────────
+             fbclid + fbclidTs let the server reconstruct `fb.1.<ts>.<fbclid>`
+             when the _fbc cookie is missing, which is the normal case in
+             in-app browsers and on iOS. */
+          utm: {
+            source: attr.source ?? '',
+            medium: attr.medium ?? '',
+            campaign: attr.campaign ?? '',
+            content: attr.content ?? '',
+            term: attr.term ?? '',
+          },
+          fbclid: attr.fbclid ?? '',
+          fbclidTs: attr.ts ?? 0,
+          gclid: attr.gclid ?? '',
+          referrer: attr.referrer ?? '',
+          landingUrl: attr.landing_url ?? '',
         }),
       });
       const json = await res.json().catch(() => ({}));

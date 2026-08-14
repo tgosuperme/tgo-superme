@@ -18,30 +18,74 @@
  *     PABBLY_WEBHOOK_URL=https://connect.pabbly.com/workflow/sendwebhookdata/...
  */
 
+/**
+ * The CRM row.
+ *
+ * The first 25 fields are the UNIVERSAL block from META_CAPI_SOP §4 — the same
+ * for every funnel we run — and become columns A–Y of the sheet. They carry
+ * every identifier the downstream Apps Script needs to fire high-EMQ
+ * LeadShowUp / QualifiedLead / HighTicketPurchase events later, which is the
+ * whole reason they are here: a lifecycle event fired weeks after the purchase
+ * has no cookies, no IP and no user agent of its own, so it can only reuse
+ * what was captured at payment time and parked in this row.
+ *
+ * Everything after them is SuperMe-specific and sits to the right of the
+ * lifecycle columns, so the universal block keeps its A–Y positions.
+ *
+ * EVERY field is always present, `''` rather than undefined, so Pabbly's field
+ * mapping is stable. A key that disappears when empty silently unmaps the
+ * column and every later row shifts.
+ */
 export type SalePayload = {
-  /* who */
-  first_name: string;
-  last_name: string;
-  full_name: string;
-  email: string;
-  phone: string;
-  /* Collected on the checkout form. Empty for any sale taken before the field
-     was added, so the sheet column can be blank on older rows. */
-  city: string;
+  /* ── A–Y · universal block (SOP §4) ──────────────────────────────── */
+  /* identity of the row */
+  lead_id: string; // A · canonical unique key = Stripe session id
+  created_at: string; // B · ISO 8601, UTC
 
-  /* what they paid */
-  amount: string; // decimal, e.g. "6.00", so the sheet reads as currency
+  /* who */
+  first_name: string; // C
+  last_name: string; // D
+  email: string; // E · raw; hashing happens at CAPI time
+  phone: string; // F · E.164, e.g. +447700900123
+  city: string; // G
+  country_code: string; // H · ISO 3166-1 alpha-2
+
+  /* Meta match keys, all captured in the buyer's browser at checkout time.
+     NEVER hashed and never re-read at webhook time — this request is Stripe's,
+     so reading them here would describe a Stripe datacentre. */
+  fbc: string; // I · hybrid: cookie, else fb.1.<ts>.<fbclid>
+  fbp: string; // J
+  client_ip_address: string; // K
+  client_user_agent: string; // L
+  external_id: string; // M · sha256(lowercase(trim(email)))
+
+  /* the conversion */
+  event_source_url: string; // N
+  amount: string; // O · decimal, e.g. "6.00", so the sheet reads as currency
+  is_test: string; // P · "true" / "false"
+  purchase_event_id: string; // Q · the event_id the `sales` event used
+
+  /* attribution — the CRM's source of truth, NOT Meta's. Meta attributes on
+     fbc/fbp, never on these. */
+  utm_source: string; // R
+  utm_medium: string; // S
+  utm_campaign: string; // T
+  utm_content: string; // U
+  utm_term: string; // V
+  fbclid: string; // W · backup for the fbc rebuild
+  referrer: string; // X · first-touch, classifies untagged buyers
+  landing_url: string; // Y · first-touch entry point
+
+  /* ── AM onward · SuperMe extras, right of the lifecycle block ─────── */
+  full_name: string;
   amount_minor: number; // pence, for anything that must not touch floats
   currency: string; // "GBP"
   payment_status: string;
-
-  /* which sale, for dedupe and for finding it in Stripe */
-  stripe_session_id: string;
+  stripe_session_id: string; // = lead_id, kept under its own name for lookups
   stripe_payment_intent: string;
-  paid_at: string; // ISO 8601, UTC
-  live_mode: boolean; // false for test-key rows, so they can be filtered out
-
-  /* which offer */
+  paid_at: string; // = created_at, kept for the existing sheet mapping
+  live_mode: boolean; // inverse of is_test, as a real boolean
+  gclid: string;
   funnel: string;
   offer: string;
   cohort_start_date: string;

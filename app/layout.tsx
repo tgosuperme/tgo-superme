@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 
+import AttributionCapture from '@/components/AttributionCapture';
 import Clarity from '@/components/Clarity';
 import GoogleAnalytics from '@/components/GoogleAnalytics';
 import MetaPixel from '@/components/MetaPixel';
@@ -83,6 +84,10 @@ export default function RootLayout({
             the checkout POSTs to our server so the Stripe webhook can send
             them on to the Conversions API. Renders nothing without a pixel id. */}
         <MetaPixel />
+        {/* Last-touch UTM + first-touch referrer/landing_url into localStorage
+            and a first-party cookie, read again at checkout submit. Every
+            attribution field on the CRM row comes from here. */}
+        <AttributionCapture />
         <GoogleAnalytics />
         <Clarity />
         {children}

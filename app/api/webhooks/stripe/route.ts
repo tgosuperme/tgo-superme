@@ -1,8 +1,8 @@
 import type Stripe from 'stripe';
 
 import { CHECKOUT_CONFIG } from '@/lib/checkout-config';
-import { capiConfigured, sendCapiEvent } from '@/lib/meta-capi';
-import { pabblyConfigured, sendSaleToPabbly } from '@/lib/pabbly';
+import { capiConfigured, externalIdFor, sendCapiEvent } from '@/lib/meta-capi';
+import { pabblyConfigured, sendSaleToPabbly, type SalePayload } from '@/lib/pabbly';
 import { getStripe, stripeConfigured } from '@/lib/stripe';
 
 /**
@@ -103,31 +103,75 @@ async function onPaid(session: Stripe.Checkout.Session) {
   const lastName = m.lastName ?? '';
   const minor = session.amount_total ?? CHECKOUT_CONFIG.amountPence;
 
-  const sale = {
+  const email = session.customer_details?.email ?? session.customer_email ?? '';
+  /* Stripe's own timestamp rather than the server clock, so a retried event
+     does not land in the sheet with the wrong time. */
+  const paidAt = new Date(session.created * 1000).toISOString();
+  /* The event_id the `sales` CAPI event below uses. Stored on the row so the
+     downstream Apps Script events can reference the purchase and so dedup is
+     auditable from the sheet alone. */
+  const purchaseEventId = m.capiEventId || session.id;
+
+  const sale: SalePayload = {
+    /* ── A–Y · universal block ─────────────────────────────────────── */
+    /* Stripe's analogue of Razorpay's payment_id. The SESSION id, not the
+       payment intent: it is already this funnel's dedupe key, it exists before
+       the intent does, and every downstream event id is derived from it. */
+    lead_id: session.id,
+    created_at: paidAt,
+
     first_name: firstName,
     last_name: lastName,
-    full_name: `${firstName} ${lastName}`.trim(),
-    email: session.customer_details?.email ?? session.customer_email ?? '',
+    email,
     /* The number the buyer typed on our form is the contactable one. Stripe
        only holds a phone if the session was told to collect one, and this one
        is not. */
     phone: m.phone ?? session.customer_details?.phone ?? '',
     city: m.city ?? session.customer_details?.address?.city ?? '',
+    /* The dialling country the buyer picked. Stripe only has a billing country
+       if the payment method supplied one, so this is the better signal. */
+    country_code:
+      m.phoneCountry || session.customer_details?.address?.country || '',
 
+    /* All four captured in the browser at checkout time and carried here in
+       the metadata. Raw, never hashed. */
+    fbc: m.fbc ?? '',
+    fbp: m.fbp ?? '',
+    client_ip_address: m.clientIp ?? '',
+    client_user_agent: m.clientUserAgent ?? '',
+    /* Produced by the CAPI module itself, so the row and the event can never
+       disagree about who this person is. */
+    external_id: externalIdFor(email),
+
+    event_source_url: m.eventSourceUrl ?? '',
     amount: (minor / 100).toFixed(2),
+    /* String, not boolean, per the SOP: the sheet column stays text and a
+       test row is filterable with a plain equals. */
+    is_test: session.livemode ? 'false' : 'true',
+    purchase_event_id: purchaseEventId,
+
+    utm_source: m.utmSource ?? '',
+    utm_medium: m.utmMedium ?? '',
+    utm_campaign: m.utmCampaign ?? '',
+    utm_content: m.utmContent ?? '',
+    utm_term: m.utmTerm ?? '',
+    fbclid: m.fbclid ?? '',
+    referrer: m.referrer ?? '',
+    landing_url: m.landingUrl ?? '',
+
+    /* ── SuperMe extras ────────────────────────────────────────────── */
+    full_name: `${firstName} ${lastName}`.trim(),
     amount_minor: minor,
     currency: (session.currency ?? CHECKOUT_CONFIG.currency).toUpperCase(),
     payment_status: session.payment_status,
-
     stripe_session_id: session.id,
     stripe_payment_intent:
       typeof session.payment_intent === 'string'
         ? session.payment_intent
         : (session.payment_intent?.id ?? ''),
-    /* Stripe's own timestamp rather than the server clock, so a retried event
-       does not land in the sheet with the wrong time. */
-    paid_at: new Date(session.created * 1000).toISOString(),
+    paid_at: paidAt,
     live_mode: session.livemode,
+    gclid: m.gclid ?? '',
 
     funnel: m.funnel ?? CHECKOUT_CONFIG.funnelSlug,
     offer: '5-Day Pain Reset Challenge',
@@ -154,9 +198,10 @@ async function onPaid(session: Stripe.Checkout.Session) {
     try {
       await sendCapiEvent({
         eventName: CHECKOUT_CONFIG.capi.events.sale,
-        /* Minted in /api/checkout and shared with the browser's `sales` event
-           on the thank-you page, so Meta counts one conversion, not two. */
-        eventId: m.capiEventId || session.id,
+        /* The SAME value written to the row as purchase_event_id, taken from
+           the one variable so the two can never disagree. The downstream Apps
+           Script events reference it, and dedup is auditable from the sheet. */
+        eventId: purchaseEventId,
         eventTime: session.created,
         eventSourceUrl: m.eventSourceUrl ?? '',
         user: {

@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 
 import { GA_EVENTS, GA_VALUE, gaEvent } from '@/lib/ga';
 
-import { getFbc, newEventId, readCookie, trackCustom } from './MetaPixel';
+import { getFbc, newEventId, readCookie } from './MetaPixel';
 
 /**
  * Fires the landing page's CTA-tap events: `atc_event` to Meta and
@@ -22,10 +22,13 @@ import { getFbc, newEventId, readCookie, trackCustom } from './MetaPixel';
  *     added later, with no chance of one being forgotten.
  *   · One listener, one bundle cost, no re-renders.
  *
- * Sent twice on purpose: once from the Pixel and once via /api/track, sharing
- * an event_id so Meta collapses the pair. The POST uses `keepalive` because
- * the click is about to navigate away, and a normal fetch would be cancelled
- * mid-flight by the navigation.
+ * SERVER ONLY. The Pixel is not asked to fire atc_event; this POSTs to
+ * /api/track and the Conversions API sends the single copy. The POST uses
+ * `keepalive` because the click is about to navigate away, and a normal fetch
+ * would be cancelled mid-flight by the navigation.
+ *
+ * The event id is still minted here rather than on the server: it is what
+ * makes a retry or a double-click collapse into one conversion at Meta's end.
  */
 
 const CHECKOUT_PATH = '/checkout';
@@ -43,9 +46,8 @@ export default function CtaTracker({ eventName }: { eventName: string }) {
       if (!href.startsWith(CHECKOUT_PATH)) return;
 
       const eventId = newEventId();
-      trackCustom(eventName, eventId);
-      /* GA4 gets its own name and no event id: it has no server half here, so
-         there is nothing to deduplicate against. */
+      /* GA4 only. Meta's atc_event is sent by /api/track below — the browser
+         Pixel deliberately fires nothing but PageView. */
       gaEvent(GA_EVENTS.addToCart, GA_VALUE);
 
       try {

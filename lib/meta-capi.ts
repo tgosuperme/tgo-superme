@@ -16,15 +16,21 @@ import { CHECKOUT_CONFIG } from '@/lib/checkout-config';
  *
  * Custom events are sent exactly like standard ones: the name simply is not
  * one Meta reserves, so it arrives as a custom conversion and gets used from
- * Events Manager. The browser half uses fbq('trackCustom', ...) rather than
- * fbq('track', ...) for the same reason.
+ * Events Manager.
  *
- * ── WHY THE SERVER SENDS THEM ───────────────────────────────────────────────
- * The browser Pixel misses a large share of everything (ad blockers, ITP, iOS,
- * a buyer who closes the tab on Stripe's success redirect). The server copy
- * always lands, so Meta optimises on real behaviour rather than on the subset
- * the browser managed to report. Both halves are sent, sharing an event_id, so
- * Meta collapses each pair into one conversion instead of counting it twice.
+ * ── SERVER ONLY. THE BROWSER FIRES NOTHING BUT PageView ─────────────────────
+ * All three events are sent from here and ONLY from here. There is no browser
+ * half to deduplicate against.
+ *
+ * The Pixel stays on the page for its cookies — `_fbp`, and `_fbc` from the ad
+ * click — because those are two of the strongest match keys these server
+ * events carry. It just is not asked to report conversions, which it does
+ * badly: ad blockers, ITP, iOS and a buyer closing the tab on Stripe's success
+ * redirect all cost it events the server never loses.
+ *
+ * Every event still carries an event_id. With one copy there is no pair to
+ * collapse, but the id is what makes a retry, a double-click or a replayed
+ * Stripe webhook land as one conversion rather than several.
  *
  * ── THE PARAMETER PROBLEM, AND HOW IT IS SOLVED ─────────────────────────────
  * An event is only as good as its match keys, and four of them exist ONLY in
@@ -96,6 +102,20 @@ function hashed(value: string | undefined, fn: (v: string) => string) {
   if (!v) return undefined;
   const normalised = fn(v);
   return normalised ? hash(normalised) : undefined;
+}
+
+/**
+ * The `external_id` sent to Meta, exposed so the CRM row can carry the SAME
+ * value.
+ *
+ * It MUST be produced here rather than re-implemented at the call site. The
+ * whole point of external_id is that Meta links the browser event, the server
+ * event and every downstream Apps Script event into one person; two
+ * implementations that drift by a `.trim()` silently break that link, and
+ * nothing errors to tell you.
+ */
+export function externalIdFor(email: string): string {
+  return hashed(email, norm.email) ?? '';
 }
 
 /** Whatever is known about the person at the moment the event fires. */
