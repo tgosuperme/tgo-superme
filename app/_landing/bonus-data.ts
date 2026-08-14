@@ -17,6 +17,10 @@
  * contents stay on"), on value-stacking grounds. The client has since asked
  * for the values, a struck total and a savings percentage. Implemented as
  * asked and flagged here rather than silently dropped.
+ *
+ * The values below sum to the £27 bonus total. The checkout adds the £6
+ * challenge to it to reach the £33 it strikes through, so this figure is a
+ * component of that sum and must never be edited to "make" £33 on its own.
  */
 import { C } from './shared';
 

@@ -1,6 +1,7 @@
 import type Stripe from 'stripe';
 
 import { CHECKOUT_CONFIG } from '@/lib/checkout-config';
+import { capiConfigured, sendCapiEvent } from '@/lib/meta-capi';
 import { pabblyConfigured, sendSaleToPabbly } from '@/lib/pabbly';
 import { getStripe, stripeConfigured } from '@/lib/stripe';
 
@@ -138,6 +139,60 @@ async function onPaid(session: Stripe.Checkout.Session) {
      if every Pabbly attempt fails and the row never appears in the sheet. */
   console.info('[stripe-webhook] paid', JSON.stringify(sale));
 
+  /* ── Meta Conversions API ────────────────────────────────────────────
+     Fired here rather than on the thank-you page because this is the only
+     event that always happens. A buyer who pays and closes the tab never
+     loads the success page, and on mobile that is a meaningful share of them.
+
+     Every browser-only match key below was captured at checkout time and
+     carried here in the session metadata: this request comes from Stripe, so
+     it has none of the buyer's cookies, IP or user agent of its own.
+
+     Sent BEFORE Pabbly so a sheet outage cannot cost an ad-platform
+     conversion; the two are independent and neither should block the other. */
+  if (capiConfigured()) {
+    try {
+      await sendCapiEvent({
+        eventName: CHECKOUT_CONFIG.capi.events.sale,
+        /* Minted in /api/checkout and shared with the browser's `sales` event
+           on the thank-you page, so Meta counts one conversion, not two. */
+        eventId: m.capiEventId || session.id,
+        eventTime: session.created,
+        eventSourceUrl: m.eventSourceUrl ?? '',
+        user: {
+          email: sale.email,
+          phone: sale.phone,
+          firstName,
+          lastName,
+          city: sale.city,
+          /* The dialling country the buyer picked, which for this funnel is
+             the best country signal available: Stripe only holds a billing
+             address if the payment method supplied one. */
+          country:
+            m.phoneCountry || session.customer_details?.address?.country || 'GB',
+          /* All four captured at checkout time. This request is Stripe's, so
+             it has none of them itself. */
+          fbp: m.fbp,
+          fbc: m.fbc,
+          clientIp: m.clientIp,
+          clientUserAgent: m.clientUserAgent,
+        },
+        value: minor / 100,
+        currency: sale.currency,
+      });
+    } catch (err) {
+      /* Logged, not thrown. A CAPI outage must not force Stripe to retry the
+         whole handler, because that would re-send the sale to Pabbly and
+         re-run fulfilment. The event is recoverable by hand from the log line
+         above; a duplicated joining email is not. */
+      console.error(`[stripe-webhook] CAPI sales event failed for ${session.id}`, err);
+    }
+  } else {
+    console.warn(
+      `[stripe-webhook] Meta CAPI not configured, ${session.id} was not reported`,
+    );
+  }
+
   if (!pabblyConfigured()) {
     /* Not a throw: a missing URL is a configuration gap that retrying for
        three days cannot close, and the sale is already in the log above. */
@@ -154,10 +209,4 @@ async function onPaid(session: Stripe.Checkout.Session) {
      that has to be safe to run twice: a Pabbly failure replays this entire
      handler on Stripe's retry, and nobody wants the same buyer emailed four
      times because a sheet was briefly unreachable. */
-
-  /* TODO(tracking): fire the Meta CAPI Purchase from here, using session.id as
-     the event_id so it de-duplicates against a browser pixel if one is ever
-     added. CHECKOUT_CONFIG.capi already holds the event names and value. There
-     is no pixel on this site yet, so there is nothing to de-duplicate against
-     and nothing to fire into. */
 }

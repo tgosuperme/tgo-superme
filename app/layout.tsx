@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 
+import Clarity from '@/components/Clarity';
+import GoogleAnalytics from '@/components/GoogleAnalytics';
+import MetaPixel from '@/components/MetaPixel';
 import { CHECKOUT_CONFIG } from '@/lib/checkout-config';
 
 import LegoObserver from './_landing/lego';
@@ -76,6 +79,12 @@ export default function RootLayout({
             than per-page so the lego entrances work identically on the landing
             page, the checkout and the thank-you page. Renders nothing. */}
         <LegoObserver />
+        {/* Sets the _fbp cookie and captures ?fbclid into _fbc, both of which
+            the checkout POSTs to our server so the Stripe webhook can send
+            them on to the Conversions API. Renders nothing without a pixel id. */}
+        <MetaPixel />
+        <GoogleAnalytics />
+        <Clarity />
         {children}
       </body>
     </html>

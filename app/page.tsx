@@ -8,6 +8,9 @@
  */
 import dynamic from 'next/dynamic';
 
+import CtaTracker from '@/components/CtaTracker';
+import { CHECKOUT_CONFIG } from '@/lib/checkout-config';
+
 import { Hero, OfferStrip, SiteHeader } from './_landing/hero';
 import { C, CHECKOUT_HREF, PRICE_LABEL, SESSION_TIMES, START_DATE } from './_landing/shared';
 import StickyCta from './_landing/sticky-cta';
@@ -29,6 +32,9 @@ export default function Page() {
       className="overflow-x-clip font-body"
       style={{ background: C.white, color: C.ink }}
     >
+      {/* One delegated listener for every CTA on the page, so the hero and the
+          sections below it stay Server Components. Fires atc_event. */}
+      <CtaTracker eventName={CHECKOUT_CONFIG.capi.events.addToCart} />
       <OfferStrip />
       <SiteHeader />
       <Hero />

@@ -1,5 +1,8 @@
 import type { Metadata } from 'next';
 
+import JoinTracker from '@/components/JoinTracker';
+import SaleEvent from '@/components/SaleEvent';
+import { CHECKOUT_CONFIG } from '@/lib/checkout-config';
 import { getStripe, stripeConfigured } from '@/lib/stripe';
 
 import ThankYou from './ThankYou';
@@ -40,6 +43,12 @@ export default async function ThankYouPage({ searchParams }: Search) {
   let paid = false;
   let firstName = '';
   let email = '';
+  /* Read back off the session so the browser Purchase can carry the SAME
+     event_id the webhook's Conversions API event uses. Meta then counts one
+     conversion instead of two. */
+  let capiEventId = '';
+  let value = 0;
+  let currency = '';
 
   if (sessionId && stripeConfigured()) {
     try {
@@ -47,6 +56,9 @@ export default async function ThankYouPage({ searchParams }: Search) {
       paid = session.payment_status === 'paid';
       firstName = session.metadata?.firstName ?? '';
       email = session.customer_details?.email ?? session.customer_email ?? '';
+      capiEventId = session.metadata?.capiEventId ?? '';
+      value = (session.amount_total ?? 0) / 100;
+      currency = (session.currency ?? '').toUpperCase();
     } catch (err) {
       /* A bad or expired id lands in the pending state below rather than a
          crash: the payment may well have gone through, and telling a paying
@@ -56,5 +68,23 @@ export default async function ThankYouPage({ searchParams }: Search) {
     }
   }
 
-  return <ThankYou paid={paid} firstName={firstName} email={email} />;
+  return (
+    <>
+      {/* Deliberately mounted HERE and not inside <ThankYou>: /confirmed
+          renders that same component with paid hard-coded true so the design
+          can be reviewed, and a design preview must never report a sale. */}
+      {paid && (
+        <SaleEvent
+          eventName={CHECKOUT_CONFIG.capi.events.sale}
+          eventId={capiEventId}
+          value={value}
+          currency={currency}
+          contentName={CHECKOUT_CONFIG.capi.contentName}
+        />
+      )}
+      {/* GA join_whatsapp, on all three WhatsApp buttons. */}
+      <JoinTracker />
+      <ThankYou paid={paid} firstName={firstName} email={email} />
+    </>
+  );
 }

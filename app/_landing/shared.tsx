@@ -111,6 +111,8 @@ export const C = {
 export const PRICE = CHECKOUT_CONFIG.amountGbpNumeric;
 export const PRICE_LABEL = `${CHECKOUT_CONFIG.currencySymbol}${CHECKOUT_CONFIG.amountGbpString}`;
 export const CURRENCY_SYMBOL = CHECKOUT_CONFIG.currencySymbol;
+/* ISO code, not the symbol. Meta's events want "GBP", never "£". */
+export const CURRENCY_CODE = CHECKOUT_CONFIG.currency;
 export const CHECKOUT_HREF = CHECKOUT_CONFIG.checkoutPath;
 export const THANK_YOU_HREF = CHECKOUT_CONFIG.thankYouPath;
 
