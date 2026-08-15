@@ -49,6 +49,7 @@ import {
 import Link from 'next/link';
 
 import BrandMark from '@/components/BrandMark';
+import ConfettiBurst from '@/components/ConfettiBurst';
 
 import { legoBrick, legoDelay } from '../_landing/lego-style';
 import MobileCtaBar, { MOBILE_CTA_BAR_SPACE } from '../_landing/mobile-cta-bar';
@@ -301,6 +302,10 @@ export default function ThankYou({
 
   return (
     <main className="font-body" style={{ background: C.paleBlue, color: C.ink }}>
+      {/* Inside the paid branch on purpose: PendingState returns above, so a
+          buyer whose payment has not confirmed is never congratulated with
+          confetti. */}
+      <ConfettiBurst />
       <PageHeader paid />
 
       <div className="mx-auto max-w-[820px] px-5 py-14 md:py-20">
@@ -325,7 +330,7 @@ export default function ThankYou({
             style={{ ...legoDelay(1, 80), background: C.greenBed, color: C.greenInk }}
           >
             <CheckCircle weight="fill" className="h-3 w-3" />
-            Congrats
+            Congratulations
           </span>
 
           <h1
