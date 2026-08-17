@@ -112,19 +112,34 @@ export function Hero() {
             </span>
           </span>
 
-          {/* Four words carry colour, one accent each: the promise word in
-              blue, then the three body areas in coral, mint and yellow.
+          {/* Four phrases carry colour, one accent each: the three body areas
+              in coral, mint and yellow, then the commitment in blue.
               Everything else stays navy, which is what stops it reading as a
-              rainbow. */}
+              rainbow. Same rule as before, applied to the new line.
+
+              "1 Hour A Day" is kept whole with non-breaking spaces: it is the
+              objection the headline answers, and letting it wrap mid-phrase
+              across a line break is what breaks the sentence. */}
           <h1
-            className="mt-6 font-heading text-[36px] font-bold leading-[1.06] tracking-[-0.02em] sm:text-[46px] lg:text-[58px]"
-            style={{ color: C.ink }}
+            className="mt-6 font-heading text-[34px] font-bold leading-[1.08] tracking-[-0.02em] sm:text-[44px] lg:text-[52px]"
+            /* textWrap: balance evens the lines out instead of filling each
+               one and leaving the remainder — without it the last line is a
+               stranded word or two. Same device the promise card uses;
+               browsers without it just wrap normally.
+
+               52px rather than the 58px this replaces, for two reasons that
+               compound: the line itself is longer than the old headline, and
+               the site moved from Lora to Inter, which is appreciably wider at
+               bold. At 58px it overruns and pushes the CTA off a laptop's
+               first screen. If a shorter headline is ever set here, this can
+               go back up. */
+            style={{ color: C.ink, textWrap: 'balance' } as React.CSSProperties}
           >
-            Ease Stiffness, Improve Mobility &amp; Feel{' '}
-            <span style={{ color: C.hlBlue }}>Stronger</span> In Your{' '}
-            <span style={{ color: C.hlCoral }}>Back</span>,{' '}
+            Ease <span style={{ color: C.hlCoral }}>Back</span>,{' '}
             <span style={{ color: C.hlMint }}>Neck</span> &amp;{' '}
-            <span style={{ color: C.hlYellow }}>Knees</span> Again
+            <span style={{ color: C.hlYellow }}>Knee</span> Pain With Just{' '}
+            <span style={{ color: C.hlBlue }}>1&nbsp;Hour&nbsp;A&nbsp;Day</span>,
+            LIVE With An Expert Coach
           </h1>
 
           <p
