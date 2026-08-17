@@ -5,7 +5,7 @@
  * Every date, time and session label on the site also reads from here, so a
  * cohort change is an env edit and a redeploy, never a code change:
  *
- *     NEXT_PUBLIC_OFFER_PRICE_GBP=6                       # what the user pays
+ *     NEXT_PUBLIC_OFFER_PRICE_GBP=4.99                    # what the user pays
  *     NEXT_PUBLIC_START_DATE=18th August                  # cohort start
  *     NEXT_PUBLIC_SESSION_TIMES=7 AM & 7 PM               # the two daily session times
  *     NEXT_PUBLIC_SESSIONS_LABEL=Live Sessions, Twice A Day
@@ -22,10 +22,22 @@
  * postpartum page uses (strikethrough + SAVE badge) must not be reintroduced.
  */
 
+/**
+ * parseFLOAT, not parseInt.
+ *
+ * This was parseInt, which silently truncated: NEXT_PUBLIC_OFFER_PRICE_GBP set
+ * to "4.99" produced 4, so the page read "£4" and Stripe charged 400p. Nothing
+ * errored — it just quietly charged the wrong amount, which is the worst way
+ * for a price to be wrong.
+ *
+ * Guarded to two decimals, because a price is money and "4.999" is not a
+ * thing anyone can be charged.
+ */
 function parsePriceEnv(value: string | undefined, fallback: number): number {
   if (!value) return fallback;
-  const n = Number.parseInt(value, 10);
-  return Number.isFinite(n) && n > 0 ? n : fallback;
+  const n = Number.parseFloat(value);
+  if (!Number.isFinite(n) || n <= 0) return fallback;
+  return Math.round(n * 100) / 100;
 }
 
 /** Trim an env string and fall back when it is missing or blank. */
@@ -33,7 +45,7 @@ function text(value: string | undefined, fallback: string): string {
   return value?.trim() || fallback;
 }
 
-const PRICE_GBP = parsePriceEnv(process.env.NEXT_PUBLIC_OFFER_PRICE_GBP, 6);
+const PRICE_GBP = parsePriceEnv(process.env.NEXT_PUBLIC_OFFER_PRICE_GBP, 4.99);
 const START_DATE = text(process.env.NEXT_PUBLIC_START_DATE, '18th August');
 const SESSION_TIMES = text(process.env.NEXT_PUBLIC_SESSION_TIMES, '7 AM & 7 PM');
 const SESSIONS_LABEL = text(
@@ -59,7 +71,11 @@ const CONTACT_EMAIL = text(
 );
 
 export const CHECKOUT_CONFIG = {
-  amountPence: PRICE_GBP * 100,
+  /* ROUNDED. Stripe takes an integer of minor units and rejects anything else,
+     and float maths does not oblige: 4.99 * 100 is not reliably 499 across
+     every value. This is the number the buyer is actually charged, so it is
+     forced to an integer here rather than hoped about at the call site. */
+  amountPence: Math.round(PRICE_GBP * 100),
   amountGbpString: String(PRICE_GBP),
   amountGbpNumeric: PRICE_GBP,
   currency: 'GBP',

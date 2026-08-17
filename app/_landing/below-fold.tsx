@@ -1190,7 +1190,7 @@ const FAQS = [
 /* ── section 10c · the people behind this challenge ───────────────────────
    Sits after the close and before the FAQ, and deliberately does NOT sell
    again. Its job is the last surviving objection: who are these people, and
-   why trust a £6 Zoom link? So it runs on authority and on taking the blame
+   why trust a cheap Zoom link? So it runs on authority and on taking the blame
    off the reader, and every principle re-explains a feature of the challenge
    they have already read about, which is what stops it reading as a corporate
    about-us block.
