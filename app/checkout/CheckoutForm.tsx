@@ -73,8 +73,14 @@ type Fields = {
 type FieldKey = keyof Fields;
 
 /* Challenge + bonuses, summed rather than written down, so the struck figure
-   on the order summary can never drift from the two lines it is made of. */
-const FULL_VALUE = PRICE + BONUS_TOTAL;
+   on the order summary can never drift from the two lines it is made of.
+
+   ROUNDED, and not for tidiness. 4.99 + 27 is 31.990000000000002 in binary
+   floating point, and that is exactly what rendered on the page. This is a
+   decorative "what it is worth" figure rather than anything anyone is charged
+   — the charged amount is amountPence, an integer, computed separately — so
+   rounding it to a whole pound is safe as well as correct to look at. */
+const FULL_VALUE = Math.round(PRICE + BONUS_TOTAL);
 
 const INCLUDED = [
   { icon: VideoCamera, text: 'Five live, coach-led sessions on Zoom' },
