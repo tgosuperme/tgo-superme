@@ -296,11 +296,9 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
             <span style={{ color: C.goldDeep }}>5-Day Pain Reset</span>
           </h1>
           <p className="mt-3 text-[15.5px]" style={{ color: C.inkSoft }}>
-            Two minutes to book. Come to Day One,{' '}
+            Two minutes to book.{' '}
             <br className="sm:hidden" />
-            and if it is not for you, tell us by the end of that day{' '}
-            <br className="sm:hidden" />
-            and we refund the {PRICE_LABEL} in full.
+            100% Money Back Guarantee.
           </p>
         </div>
 
@@ -643,8 +641,7 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
                 className="mt-0.5 h-4 w-4 shrink-0"
                 style={{ color: C.mintInk }}
               />
-              Come to Day One. If it is not for you, tell us by the end of that
-              day and we refund the {PRICE_LABEL} in full.
+              100% Money Back Guarantee.
             </p>
               </div>
             </div>
@@ -668,7 +665,7 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
         note={
           <>
             <ShieldCheck weight="fill" className="h-3 w-3 shrink-0" style={{ color: C.mintInk }} />
-            Refund by end of Day One
+            100% Money Back Guarantee
           </>
         }
       >

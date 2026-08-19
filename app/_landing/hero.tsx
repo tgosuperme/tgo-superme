@@ -232,7 +232,7 @@ export function Hero() {
             style={{ color: C.inkMuted }}
           >
             <ShieldCheck weight="fill" className="h-4 w-4" style={{ color: C.green }} />
-            Full refund if you don&apos;t love Day One
+            100% Money Back Guarantee
           </p>
 
           <ul className="mt-7 flex flex-wrap justify-center gap-2.5 lg:justify-start">
@@ -326,7 +326,7 @@ export function Hero() {
                   {PRICE_LABEL}
                 </span>
                 <span className="text-[13px]" style={{ color: C.inkMuted }}>
-                  refunded in full if Day One is not for you
+                  100% Money Back Guarantee
                 </span>
               </div>
 
