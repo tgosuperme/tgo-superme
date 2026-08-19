@@ -195,12 +195,12 @@ export function Hero() {
                 wash does not cover the punctuation. It ends the sentence and
                 lets the next one run straight on, which is what keeps the
                 block filling every line. */}
-            Experience <Mark>10–80%</Mark> Pain Relief in Just <Mark>5 Days</Mark>.{' '}
-            Ease Stiffness, Improve Mobility &amp; Feel{' '}
-            <span style={{ color: C.hlBlue }}>Stronger</span> in Your{' '}
-            <span style={{ color: C.hlCoral }}>Back</span>,{' '}
-            <span style={{ color: C.hlMint }}>Neck</span> &amp;{' '}
-            <span style={{ color: C.hlYellow }}>Knees</span> Again
+            
+            Ease
+            <span style={{ color: C.hlBlue }}> Back</span>,{' '}
+            <span style={{ color: C.hlCoral }}>Neck</span>,{' '}&amp;{' '}
+            <span style={{ color: C.hlYellow }}>Knee</span> Pain
+            With Just<Mark> 1 Hour A Day,</Mark> LIVE With An Expert Coach.{' '}
           </h1>
 
           <p
