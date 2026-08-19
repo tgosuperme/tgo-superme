@@ -196,11 +196,11 @@ export function Hero() {
                 lets the next one run straight on, which is what keeps the
                 block filling every line. */}
             
-            Ease
-            <span style={{ color: C.hlBlue }}> Back</span>,{' '}
-            <span style={{ color: C.hlCoral }}>Neck</span>,{' '}&amp;{' '}
-            <span style={{ color: C.hlYellow }}>Knee</span> Pain
-            With Just<Mark> 1 Hour A Day,</Mark> LIVE With An Expert Coach.{' '}
+            Ease <span style={{ color: C.hlCoral }}>Back</span>,{' '}
+            <span style={{ color: C.hlMint }}>Neck</span> &amp;{' '}
+            <span style={{ color: C.hlYellow }}>Knee</span> Pain With Just{' '}
+            <Mark>1 Hour</Mark> A Day,{' '}
+            <span style={{ color: C.hlBlue }}>LIVE</span> With An Expert Coach
           </h1>
 
           <p
