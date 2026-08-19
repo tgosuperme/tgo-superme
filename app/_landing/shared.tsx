@@ -9,7 +9,7 @@
 import { ArrowRight } from '@phosphor-icons/react/dist/ssr';
 import Link from 'next/link';
 
-import { CHECKOUT_CONFIG } from '@/lib/checkout-config';
+import { CHECKOUT_CONFIG, formatInr } from '@/lib/checkout-config';
 
 /**
  * Palette. White and pale blue are the environment; the accents are the
@@ -108,11 +108,28 @@ export const C = {
   whisper: '#F4F9FE',
 };
 
-export const PRICE = CHECKOUT_CONFIG.amountGbpNumeric;
-export const PRICE_LABEL = `${CHECKOUT_CONFIG.currencySymbol}${CHECKOUT_CONFIG.amountGbpString}`;
+/* The raw number, for arithmetic and for Meta's `value`. Never rendered. */
+export const PRICE = CHECKOUT_CONFIG.amountNumeric;
+/* "₹497" — the ONLY string any component should print for the price. Built
+   once, here, so no page can invent its own symbol or its own grouping. */
+export const PRICE_LABEL = `${CHECKOUT_CONFIG.currencySymbol}${CHECKOUT_CONFIG.amountString}`;
 export const CURRENCY_SYMBOL = CHECKOUT_CONFIG.currencySymbol;
-/* ISO code, not the symbol. Meta's events want "GBP", never "£". */
+/* ISO code, not the symbol. Meta's events want "INR", never "₹". */
 export const CURRENCY_CODE = CHECKOUT_CONFIG.currency;
+
+/**
+ * Any OTHER rupee figure on the page — a bonus value, a struck total.
+ *
+ * Exists because those numbers used to be printed raw next to a bare symbol,
+ * which was harmless at UK magnitudes (£27) and is not at Indian ones: an
+ * unformatted 2700 renders "₹2700", and the struck total on the checkout is
+ * the most-read number on the page after the price itself. Routing every one
+ * of them through here also means Indian 2-2-3 grouping arrives everywhere at
+ * once the day a figure goes past ₹99,999.
+ */
+export function money(amount: number): string {
+  return `${CHECKOUT_CONFIG.currencySymbol}${formatInr(amount)}`;
+}
 export const CHECKOUT_HREF = CHECKOUT_CONFIG.checkoutPath;
 export const THANK_YOU_HREF = CHECKOUT_CONFIG.thankYouPath;
 

@@ -8,13 +8,22 @@
  * half-typed number — without rejecting valid numbers we do not know about.
  *
  * `min`/`max` are the national significant number: the digits AFTER the
- * dialling code and after any trunk prefix (the UK's leading 0) is stripped.
- * Ranges are deliberately generous except where they are well known and fixed
- * (GB, US, CA, IN, AU); a validator that rejects a real customer's number is
- * far more expensive than one that lets a bad one through to a bounced message.
+ * dialling code and after any trunk prefix (India's and the UK's leading 0) is
+ * stripped. Ranges are deliberately generous except where they are well known
+ * and fixed (IN, GB, US, CA, AU); a validator that rejects a real customer's
+ * number is far more expensive than one that lets a bad one through to a
+ * bounced message.
  *
- * The UK sits first and is the default: the offer is priced in GBP and the
- * sessions are quoted in UK time, so it is the overwhelmingly likely answer.
+ * INDIA SITS FIRST AND IS THE DEFAULT: the offer is priced in INR and the
+ * sessions are quoted in IST, so it is the overwhelmingly likely answer. First
+ * position is load-bearing twice over — it is what the select opens on, and
+ * `findCountry` falls back to COUNTRIES[0] for an unrecognised code, so an
+ * unknown ISO resolves to +91 rather than to +44.
+ *
+ * The order after India is the diaspora, roughly by how much of it this offer
+ * expects to see: the Gulf, then the anglosphere, then everything else. A
+ * WhatsApp-delivered programme sells across borders and the list has to hold
+ * the buyer who is Indian but not in India.
  */
 
 export type Country = {
@@ -29,16 +38,22 @@ export type Country = {
 };
 
 export const COUNTRIES: Country[] = [
-  { iso: 'GB', name: 'United Kingdom', dial: '44', min: 9, max: 10 },
-  { iso: 'IE', name: 'Ireland', dial: '353', min: 7, max: 9 },
+  { iso: 'IN', name: 'India', dial: '91', min: 10, max: 10 },
+  { iso: 'AE', name: 'United Arab Emirates', dial: '971', min: 8, max: 9 },
+  { iso: 'SA', name: 'Saudi Arabia', dial: '966', min: 9, max: 9 },
+  { iso: 'QA', name: 'Qatar', dial: '974', min: 8, max: 8 },
+  { iso: 'KW', name: 'Kuwait', dial: '965', min: 8, max: 8 },
+  { iso: 'OM', name: 'Oman', dial: '968', min: 8, max: 8 },
+  { iso: 'BH', name: 'Bahrain', dial: '973', min: 8, max: 8 },
   { iso: 'US', name: 'United States', dial: '1', min: 10, max: 10 },
+  { iso: 'GB', name: 'United Kingdom', dial: '44', min: 9, max: 10 },
   { iso: 'CA', name: 'Canada', dial: '1', min: 10, max: 10 },
   { iso: 'AU', name: 'Australia', dial: '61', min: 9, max: 9 },
   { iso: 'NZ', name: 'New Zealand', dial: '64', min: 8, max: 10 },
-  { iso: 'IN', name: 'India', dial: '91', min: 10, max: 10 },
-  { iso: 'AE', name: 'United Arab Emirates', dial: '971', min: 8, max: 9 },
-  { iso: 'ZA', name: 'South Africa', dial: '27', min: 9, max: 9 },
   { iso: 'SG', name: 'Singapore', dial: '65', min: 8, max: 8 },
+  { iso: 'IE', name: 'Ireland', dial: '353', min: 7, max: 9 },
+  { iso: 'ZA', name: 'South Africa', dial: '27', min: 9, max: 9 },
+  { iso: 'NP', name: 'Nepal', dial: '977', min: 10, max: 10 },
   { iso: 'HK', name: 'Hong Kong', dial: '852', min: 8, max: 8 },
   { iso: 'DE', name: 'Germany', dial: '49', min: 6, max: 12 },
   { iso: 'FR', name: 'France', dial: '33', min: 9, max: 9 },
@@ -71,7 +86,7 @@ export const COUNTRIES: Country[] = [
   { iso: 'MX', name: 'Mexico', dial: '52', min: 10, max: 10 },
 ];
 
-export const DEFAULT_ISO = 'GB';
+export const DEFAULT_ISO = 'IN';
 
 export function findCountry(iso: string): Country {
   return COUNTRIES.find((c) => c.iso === iso) ?? COUNTRIES[0];
@@ -97,7 +112,7 @@ export function nationalDigits(input: string): string {
   return input.replace(/\D/g, '').replace(/^0+/, '');
 }
 
-/** E.164, e.g. "+447700900000". What gets stored and messaged. */
+/** E.164, e.g. "+919812345678". What gets stored and messaged. */
 export function toE164(iso: string, input: string): string {
   const country = findCountry(iso);
   return `+${country.dial}${nationalDigits(input)}`;

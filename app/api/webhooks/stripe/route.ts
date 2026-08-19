@@ -101,7 +101,7 @@ async function onPaid(session: Stripe.Checkout.Session) {
   const m = session.metadata ?? {};
   const firstName = m.firstName ?? '';
   const lastName = m.lastName ?? '';
-  const minor = session.amount_total ?? CHECKOUT_CONFIG.amountPence;
+  const minor = session.amount_total ?? CHECKOUT_CONFIG.amountMinor;
 
   const email = session.customer_details?.email ?? session.customer_email ?? '';
   /* Stripe's own timestamp rather than the server clock, so a retried event
@@ -214,7 +214,7 @@ async function onPaid(session: Stripe.Checkout.Session) {
              the best country signal available: Stripe only holds a billing
              address if the payment method supplied one. */
           country:
-            m.phoneCountry || session.customer_details?.address?.country || 'GB',
+            m.phoneCountry || session.customer_details?.address?.country || 'IN',
           /* All four captured at checkout time. This request is Stripe's, so
              it has none of them itself. */
           fbp: m.fbp,

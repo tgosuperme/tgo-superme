@@ -12,7 +12,7 @@ import CtaTracker from '@/components/CtaTracker';
 import { CHECKOUT_CONFIG } from '@/lib/checkout-config';
 
 import { Hero, OfferStrip, SiteHeader } from './_landing/hero';
-import { C, CHECKOUT_HREF, PRICE_LABEL, SESSION_TIMES, START_DATE } from './_landing/shared';
+import { C, CHECKOUT_HREF, PRICE_LABEL, SESSION_TIMES_TZ, START_DATE } from './_landing/shared';
 import StickyCta from './_landing/sticky-cta';
 
 const BelowFold = dynamic(() => import('./_landing/below-fold'));
@@ -47,7 +47,7 @@ export default function Page() {
         trailing={PRICE_LABEL}
         label={`Start Your 5-Day Reset · ${PRICE_LABEL}`}
         date={START_DATE}
-        times={SESSION_TIMES}
+        times={SESSION_TIMES_TZ}
       />
     </main>
   );

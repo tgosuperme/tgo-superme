@@ -6,6 +6,7 @@ import Clarity from '@/components/Clarity';
 import GoogleAnalytics from '@/components/GoogleAnalytics';
 import MetaPixel from '@/components/MetaPixel';
 import { CHECKOUT_CONFIG } from '@/lib/checkout-config';
+import { SITE_ORIGIN, SITE_URL } from '@/lib/site';
 
 import LegoObserver from './_landing/lego';
 import './globals.css';
@@ -30,7 +31,7 @@ const inter = Inter({
   display: 'swap',
 });
 
-const PRICE = `${CHECKOUT_CONFIG.currencySymbol}${CHECKOUT_CONFIG.amountGbpString}`;
+const PRICE = `${CHECKOUT_CONFIG.currencySymbol}${CHECKOUT_CONFIG.amountString}`;
 const START = CHECKOUT_CONFIG.startDate;
 
 /* Description stays inside the same compliance line as the page: no outcome
@@ -38,10 +39,16 @@ const START = CHECKOUT_CONFIG.startDate;
 const DESCRIPTION = `A live, coach-led 5-day pain reset challenge for adults 35+ with persistent back, neck or knee pain. Guided movement, breath work, strengthening and real-time correction. Starts ${START}, live on Zoom, for ${PRICE}.`;
 
 export const metadata: Metadata = {
+  /* Every relative URL below — canonical, og:url, images — resolves against
+     this. Without it Next emits relative og tags, which crawlers and the
+     WhatsApp/Facebook scrapers cannot follow. */
+  metadataBase: SITE_ORIGIN,
   title: '5-Day Pain Reset Challenge | SuperMe',
   description: DESCRIPTION,
+  alternates: { canonical: '/' },
   openGraph: {
     type: 'website',
+    url: SITE_URL,
     title: '5-Day Pain Reset Challenge | SuperMe',
     description: DESCRIPTION,
     siteName: 'SuperMe',
@@ -65,7 +72,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en-GB" className={inter.variable}>
+    <html lang="en-IN" className={inter.variable}>
       <body>
         {/* Marks the document as JS-capable BEFORE first paint, so the CSS
             scroll reveals (.bw-js .bw-reveal-*) only hide content when JS is

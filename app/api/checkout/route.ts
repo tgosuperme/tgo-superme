@@ -7,8 +7,24 @@ import { getStripe, siteOrigin, stripeConfigured } from '@/lib/stripe';
 /**
  * Opens a Stripe Checkout Session for the 5-Day Pain Reset.
  *
- * GBP offer on a UK account, so this is Stripe rather than the Razorpay flow
- * the postpartum funnel uses.
+ * INR offer. Still Stripe rather than the Razorpay flow the postpartum funnel
+ * uses, because the funnel, the webhook and the CAPI plumbing here are all
+ * built around Stripe's session and event shapes and rewriting them for
+ * Razorpay is a separate job, not a config change.
+ *
+ * ── THE ACCOUNT QUESTION IS SETTLED: EXISTING UK ACCOUNT, INR PRESENTMENT ──
+ * The client's decision. The buyer is quoted and charged in INR; Stripe
+ * converts and settles to the account's own currency, minus a conversion fee.
+ * No Indian entity, and therefore NO UPI, netbanking or wallets — those need
+ * an India-registered account, and lib/payments.ts holds the flag that keeps
+ * the page from claiming them.
+ *
+ * WHAT THIS MEANS IN PRACTICE, because it is not visible from this file: every
+ * charge is a CROSS-BORDER card transaction to the buyer's bank. Indian cards
+ * very often have international transactions disabled by default, and those
+ * decline at the issuer — after the buyer has filled the form and reached
+ * Stripe. Nothing here can detect or prevent that; it is a property of the
+ * rail, not of this code. TEST WITH A REAL INDIAN CARD BEFORE SPENDING ON ADS.
  *
  * Shape of the decisions taken here, so they are not re-litigated later:
  *
@@ -159,7 +175,14 @@ export async function POST(req: Request) {
   }
 
   if (!stripeConfigured()) {
-    console.error('[checkout] STRIPE_SECRET_KEY is not set, cannot open a session');
+    /* Two different mistakes, one buyer-facing message. The buyer cannot act
+       on the difference — for them it is simply not switched on — but whoever
+       is reading the server log very much can, so the log separates them. */
+    console.error(
+      process.env.STRIPE_SECRET_KEY?.trim()
+        ? '[checkout] STRIPE_SECRET_KEY is set but malformed — it must start with sk_test_, sk_live_ or rk_. A key pasted without its prefix is the usual cause.'
+        : '[checkout] STRIPE_SECRET_KEY is not set, cannot open a session',
+    );
     return Response.json(
       {
         error:
@@ -170,21 +193,23 @@ export async function POST(req: Request) {
   }
 
   const origin = siteOrigin(req);
-  const price = `${CHECKOUT_CONFIG.currencySymbol}${CHECKOUT_CONFIG.amountGbpString}`;
+  const price = `${CHECKOUT_CONFIG.currencySymbol}${CHECKOUT_CONFIG.amountString}`;
 
   try {
     const session = await getStripe().checkout.sessions.create({
       mode: 'payment',
       customer_email: email,
-      /* Keeps the buyer's card details off our servers and lets Stripe offer
-         Apple Pay and Google Pay from the same session. Which methods appear
-         is controlled in the Stripe dashboard, not here. */
+      /* Keeps the buyer's card details off our servers. WHICH METHODS APPEAR
+         IS SET IN THE STRIPE DASHBOARD, not here — which is why enabling UPI
+         is a dashboard change on an Indian account, and why the page must not
+         claim UPI until that is done. lib/payments.ts holds the flag that
+         governs the claim. */
       line_items: [
         {
           quantity: 1,
           price_data: {
             currency: CHECKOUT_CONFIG.currency.toLowerCase(),
-            unit_amount: CHECKOUT_CONFIG.amountPence,
+            unit_amount: CHECKOUT_CONFIG.amountMinor,
             product_data: {
               name: '5-Day Pain Reset Challenge',
               description: `Live, coach-led on Zoom. Starts ${CHECKOUT_CONFIG.startDate}. Sessions at ${CHECKOUT_CONFIG.sessionTimes}.`,
@@ -268,7 +293,10 @@ export async function POST(req: Request) {
             firstName,
             lastName,
             city,
-            country: phoneCountry || 'GB',
+            /* IN, not GB. This is Meta's match key, so a wrong default does
+               not error — it quietly lowers match quality on every buyer whose
+               phone country did not come through. */
+            country: phoneCountry || 'IN',
             fbp,
             fbc,
             clientIp,
@@ -288,8 +316,35 @@ export async function POST(req: Request) {
     return Response.json({ url: session.url });
   } catch (err) {
     console.error('[checkout] Stripe session create failed', err);
+
+    /* Duck-typed rather than instanceof StripeError: the SDK's error classes
+       are awkward to narrow across versions, and all that is wanted here is
+       two strings if they happen to be present. */
+    const e = err as { code?: string; message?: string };
+
+    /* The one Stripe rejection worth naming, because it is a CONFIGURATION
+       mistake wearing the costume of a transient failure. Stripe enforces a
+       minimum charge per currency (roughly the equivalent of US$0.50), so a
+       test price like ₹10 is refused outright — and the generic message below
+       tells the developer to "try again", which can never work. This turns a
+       confusing round trip into one line in the terminal. */
+    if (e?.code === 'amount_too_small') {
+      console.error(
+        `[checkout] NEXT_PUBLIC_OFFER_PRICE_INR is set to ${CHECKOUT_CONFIG.amountNumeric}, which is below Stripe's minimum charge for ${CHECKOUT_CONFIG.currency}. Raise it (₹50+ is safe for testing) and restart.`,
+      );
+    }
+
     return Response.json(
-      { error: 'Could not open the payment page. Please try again.' },
+      {
+        error: 'Could not open the payment page. Please try again.',
+        /* Stripe's own message, DEVELOPMENT ONLY. It is exactly what is needed
+           while building and exactly what must never reach a buyer: it leaks
+           internals and reads as a fault they caused. The client renders it
+           only when present, so production is unchanged. */
+        ...(process.env.NODE_ENV === 'development' && e?.message
+          ? { detail: e.message }
+          : {}),
+      },
       { status: 502 },
     );
   }

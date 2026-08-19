@@ -61,7 +61,7 @@ export type SalePayload = {
 
   /* the conversion */
   event_source_url: string; // N
-  amount: string; // O · decimal, e.g. "6.00", so the sheet reads as currency
+  amount: string; // O · decimal, e.g. "497.00", so the sheet reads as currency
   is_test: string; // P · "true" / "false"
   purchase_event_id: string; // Q · the event_id the `sales` event used
 
@@ -78,8 +78,8 @@ export type SalePayload = {
 
   /* ── AM onward · SuperMe extras, right of the lifecycle block ─────── */
   full_name: string;
-  amount_minor: number; // pence, for anything that must not touch floats
-  currency: string; // "GBP"
+  amount_minor: number; // paise, for anything that must not touch floats
+  currency: string; // "INR"
   payment_status: string;
   stripe_session_id: string; // = lead_id, kept under its own name for lookups
   stripe_payment_intent: string;

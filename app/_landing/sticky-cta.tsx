@@ -2,8 +2,8 @@
 
 /**
  * The docked CTA. Present from the first screen — it is not scroll-gated,
- * because the offer is a few pounds and the decision is small: there is
- * nothing to earn before showing the button.
+ * because the offer is a few hundred rupees and the decision is small: there
+ * is nothing to earn before showing the button.
  *
  * It docks in with the same brick motion as everything else (`.sm-dock`), on a
  * short delay so it lands just after the hero has painted rather than

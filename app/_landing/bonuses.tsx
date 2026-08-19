@@ -18,10 +18,10 @@
  * next/image, not <img>: these are 1.3–2.1MB PNG sources and the optimiser
  * serves them sized, as AVIF/WebP.
  *
- * ── ON THE POUND VALUES ──────────────────────────────────────────────────
+ * ── ON THE RUPEE VALUES ─────────────────────────────────────────────────
  * Values are shown per the client's signed-off reference. Note that
  * SuperMe-Bonus-PDFs-Copy.md records a prior compliance decision AGAINST
- * stated pound values on bonuses ("Appendix A: the pound values come off, the
+ * stated money values on bonuses ("Appendix A: the pound values come off, the
  * contents stay on"), on value-stacking grounds. Flagged, not silently
  * dropped — whether they run is the client's call.
  */
@@ -32,7 +32,7 @@ import { BONUS_TOTAL, BONUSES, savingPercent } from './bonus-data';
 import { legoBrick, legoDelay } from './lego-style';
 import {
   C,
-  CURRENCY_SYMBOL,
+  money,
   PRICE,
   PRICE_LABEL,
   SectionEyebrow,
@@ -132,8 +132,7 @@ export default function Bonuses() {
                   className="mt-1.5 font-heading text-[17px] font-bold leading-none"
                   style={{ color: b.ink }}
                 >
-                  {CURRENCY_SYMBOL}
-                  {b.value}
+                  {money(b.value)}
                   <span className="ml-1.5 text-[12px] font-semibold uppercase tracking-[0.1em]">
                     value
                   </span>
@@ -196,8 +195,7 @@ export default function Bonuses() {
               className="font-heading text-[26px] font-bold leading-none line-through"
               style={{ color: C.inkMuted, textDecorationThickness: '2px' }}
             >
-              {CURRENCY_SYMBOL}
-              {TOTAL}
+              {money(TOTAL)}
             </span>
             <span
               className="font-heading text-[40px] font-bold leading-none"

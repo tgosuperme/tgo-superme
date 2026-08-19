@@ -7,10 +7,20 @@
  * play button, stat glyphs). No large colour areas, no gradient surfaces, no
  * decorative shapes. The page background stays white.
  *
- * Copy is verbatim from the signed-off PDF. Three devices from the reference
- * page are deliberately absent and must stay absent, because the UK rules this
- * page was reviewed against forbid all three: a rising-price line, a struck
- * list price with a savings badge, and a percentage outcome claim.
+ * Copy is from the signed-off PDF, except the H1, which the client has since
+ * replaced. Three devices from the reference page are deliberately absent and
+ * must stay absent: a rising-price line, a struck list price with a savings
+ * badge, and a percentage outcome claim. That came from the UK review this
+ * page was originally run against, and it holds for India too — ASCI's code
+ * and the Consumer Protection Act 2019 treat all three the same way.
+ *
+ * THE THIRD ONE IS NOW ACTUALLY TRUE. The previous H1 opened "Experience
+ * 10–80% Pain Relief in Just 5 Days", which is a percentage outcome claim
+ * sitting directly above a rule forbidding percentage outcome claims — the
+ * page carried the contradiction rather than resolving it. The replacement
+ * headline states what the reader DOES (an hour a day, live, with a coach)
+ * instead of what their body will do, so the gap closed on its own.
+ * Reintroducing a figure like that would reopen it.
  */
 import {
   ArrowRight,
@@ -27,13 +37,14 @@ import Image from 'next/image';
 import Link from 'next/link';
 
 import BrandMark from '@/components/BrandMark';
+import { PAYMENT_METHODS_LABEL } from '@/lib/payments';
 
 import { legoBrick, legoDelay } from './lego-style';
 import {
   C,
   CHECKOUT_HREF,
   PRICE_LABEL,
-  SESSION_TIMES,
+  SESSION_TIMES_TZ,
   START_DATE,
 } from './shared';
 
@@ -57,9 +68,11 @@ import {
  * is a highlight nobody can see.
  *
  * ── TWO PROPERTIES THAT ARE NOT OPTIONAL ────────────────────────────────────
- * `white-space: nowrap` keeps the marked phrase whole. Without it "10–80%"
- * breaks after the en dash and the wash renders as two ragged blocks on two
- * lines, which is exactly what it did the first time.
+ * `white-space: nowrap` keeps the marked phrase whole. It earned its place on
+ * the previous headline's "10–80%", which broke after the en dash and rendered
+ * the wash as two ragged blocks on two lines. It still matters for "1 Hour",
+ * which would otherwise be free to break between the number and the unit —
+ * the same fault with a less obvious trigger.
  *
  * `box-decoration-break: clone` covers the case where a mark still has to
  * wrap; without it the padding and rounded corners land on the outer ends only
@@ -103,7 +116,7 @@ export function OfferStrip() {
       <span className="mx-2" style={{ color: C.blue }}>
         ·
       </span>
-      Live, starts {START_DATE}, {SESSION_TIMES}
+      Live, starts {START_DATE}, {SESSION_TIMES_TZ}
     </div>
   );
 }
@@ -124,7 +137,7 @@ export function SiteHeader() {
 /* ── the three information pills under the CTA ────────────────────────── */
 const PILLS = [
   { icon: CalendarBlank, text: `Starts ${START_DATE}`, bed: C.lightBlue, fg: C.skyInk },
-  { icon: Clock, text: SESSION_TIMES, bed: C.peachBed, fg: C.peachInk },
+  { icon: Clock, text: SESSION_TIMES_TZ, bed: C.peachBed, fg: C.peachInk },
   { icon: VideoCamera, text: 'Live on Zoom', bed: C.mintBed, fg: C.mintInk },
 ];
 
@@ -161,28 +174,32 @@ export function Hero() {
             </span>
           </span>
 
-          {/* ONE SIZE, ONE WEIGHT, ONE FACE for the whole headline. Both
-              sentences are the headline; stepping the second one down made it
-              read as two competing blocks rather than a single statement.
-
-              The overall size drops a notch from the old one-sentence version,
-              because the headline is now roughly twice as long and the hero
-              still has to hold the CTA above the fold on a laptop.
+          {/* ONE SIZE, ONE WEIGHT, ONE FACE for the whole headline.
 
               Two emphasis systems, doing two different jobs: a soft wash on
-              the NUMBERS, coloured words on the BODY AREAS. Same treatment for
+              the NUMBER, coloured words on the BODY AREAS. Same treatment for
               both would leave the reader nothing to rank.
+
+              THE SIZE STEPS ARE UNCHANGED, and that is a decision rather than
+              an oversight. They were dropped a notch when the headline grew to
+              two sentences; this one is a single sentence and shorter, so
+              there is now room to step them back up. Left alone because the
+              constraint that set them is still live — the CTA has to stay
+              above the fold on a laptop — and because a headline that fits
+              comfortably is worth more than one that fills its box. Worth
+              revisiting on a real screen, not by arithmetic.
 
               `text-balance` is what fixes the ragged wrap — the browser evens
               the line lengths itself instead of dumping one orphan word onto a
               line of its own, and it does that at every width, so it needs no
               per-breakpoint <br> babysitting.
 
-              NO HARD BREAK between the two sentences. A <br> forced "Ease
-              Stiffness" onto a line of its own and left a short, half-empty
-              line above it on a phone. An ordinary full stop lets the two run
-              continuously and the balancer fill every line, so the block reads
-              as one headline and squares off at both edges.
+              NO HARD BREAK, though the copy was supplied broken after "With".
+              A <br> here pins one wrap point at every width: it is right on a
+              laptop and wrong on a phone, where it strands a short line above
+              a full one — which is exactly what the previous headline's break
+              did before it was removed. The balancer gets the same result on
+              wide screens and a better one on narrow.
 
               The same measure as the standfirst below (`max-w-[560px]
               mx-auto`), so the headline, the paragraph and the CTA all share
@@ -191,16 +208,25 @@ export function Hero() {
             className="mx-auto mt-6 max-w-[560px] text-balance font-heading text-[30px] font-bold leading-[1.14] tracking-[-0.02em] sm:text-[38px] lg:mx-0 lg:max-w-none lg:text-[46px]"
             style={{ color: C.ink }}
           >
-            {/* A plain full stop, tight against the mark and outside it so the
-                wash does not cover the punctuation. It ends the sentence and
-                lets the next one run straight on, which is what keeps the
-                block filling every line. */}
-            Experience <Mark>10–80%</Mark> Pain Relief in Just <Mark>5 Days</Mark>.{' '}
-            Ease Stiffness, Improve Mobility &amp; Feel{' '}
-            <span style={{ color: C.hlBlue }}>Stronger</span> in Your{' '}
-            <span style={{ color: C.hlCoral }}>Back</span>,{' '}
+            {/* Both emphasis systems still do their original jobs, and the
+                mapping is the one the rest of the page already uses: coral is
+                the back, mint the neck, yellow the knees, everywhere they
+                appear. Changing the headline does not get to re-cast them.
+
+                The wash lands on "1 Hour", which is the only number in the
+                sentence and the whole substance of the offer — an hour a day
+                is what the reader is being asked for, so it is what the eye
+                should catch first.
+
+                LIVE keeps the client's capitals AND takes primary blue. The
+                capitals alone read as shouting; the blue turns them into the
+                headline's one branded word, and without it blue disappears
+                from the headline entirely. */}
+            Ease <span style={{ color: C.hlCoral }}>Back</span>,{' '}
             <span style={{ color: C.hlMint }}>Neck</span> &amp;{' '}
-            <span style={{ color: C.hlYellow }}>Knees</span> Again
+            <span style={{ color: C.hlYellow }}>Knee</span> Pain With Just{' '}
+            <Mark>1 Hour</Mark> A Day,{' '}
+            <span style={{ color: C.hlBlue }}>LIVE</span> With An Expert Coach
           </h1>
 
           <p
@@ -347,7 +373,7 @@ export function Hero() {
                 style={{ color: C.inkMuted }}
               >
                 <Lock weight="fill" className="h-3 w-3" />
-                100% secure · Card / Apple Pay / Google Pay
+                100% secure · {PAYMENT_METHODS_LABEL}
               </p>
             </div>
           </div>

@@ -78,6 +78,23 @@ const SECTIONS: LegalSection[] = [
       'SuperMe programmes are intended for adults. We do not knowingly collect information from anyone under 18, and if we learn that we have, we delete it.',
     ],
   },
+  /* India's Digital Personal Data Protection Act 2023 and the IT Rules both
+     expect a named, reachable route for a complaint about personal data — and
+     expect it to be findable without having to ask. The UK version of this
+     page had no such section because it did not need one.
+
+     It deliberately does NOT invent a Grievance Officer's name. Naming a
+     person who has not agreed to the role, on a page that is a legal
+     undertaking, would be worse than the gap it fills. It routes to the one
+     contact address the whole site uses, and the name goes in once the client
+     has appointed someone. */
+  {
+    heading: 'If you are unhappy with how we have handled your data',
+    paragraphs: [
+      'Write to us at the address at the foot of this page and say so plainly. We will acknowledge you and come back to you with an answer, not a holding message.',
+      'If you are in India and we have not resolved it to your satisfaction, you can escalate to the Data Protection Board of India. We would much rather you gave us the chance first.',
+    ],
+  },
   {
     heading: 'Changes to this policy',
     paragraphs: [

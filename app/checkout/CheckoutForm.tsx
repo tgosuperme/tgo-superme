@@ -37,10 +37,10 @@ import { legoBrick, legoDelay } from '../_landing/lego-style';
 import MobileCtaBar, { MOBILE_CTA_BAR_SPACE } from '../_landing/mobile-cta-bar';
 import {
   C,
-  CURRENCY_SYMBOL,
+  money,
   PRICE,
   PRICE_LABEL,
-  SESSION_TIMES,
+  SESSION_TIMES_TZ,
   START_DATE,
 } from '../_landing/shared';
 
@@ -52,9 +52,13 @@ import {
  * sticky order summary on the right, which stacks summary-first on mobile so
  * the buyer sees what they are paying for before the fields.
  *
- * Two things from that page are deliberately absent, both because the UK rules
- * this funnel was reviewed against forbid them: a coupon field and any struck
- * "was" price with a savings line. There is one price and it is stated once.
+ * Two things from that page are deliberately absent: a coupon field and any
+ * struck "was" price with a savings line. There is one price and it is stated
+ * once. Those omissions came from the UK advertising review this funnel was
+ * originally built against, and they are KEPT for the India build — ASCI's
+ * code and the Consumer Protection Act 2019 treat an invented "was" price the
+ * same way, and a coupon field on a ₹497 offer only teaches the buyer to leave
+ * and hunt for a code.
  *
  * Submitting posts the buyer's details to /api/checkout, which opens a Stripe
  * Checkout Session and returns its URL; the browser is then handed to Stripe,
@@ -75,16 +79,17 @@ type FieldKey = keyof Fields;
 /* Challenge + bonuses, summed rather than written down, so the struck figure
    on the order summary can never drift from the two lines it is made of.
 
-   ROUNDED, and not for tidiness. 4.99 + 27 is 31.990000000000002 in binary
-   floating point, and that is exactly what rendered on the page. This is a
-   decorative "what it is worth" figure rather than anything anyone is charged
-   — the charged amount is amountPence, an integer, computed separately — so
-   rounding it to a whole pound is safe as well as correct to look at. */
+   ROUNDED, and not for tidiness. 4.99 + 27 was 31.990000000000002 in binary
+   floating point, and that is exactly what rendered on the page. Whole-rupee
+   values make that particular fault unlikely rather than impossible, and the
+   guard costs nothing, so it stays. This is a decorative "what it is worth"
+   figure rather than anything anyone is charged — the charged amount is
+   amountMinor, an integer, computed separately. */
 const FULL_VALUE = Math.round(PRICE + BONUS_TOTAL);
 
 const INCLUDED = [
   { icon: VideoCamera, text: 'Five live, coach-led sessions on Zoom' },
-  { icon: Clock, text: `Both daily timings, ${SESSION_TIMES}` },
+  { icon: Clock, text: `Both daily timings, ${SESSION_TIMES_TZ}` },
   { icon: CheckCircle, text: 'Real-time form correction from Atul' },
   { icon: ShieldCheck, text: 'Your own Day 1 to Day 4 progress score' },
 ];
@@ -145,8 +150,9 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
     phone: '',
     city: '',
   });
-  /* UK by default: the offer is in GBP and the sessions are quoted in UK time,
-     so it is the overwhelmingly likely answer. Fully changeable. */
+  /* India by default: the offer is in INR and the sessions are quoted in IST,
+     so it is the overwhelmingly likely answer. Fully changeable, because a
+     meaningful slice of this audience is diaspora on a +971 or +1 number. */
   const [iso, setIso] = useState(DEFAULT_ISO);
   /* Per-field, set on blur, so an error appears when the reader LEAVES a field
      rather than while they are still half-way through typing it. `submitted`
@@ -242,7 +248,12 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok || !json.url) {
-        setFailed(json.error || 'Payment is not available yet. Please try again shortly.');
+        const base = json.error || 'Payment is not available yet. Please try again shortly.';
+        /* `detail` is Stripe's own message and the API only ever sends it in
+           development — see the catch in /api/checkout. Appending it here
+           saves a trip to the terminal while building, and in production the
+           field is absent so the buyer sees the plain message. */
+        setFailed(json.detail ? `${base} (${json.detail})` : base);
         setBusy(false);
         return;
       }
@@ -358,7 +369,7 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
                 error={shown('phone')}
               />
 
-              <Field id="city" label="City / town" placeholder="Manchester"
+              <Field id="city" label="City / town" placeholder="Mumbai"
                 value={f.city} onChange={set('city')} onBlur={blur('city')}
                 error={shown('city')} autoComplete="address-level2" />
 
@@ -570,8 +581,7 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
                     className="shrink-0 text-[13px] font-semibold"
                     style={{ color: C.inkSoft }}
                   >
-                    {CURRENCY_SYMBOL}
-                    {b.value}
+                    {money(b.value)}
                   </span>
                 </li>
               ))}
@@ -580,7 +590,7 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
             <div className="my-5 h-px" style={{ background: C.lineStrong }} />
 
             {/* The two components of the struck total below, both stated
-                PLAINLY. Neither is struck here: they are what the £33 is made
+                PLAINLY. Neither is struck here: they are what the struck total is made
                 of, and striking a number twice (once as a component, once
                 inside the total) reads as two different discounts. */}
             <div className="grid gap-2">
@@ -597,8 +607,7 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
                   Total bonus value
                 </span>
                 <span className="text-[13.5px] font-semibold" style={{ color: C.ink }}>
-                  {CURRENCY_SYMBOL}
-                  {BONUS_TOTAL}
+                  {money(BONUS_TOTAL)}
                 </span>
               </div>
             </div>
@@ -622,8 +631,7 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
                   className="font-heading text-[20px] font-semibold leading-none line-through"
                   style={{ color: C.inkMuted }}
                 >
-                  {CURRENCY_SYMBOL}
-                  {FULL_VALUE}
+                  {money(FULL_VALUE)}
                 </span>
                 <span
                   className="font-heading text-[36px] font-bold leading-none"
@@ -802,7 +810,7 @@ const OPTION_H = 42;
 const VISIBLE_OPTIONS = 6;
 
 /**
- * Mobile number, with a dialling-code selector defaulting to the UK.
+ * Mobile number, with a dialling-code selector defaulting to India (+91).
  *
  * The trigger and the input are two controls inside one bordered group, so the
  * pair reads as a single field. The border therefore lives on the wrapper and
@@ -931,7 +939,7 @@ function PhoneField({
             type="tel"
             inputMode="tel"
             autoComplete="tel-national"
-            placeholder={country.iso === 'GB' ? '7700 900000' : 'Mobile number'}
+            placeholder={country.iso === 'IN' ? '98765 43210' : 'Mobile number'}
             value={value}
             onChange={onChange}
             onBlur={onBlur}

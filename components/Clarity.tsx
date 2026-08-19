@@ -4,8 +4,11 @@ import Script from 'next/script';
  * Microsoft Clarity: session replay and heatmaps.
  *
  * Same shape as the GA tag next to it. The project id is public (it ships in
- * the page source), so a working default lives here and the env var exists
- * only so a second property can be pointed at without a code change.
+ * the page source) and it is HARD-CODED: this deployment reports to the India
+ * property and nowhere else. The env var that used to override it is gone on
+ * purpose — a stale NEXT_PUBLIC_CLARITY_PROJECT_ID left on the host would have
+ * quietly sent India's sessions to the UK project, with nothing on the page to
+ * show for it.
  *
  * Skipped in local development, so a morning of clicking around `npm run dev`
  * does not become a pile of recorded sessions.
@@ -18,11 +21,9 @@ import Script from 'next/script';
  * Stripe's own domain, which Clarity cannot see.
  */
 
-export const CLARITY_PROJECT_ID =
-  process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID?.trim() || 'y26epp6x9f';
+export const CLARITY_PROJECT_ID = 'y4nw2m76lq';
 
 export default function Clarity() {
-  if (!CLARITY_PROJECT_ID) return null;
   if (process.env.NODE_ENV === 'development') return null;
 
   return (

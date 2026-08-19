@@ -721,8 +721,8 @@ export default function ThankYou({
           service and is not a substitute for medical care. Nothing here is
           medical advice, a diagnosis or a treatment plan. Atul Mishra is a yoga
           teacher, not a doctor, physiotherapist or registered clinician. Please
-          speak with your GP or clinician before starting if you have not been
-          cleared to exercise. Do not push through pain during any session.
+          speak with your doctor or physiotherapist before starting if you have
+          not been cleared to exercise. Do not push through pain during any session.
           Results vary from person to person.
         </p>
         <ul className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[12px]">

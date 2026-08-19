@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 import LegalPage, { type LegalSection } from '../_landing/legal-page';
-import { PRICE_LABEL, SESSION_TIMES, START_DATE } from '../_landing/shared';
+import { PRICE_LABEL, SESSION_TIMES_TZ, START_DATE } from '../_landing/shared';
 
 export const metadata: Metadata = {
   title: 'Terms of Use | SuperMe',
@@ -14,7 +14,7 @@ const SECTIONS: LegalSection[] = [
   {
     heading: 'What you are buying',
     paragraphs: [
-      `A place on the 5-Day Pain Reset Challenge: five live, coach-led sessions on Zoom, run by Atul Mishra, starting ${START_DATE}. Each day runs twice, at ${SESSION_TIMES}, and you may attend whichever suits you and switch between them across the week.`,
+      `A place on the 5-Day Pain Reset Challenge: five live, coach-led sessions on Zoom, run by Atul Mishra, starting ${START_DATE}. Each day runs twice, at ${SESSION_TIMES_TZ}, and you may attend whichever suits you and switch between them across the week.`,
       'Your place is personal to you. Please do not share your joining link — the sessions are live and the group is limited so that people can actually be seen and corrected.',
     ],
   },
@@ -43,7 +43,7 @@ const SECTIONS: LegalSection[] = [
     paragraphs: [
       'SuperMe is a yoga and movement education service. It is not a medical service and it is not a substitute for medical care. Nothing said in a session, on this site or in the guides is medical advice, a diagnosis or a treatment plan.',
       'Atul Mishra is a yoga teacher holding a postgraduate diploma in Yoga Education from Kaivalyadhama and an E-RYT 500 certification with Yoga Alliance. He is not a doctor, a physiotherapist or a registered clinician.',
-      'Please speak to your GP or clinician before starting if you are recovering from an injury or surgery, have not been cleared to exercise, or have been told that movement is not appropriate for you. You take part on the basis that you are well enough to do so.',
+      'Please speak to your doctor or physiotherapist before starting if you are recovering from an injury or surgery, have not been cleared to exercise, or have been told that movement is not appropriate for you. You take part on the basis that you are well enough to do so.',
     ],
   },
   {

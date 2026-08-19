@@ -4,9 +4,11 @@ import Script from 'next/script';
  * Google Analytics 4 (gtag.js).
  *
  * The measurement id is public by definition, it ships in the page source of
- * every site that uses one, so it is safe to keep a working default here. The
- * env var exists so a second property (a staging one, say) can be pointed at
- * without a code change.
+ * every site that uses one, so it is safe to keep it in the source. It is
+ * HARD-CODED: this deployment reports to the India property and nowhere else.
+ * The env var that used to override it is gone on purpose — a stale
+ * NEXT_PUBLIC_GA_MEASUREMENT_ID left on the host would have quietly sent
+ * India's traffic to the UK property, and nothing on the page would show it.
  *
  * `afterInteractive` rather than the raw async tag: Next loads it after
  * hydration, so analytics never competes with the hero for the main thread.
@@ -16,11 +18,9 @@ import Script from 'next/script';
  * the real property as traffic. Preview and production both report normally.
  */
 
-export const GA_MEASUREMENT_ID =
-  process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID?.trim() || 'G-BX2CK1ZSGB';
+export const GA_MEASUREMENT_ID = 'G-EKT4VPX6PV';
 
 export default function GoogleAnalytics() {
-  if (!GA_MEASUREMENT_ID) return null;
   if (process.env.NODE_ENV === 'development') return null;
 
   return (

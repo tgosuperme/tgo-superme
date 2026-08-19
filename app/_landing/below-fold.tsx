@@ -18,11 +18,18 @@
  *  11  FAQ ........................ page 11
  *  12  Important information ...... page 12
  *
- * COPY IS VERBATIM from that PDF. It is the wording the UK compliance review
- * was run against, so it must not be re-voiced, shortened or "improved". Three
- * devices from the reference postpartum page are deliberately absent and must
- * stay absent: a rising-price strip, a struck-through list price with a savings
- * badge, and any percentage outcome claim.
+ * COPY IS ALL BUT VERBATIM from that PDF, which is the wording the compliance
+ * review was run against, so it must not be re-voiced, shortened or
+ * "improved". Two FAQ entries are the exception, changed for the India
+ * audience and marked where they sit: the employer-wellbeing-app objection,
+ * which does not exist for this market, and a new one answering why the price
+ * is as low as it is. Everything else is the reviewed wording.
+ *
+ * Three devices from the reference postpartum page are deliberately absent and
+ * must stay absent: a rising-price strip, a struck-through list price with a
+ * savings badge, and any percentage outcome claim. Those came from the UK
+ * review and they SURVIVE THE MOVE — ASCI's code and the Consumer Protection
+ * Act 2019 land in the same place on all three.
  */
 import {
   ArrowRight,
@@ -59,7 +66,7 @@ import {
   PrimaryCTA,
   SectionEyebrow,
   SectionHeading,
-  SESSION_TIMES,
+  SESSION_TIMES_TZ,
   SESSIONS_LABEL,
   START_DATE,
 } from './shared';
@@ -441,7 +448,7 @@ function SessionsBand() {
           {/* Bright sky, not goldDeep: this h2 sits on the navy band, where
               primary blue is 2.22:1 and bright sky is 5.85:1. The one place the
               highlight flips colour, because the ground flipped. */}
-          {SESSION_TIMES}, <span style={{ color: C.sky }}>live on Zoom</span>.
+          {SESSION_TIMES_TZ}, <span style={{ color: C.sky }}>live on Zoom</span>.
         </h2>
         <p className="mt-3 text-[15px]" style={{ color: 'rgba(250,245,234,0.75)' }}>
           Pick whichever time fits your day.
@@ -1158,8 +1165,14 @@ const FAQS = [
     a: "A generic routine isn't sequenced for a back, neck or knee that's already guarding and the wrong movement on an irritated area can make things worse. That's exactly why the Inner Brace Method starts by taking the load off before asking anything to stretch or strengthen. Nothing is forced, and every movement is adapted live by your coach.",
   },
   {
-    q: 'My employer already gives me a free app for this. Why would I pay for a challenge?',
-    a: "Those apps are useful, but they're self-guided — nobody is watching how you move or correcting you in real time. This challenge is live, with a coach adjusting what you're doing as you're doing it. It's a different kind of support, not a replacement.",
+    q: 'There are free yoga videos on YouTube. Why would I pay for a challenge?',
+    a: "Those videos are useful, and plenty of them are taught well. But a video is recorded — nobody is watching how you move or correcting you in real time, and with a back, neck or knee that is already guarding, the correction is the part that matters. This challenge is live, with a coach adjusting what you're doing as you're doing it. It's a different kind of support, not a replacement.",
+  },
+  {
+    /* Priced at a few hundred rupees, the page invites the question the UK
+       version never had to answer. Left unanswered it reads as a catch. */
+    q: `Why is it only ${PRICE_LABEL}? What is the catch?`,
+    a: "There isn't one. The price is low on purpose: this is the first time most people meet the Inner Brace Method, and we would rather it cost almost nothing to find out whether it suits you. You get all five live sessions and the four guides for that one payment. On Day 5 we talk about how to keep going if you want to — and if you don't, nothing happens and nothing renews.",
   },
   {
     q: "Isn't physiotherapy enough?",
@@ -1175,7 +1188,7 @@ const FAQS = [
   },
   {
     q: "What if I can't make the live session time?",
-    a: `Every session runs twice a day, ${SESSION_TIMES}, so you can pick whichever fits. Live sessions are how the coaching and real-time correction work, so we don't offer indefinite replays.`,
+    a: `Every session runs twice a day, ${SESSION_TIMES_TZ}, so you can pick whichever fits. Live sessions are how the coaching and real-time correction work, so we don't offer indefinite replays.`,
   },
   {
     q: 'What happens after the 5 days?',
@@ -1408,9 +1421,19 @@ function Initiative() {
           className="mx-auto mt-6 max-w-[720px] text-center text-[12.5px] leading-relaxed"
           style={{ color: C.inkMuted }}
         >
+          {/* THE ENTITY IS A FACT, NOT COPY, and it has been extended rather
+              than rewritten: MyEntourage Sàrl is who this funnel said operated
+              SuperMe, and inventing an Indian entity here would put a false
+              statement on a page that also takes money. India is added to the
+              reach because the site now sells there.
+
+              If an Indian entity is registered for the Stripe India account —
+              which INR settlement requires — THIS LINE MUST NAME IT, and the
+              privacy, terms and refund pages need the same name. Flagged, not
+              guessed at. */}
           SuperMe is operated by MyEntourage Sàrl, Lausanne, Switzerland, and
-          works with people across the UK, EU and Switzerland. SuperMe is a yoga
-          and movement education service, not a medical service.
+          works with people across India, the UK, EU and Switzerland. SuperMe is
+          a yoga and movement education service, not a medical service.
         </p>
 
         {/* ── the quiet mop-up click ─────────────────────────────────────
@@ -1538,10 +1561,10 @@ function LegalNotice() {
             or any medical care you are currently receiving.
           </p>
           <p>
-            Please speak with your GP or clinician before starting, particularly
-            if you are recovering from an acute injury or surgery, have not been
-            cleared to exercise, or have been advised that movement is not
-            appropriate for you.
+            Please speak with your doctor or physiotherapist before starting,
+            particularly if you are recovering from an acute injury or surgery,
+            have not been cleared to exercise, or have been advised that
+            movement is not appropriate for you.
           </p>
           <p>
             During any session, do not push through pain. If something hurts, stop
