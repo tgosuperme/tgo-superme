@@ -527,20 +527,30 @@ function Recognition() {
 /* ── section 6 · testimonials (PDF p6) ───────────────────────────────── */
 
 /**
- * Three client clips, served from Vercel Blob rather than bundled, so they never
- * touch the deploy size or the critical path.
+ * Three client clips, embedded from Vimeo.
  *
- * No poster art exists yet, so the frames show the video itself: preload
- * "metadata" pulls just the header and first frame, which the browser paints as
- * an implicit poster. That is a few KB per clip, not the whole file. When real
- * thumbnails land, add `poster` here and nothing else has to change.
+ * ── WHY NOT VERCEL BLOB ─────────────────────────────────────────────────────
+ * They used to be .mp4 files on Vercel Blob, streamed in full to every visitor
+ * who pressed play. Three portrait clips is a lot of megabytes per view, it is
+ * billed as Blob data transfer, and it was the single largest consumer of that
+ * quota on the account. Vimeo does the same job with adaptive bitrate, its own
+ * CDN, and no per-view cost to us.
+ *
+ * `loading="lazy"` matters more here than usual: three iframes is three extra
+ * documents, and this section sits well below the fold. Lazy keeps them out of
+ * the initial load entirely until the reader scrolls near them.
+ *
+ * dnt=1 asks Vimeo not to track the viewer. It costs nothing, and this page
+ * already carries a Pixel and GA — a third tracker nobody chose is not needed.
  */
-const BLOB = 'https://pm4wnvllwxriwvmg.public.blob.vercel-storage.com';
-const TESTIMONIALS: { name: string; caption: string; src: string; poster?: string }[] = [
-  { name: 'Testimonial 1', caption: '', src: `${BLOB}/testimonial-1.mp4` },
-  { name: 'Testimonial 2', caption: '', src: `${BLOB}/testimonial-2.mp4` },
-  { name: 'Testimonial 3', caption: '', src: `${BLOB}/testimonial-3.mp4` },
+const TESTIMONIALS: { name: string; id: string }[] = [
+  { name: 'Testimonial 1', id: '1220112152' },
+  { name: 'Testimonial 2', id: '1220112153' },
+  { name: 'Testimonial 3', id: '1220112154' },
 ];
+
+/** Player params: no Vimeo branding competing with ours, no autoplay. */
+const VIMEO_PARAMS = 'badge=0&byline=0&portrait=0&title=0&dnt=1';
 
 function Testimonials() {
   return (
@@ -569,14 +579,13 @@ function Testimonials() {
             className="aspect-[9/14] overflow-hidden rounded-2xl border"
             style={{ ...legoBrick(idx, 110), borderColor: C.line, background: C.sand }}
           >
-            <video
-              src={t.src}
-              poster={t.poster}
-              controls
-              playsInline
-              preload="metadata"
-              className="h-full w-full object-cover"
-              aria-label={t.name}
+            <iframe
+              src={`https://player.vimeo.com/video/${t.id}?${VIMEO_PARAMS}`}
+              title={t.name}
+              loading="lazy"
+              allow="autoplay; fullscreen; picture-in-picture"
+              allowFullScreen
+              className="h-full w-full border-0"
             />
           </li>
         ))}
