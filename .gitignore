@@ -26,10 +26,15 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# local env files — never commit secrets
+# local env files — never commit secrets.
+#
+# Ignore EVERY .env variant and un-ignore only the committed template. The old
+# rules listed .env and .env*.local by name, which meant a new variant like
+# .env.india — carrying a Meta CAPI token, a Razorpay webhook secret and the
+# Pabbly URL — was not covered and sat one `git add -A` from being committed.
 .env
-.env.local
-.env*.local
+.env.*
+!.env.example
 # the dotless typo. Next.js does not load it, so it is easy to create by
 # mistake and not notice — and the patterns above do not catch it.
 env.local
