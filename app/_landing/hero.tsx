@@ -29,6 +29,7 @@ import {
   Heart,
   Lock,
   ShieldCheck,
+  MonitorPlay,
   Student,
   UsersThree,
   VideoCamera,
@@ -139,6 +140,9 @@ const PILLS = [
   { icon: CalendarBlank, text: `Starts ${START_DATE}`, bed: C.lightBlue, fg: C.skyInk },
   { icon: Clock, text: SESSION_TIMES_TZ, bed: C.peachBed, fg: C.peachInk },
   { icon: VideoCamera, text: 'Live on Zoom', bed: C.mintBed, fg: C.mintInk },
+  /* Recordings are part of the offer, so they belong above the fold with
+     the other three facts a reader checks before deciding. */
+  { icon: MonitorPlay, text: 'Recordings included', bed: C.lavenderBed, fg: C.lavenderInk },
 ];
 
 /* ── 2. Hero ──────────────────────────────────────────────────────────── */
@@ -258,7 +262,7 @@ export function Hero() {
             style={{ color: C.inkMuted }}
           >
             <ShieldCheck weight="fill" className="h-4 w-4" style={{ color: C.green }} />
-            Full refund if you don&apos;t love Day One
+            100% Money Back Guarantee
           </p>
 
           <ul className="mt-7 flex flex-wrap justify-center gap-2.5 lg:justify-start">
@@ -315,7 +319,7 @@ export function Hero() {
                   the offer strip above, the pills under the CTA and the docked
                   bar, so nothing is lost by dropping it. */}
               <Image
-                src="/bonuses/system-image.png"
+                src="/bonuses/system-image-india.png"
                 alt="The 5-Day Pain Reset system: live Zoom sessions twice daily, WhatsApp community support, and the four guides"
                 width={1586}
                 height={992}
@@ -352,7 +356,7 @@ export function Hero() {
                   {PRICE_LABEL}
                 </span>
                 <span className="text-[13px]" style={{ color: C.inkMuted }}>
-                  refunded in full if Day One is not for you
+                  100% Money Back Guarantee
                 </span>
               </div>
 

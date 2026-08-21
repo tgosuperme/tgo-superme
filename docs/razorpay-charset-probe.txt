@@ -1,0 +1,24 @@
+RAZORPAY ref_id CHARACTER PROBE — no payment needed
+Open each. Record ONLY: did the ref_id field populate? (yes/no)
+======================================================================
+
+### CONTROL  pure alphanumeric   (20 chars)
+https://pages.razorpay.com/pl_TS7plD5cahZ5oX/view?ref_id=AAAAA11111BBBBB22222
+
+### HYPHEN   -   (23 chars)
+https://pages.razorpay.com/pl_TS7plD5cahZ5oX/view?ref_id=AAAAA-11111-BBBBB-22222
+
+### UNDERSCORE _   (23 chars)
+https://pages.razorpay.com/pl_TS7plD5cahZ5oX/view?ref_id=AAAAA_11111_BBBBB_22222
+
+### DOT      .   (23 chars)
+https://pages.razorpay.com/pl_TS7plD5cahZ5oX/view?ref_id=AAAAA.11111.BBBBB.22222
+
+### TILDE    ~   (23 chars)
+https://pages.razorpay.com/pl_TS7plD5cahZ5oX/view?ref_id=AAAAA~11111~BBBBB~22222
+
+### MIXED    - and _ (base64url)   (23 chars)
+https://pages.razorpay.com/pl_TS7plD5cahZ5oX/view?ref_id=AAAAA-11111_BBBBB-22222
+
+### LONG BASE62 (745 chars, no punctuation at all)   (745 chars)
+https://pages.razorpay.com/pl_TS7plD5cahZ5oX/view?ref_id=aLmXy9KlWx8JkVw7IjUv6HiTu5GhSt4FgRs3EfQr2DePq1CdOp0BcNoZAbMnYzaLmXy9KlWx8JkVw7IjUv6HiTu5GhSt4FgRs3EfQr2DePq1CdOp0BcNoZAbMnYzaLmXy9KlWx8JkVw7IjUv6HiTu5GhSt4FgRs3EfQr2DePq1CdOp0BcNoZAbMnYzaLmXy9KlWx8JkVw7IjUv6HiTu5GhSt4FgRs3EfQr2DePq1CdOp0BcNoZAbMnYzaLmXy9KlWx8JkVw7IjUv6HiTu5GhSt4FgRs3EfQr2DePq1CdOp0BcNoZAbMnYzaLmXy9KlWx8JkVw7IjUv6HiTu5GhSt4FgRs3EfQr2DePq1CdOp0BcNoZAbMnYzaLmXy9KlWx8JkVw7IjUv6HiTu5GhSt4FgRs3EfQr2DePq1CdOp0BcNoZAbMnYzaLmXy9KlWx8JkVw7IjUv6HiTu5GhSt4FgRs3EfQr2DePq1CdOp0BcNoZAbMnYzaLmXy9KlWx8JkVw7IjUv6HiTu5GhSt4FgRs3EfQr2DePq1CdOp0BcNoZAbMnYzaLmXy9KlWx8JkVw7IjUv6HiTu5GhSt4FgRs3EfQr2DePq1CdOp0BcNoZAbMnYzaLmXy9KlWx8JkVw7IjUv6HiTu5GhSt4FgRs3EfQr2DePq1CdOp0BcNoZAbMnYzaLmXy9KlWx8JkVw7IjUv6HiTu5GhSt4FgRs3EfQr2DePq1CdOp0BcNoZAbMnEND

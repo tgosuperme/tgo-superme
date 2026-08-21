@@ -1,19 +1,19 @@
 /**
  * Pabbly Connect hand-off for the 5-Day Pain Reset.
  *
- * One POST per paid seat, fired from the Stripe webhook, which Pabbly appends
- * to the sales sheet.
+ * One POST per paid seat, fired from the RAZORPAY webhook, which Pabbly
+ * appends to the sales sheet.
  *
  * Two things this file takes a position on:
  *
  *   · FLAT, snake_case payload. Pabbly's field picker maps a flat object onto
  *     sheet columns one to one; nested objects have to be unpacked by hand in
  *     the workflow and quietly break when the shape changes.
- *   · stripe_session_id is the DEDUPE KEY. Stripe retries a failed webhook for
- *     up to three days, and each retry re-runs this, so the sheet can receive
- *     the same sale twice. The Pabbly workflow should look the row up by this
- *     id before it appends. Losing a sale is far worse than writing one twice,
- *     so the retry behaviour stays and the dedupe belongs on the Pabbly side.
+ *   · razorpay_payment_id is the DEDUPE KEY. Razorpay retries a failed webhook,
+ *     and each retry re-runs this, so the sheet can receive the same sale
+ *     twice. The Pabbly workflow should look the row up by this id before it
+ *     appends. Losing a sale is far worse than writing one twice, so the retry
+ *     behaviour stays and the dedupe belongs on the Pabbly side.
  *
  *     PABBLY_WEBHOOK_URL=https://connect.pabbly.com/workflow/sendwebhookdata/...
  */
@@ -39,7 +39,7 @@
 export type SalePayload = {
   /* ── A–Y · universal block (SOP §4) ──────────────────────────────── */
   /* identity of the row */
-  lead_id: string; // A · canonical unique key = Stripe session id
+  lead_id: string; // A · canonical unique key = the uuid /go minted
   created_at: string; // B · ISO 8601, UTC
 
   /* who */
@@ -51,8 +51,8 @@ export type SalePayload = {
   country_code: string; // H · ISO 3166-1 alpha-2
 
   /* Meta match keys, all captured in the buyer's browser at checkout time.
-     NEVER hashed and never re-read at webhook time — this request is Stripe's,
-     so reading them here would describe a Stripe datacentre. */
+     NEVER hashed and never re-read at webhook time — this request is
+     Razorpay's, so reading them here would describe a Razorpay datacentre. */
   fbc: string; // I · hybrid: cookie, else fb.1.<ts>.<fbclid>
   fbp: string; // J
   client_ip_address: string; // K
@@ -72,6 +72,7 @@ export type SalePayload = {
   utm_campaign: string; // T
   utm_content: string; // U
   utm_term: string; // V
+  utm_id: string; // Meta ad id — joins CRM rows to Ads Manager
   fbclid: string; // W · backup for the fbc rebuild
   referrer: string; // X · first-touch, classifies untagged buyers
   landing_url: string; // Y · first-touch entry point
@@ -81,8 +82,11 @@ export type SalePayload = {
   amount_minor: number; // paise, for anything that must not touch floats
   currency: string; // "INR"
   payment_status: string;
-  stripe_session_id: string; // = lead_id, kept under its own name for lookups
-  stripe_payment_intent: string;
+  /* Razorpay replaces Stripe on this branch. razorpay_payment_id is the DEDUPE
+     KEY for the Pabbly workflow — Razorpay retries a failed webhook, so the
+     workflow must look the row up by this id before it appends. */
+  razorpay_payment_id: string;
+  razorpay_order_id: string;
   paid_at: string; // = created_at, kept for the existing sheet mapping
   live_mode: boolean; // inverse of is_test, as a real boolean
   gclid: string;
@@ -118,7 +122,7 @@ export async function sendSaleToPabbly(payload: SalePayload): Promise<void> {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
-        /* A hanging Pabbly must not hold the Stripe webhook open until the
+        /* A hanging Pabbly must not hold the Razorpay webhook open until the
            platform kills it, because a killed handler is an unclear failure. */
         signal: AbortSignal.timeout(10_000),
         cache: 'no-store',
@@ -126,13 +130,13 @@ export async function sendSaleToPabbly(payload: SalePayload): Promise<void> {
 
       if (res.ok) {
         console.info(
-          `[pabbly] sale sent ${payload.stripe_session_id} (attempt ${attempt})`,
+          `[pabbly] sale sent ${payload.razorpay_payment_id} (attempt ${attempt})`,
         );
         return;
       }
 
       /* A 4xx is a broken or deleted workflow URL. Retrying cannot fix it and
-         only delays the Stripe retry that might, so it fails out now. */
+         only delays the Razorpay retry that might, so it fails out now. */
       const body = await res.text().catch(() => '');
       if (res.status >= 400 && res.status < 500) {
         throw new Error(`Pabbly rejected the sale: ${res.status} ${body.slice(0, 200)}`);
@@ -151,6 +155,6 @@ export async function sendSaleToPabbly(payload: SalePayload): Promise<void> {
   }
 
   throw new Error(
-    `Pabbly failed after ${attempts} attempts for ${payload.stripe_session_id}: ${String(lastError)}`,
+    `Pabbly failed after ${attempts} attempts for ${payload.razorpay_payment_id}: ${String(lastError)}`,
   );
 }

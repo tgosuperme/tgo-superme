@@ -451,11 +451,12 @@ function SessionsBand() {
           {SESSION_TIMES_TZ}, <span style={{ color: C.sky }}>live on Zoom</span>.
         </h2>
         <p className="mt-3 text-[15px]" style={{ color: 'rgba(250,245,234,0.75)' }}>
-          Pick whichever time fits your day.
+          Pick whichever time fits your day — and every session is recorded,
+          so a day you cannot make live is never a day you lose.
         </p>
         <div className="mx-auto mt-7 flex max-w-[400px] flex-col items-center">
           <a
-            href="/checkout"
+            href="/go"
             className="lego-press lego-pulse group inline-flex min-h-[56px] w-full items-center justify-center gap-2 rounded-full px-7 py-4 font-heading text-[15px] font-bold"
             style={{
               background: C.white,
@@ -473,7 +474,7 @@ function SessionsBand() {
             className="mt-3 text-[13px] font-medium"
             style={{ color: 'rgba(250,245,234,0.7)' }}
           >
-            Refundable If You Don&apos;t Love Day One
+            100% Money Back Guarantee
           </p>
         </div>
       </div>
@@ -534,20 +535,30 @@ function Recognition() {
 /* ── section 6 · testimonials (PDF p6) ───────────────────────────────── */
 
 /**
- * Three client clips, served from Vercel Blob rather than bundled, so they never
- * touch the deploy size or the critical path.
+ * Three client clips, embedded from Vimeo.
  *
- * No poster art exists yet, so the frames show the video itself: preload
- * "metadata" pulls just the header and first frame, which the browser paints as
- * an implicit poster. That is a few KB per clip, not the whole file. When real
- * thumbnails land, add `poster` here and nothing else has to change.
+ * ── WHY NOT VERCEL BLOB ─────────────────────────────────────────────────────
+ * They used to be .mp4 files on Vercel Blob, streamed in full to every visitor
+ * who pressed play. Three portrait clips is a lot of megabytes per view, it is
+ * billed as Blob data transfer, and it was the single largest consumer of that
+ * quota on the account. Vimeo does the same job with adaptive bitrate, its own
+ * CDN, and no per-view cost to us.
+ *
+ * `loading="lazy"` matters more here than usual: three iframes is three extra
+ * documents, and this section sits well below the fold. Lazy keeps them out of
+ * the initial load entirely until the reader scrolls near them.
+ *
+ * dnt=1 asks Vimeo not to track the viewer. It costs nothing, and this page
+ * already carries a Pixel and GA — a third tracker nobody chose is not needed.
  */
-const BLOB = 'https://pm4wnvllwxriwvmg.public.blob.vercel-storage.com';
-const TESTIMONIALS: { name: string; caption: string; src: string; poster?: string }[] = [
-  { name: 'Testimonial 1', caption: '', src: `${BLOB}/testimonial-1.mp4` },
-  { name: 'Testimonial 2', caption: '', src: `${BLOB}/testimonial-2.mp4` },
-  { name: 'Testimonial 3', caption: '', src: `${BLOB}/testimonial-3.mp4` },
+const TESTIMONIALS: { name: string; id: string }[] = [
+  { name: 'Testimonial 1', id: '1220112152' },
+  { name: 'Testimonial 2', id: '1220112153' },
+  { name: 'Testimonial 3', id: '1220112154' },
 ];
+
+/** Player params: no Vimeo branding competing with ours, no autoplay. */
+const VIMEO_PARAMS = 'badge=0&byline=0&portrait=0&title=0&dnt=1';
 
 function Testimonials() {
   return (
@@ -576,14 +587,13 @@ function Testimonials() {
             className="aspect-[9/14] overflow-hidden rounded-2xl border"
             style={{ ...legoBrick(idx, 110), borderColor: C.line, background: C.sand }}
           >
-            <video
-              src={t.src}
-              poster={t.poster}
-              controls
-              playsInline
-              preload="metadata"
-              className="h-full w-full object-cover"
-              aria-label={t.name}
+            <iframe
+              src={`https://player.vimeo.com/video/${t.id}?${VIMEO_PARAMS}`}
+              title={t.name}
+              loading="lazy"
+              allow="autoplay; fullscreen; picture-in-picture"
+              allowFullScreen
+              className="h-full w-full border-0"
             />
           </li>
         ))}
@@ -1040,8 +1050,7 @@ function Promise() {
         >
           Join Day 1 of the 5-Day Pain Reset Challenge and experience the Inner
           Brace Method for yourself. If you attend Day 1 and decide it&apos;s not
-          for you, simply let us know by the end of the day and we&apos;ll refund
-          your {PRICE_LABEL} in full.
+          for you, that is a 100% Money Back Guarantee.
         </p>
 
         <p className="sm-promise-closer">
@@ -1127,7 +1136,7 @@ function TwoOptions() {
             strength, stability and ease.
           </p>
           <a
-            href="/checkout"
+            href="/go"
             className="lego-press lego-pulse group mt-6 inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full px-6 py-3.5 font-heading text-[14.5px] font-bold"
             style={{
               background: C.white,
@@ -1145,7 +1154,7 @@ function TwoOptions() {
             className="mt-3 text-center text-[12.5px]"
             style={{ color: 'rgba(250,245,234,0.7)' }}
           >
-            Refundable If You Don&apos;t Love Day One
+            100% Money Back Guarantee
           </p>
         </div>
       </div>
@@ -1188,7 +1197,11 @@ const FAQS = [
   },
   {
     q: "What if I can't make the live session time?",
-    a: `Every session runs twice a day, ${SESSION_TIMES_TZ}, so you can pick whichever fits. Live sessions are how the coaching and real-time correction work, so we don't offer indefinite replays.`,
+    a: `Every session runs twice a day, ${SESSION_TIMES_TZ}, so you can pick whichever fits. And every session is recorded — the recording is shared with you afterwards, so a day you genuinely cannot make is never a day you lose.`,
+  },
+  {
+    q: 'Do I get the recordings?',
+    a: "Yes. Every one of the five sessions is recorded and the recording is shared with you, so you can catch up on a day you missed or go back over a movement you want to get right. Attending live is still where the real value is — that is the only place a coach can see how you are moving and correct it — but the recordings mean a bad day at work does not cost you a day of the challenge.",
   },
   {
     q: 'What happens after the 5 days?',
@@ -1449,7 +1462,7 @@ function Initiative() {
         >
           <PrimaryCTA label={`Hold my place for ${PRICE_LABEL}`} />
           <CtaNote
-            text={`Come to Day One. If it is not for you, tell us by the end of that day and we refund the ${PRICE_LABEL} in full.`}
+            text="100% Money Back Guarantee"
           />
         </m.div>
       </div>
@@ -1617,7 +1630,7 @@ function Footer() {
           {' · '}
         </span>
         <span className="block sm:inline">
-          {PRICE_LABEL}, refunded in full if day one is not for you
+          {PRICE_LABEL}, 100% Money Back Guarantee
         </span>
       </p>
 

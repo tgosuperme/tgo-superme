@@ -56,15 +56,14 @@ function text(value: string | undefined, fallback: string): string {
 /**
  * ONE price variable, read once, rendered everywhere.
  *
- * NEXT_PUBLIC_OFFER_PRICE_INR is the new name; NEXT_PUBLIC_OFFER_PRICE_GBP is
- * still read as a fallback so a host that still carries the old key does not
- * suddenly serve the default instead of the price someone actually set. The
- * INR key wins when both are present.
+ * The NEXT_PUBLIC_OFFER_PRICE_GBP fallback that used to sit here is REMOVED.
+ * It existed to cover a host still carrying the old key during migration, but
+ * this branch deploys to its own fresh Vercel project where that key never
+ * existed. Left in, it was a live hazard: importing the UK project's env by
+ * mistake would have quietly set the India price to the GBP figure — ₹4.99
+ * instead of ₹497, with nothing erroring to say so.
  */
-const PRICE_INR = parsePriceEnv(
-  process.env.NEXT_PUBLIC_OFFER_PRICE_INR ?? process.env.NEXT_PUBLIC_OFFER_PRICE_GBP,
-  497,
-);
+const PRICE_INR = parsePriceEnv(process.env.NEXT_PUBLIC_OFFER_PRICE_INR, 497);
 
 /**
  * Indian digit grouping, and no trailing ".00".
@@ -159,8 +158,14 @@ export const CHECKOUT_CONFIG = {
     currency: 'INR',
   } as const,
 
-  checkoutPath: '/checkout',
-  thankYouPath: '/thank-you',
+  /* /go, not /checkout. There is no checkout page of ours any more: the CTA
+     lands on a server route that captures the browser-only Meta match keys,
+     fires atc_event, and redirects to the hosted Razorpay page. Changing it
+     here moves every CTA on the site, because they all read CHECKOUT_HREF. */
+  checkoutPath: '/go',
+  /* Razorpay redirects here. There is no /thank-you any more: its only job was
+     the Stripe session check, which Razorpay gives us nothing to perform. */
+  thankYouPath: '/confirmed',
   funnelSlug: 'superme-pain-reset',
   utmSessionKey: 'superme_utm',
 

@@ -55,7 +55,7 @@ const SECTIONS: LegalSection[] = [
   {
     heading: 'Recordings and materials',
     paragraphs: [
-      'The sessions are live. Replays are not guaranteed, and the challenge is priced and structured on the basis that you attend.',
+      'The sessions are live, and a recording of each one is shared with you afterwards. The challenge is priced and structured on the basis that you attend live, because that is the only place a coach can correct how you move.',
       'The guides, worksheets and session content belong to SuperMe. You are welcome to use them yourself for as long as you like. Please do not resell them, republish them or pass them on.',
       'Sessions may be recorded for internal review. If a recording would ever be used publicly, we would ask you first.',
     ],

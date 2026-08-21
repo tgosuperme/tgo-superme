@@ -52,7 +52,7 @@ const SECTIONS: LegalSection[] = [
     heading: 'Missed sessions',
     paragraphs: [
       'Every day runs twice, so there are two chances to attend each session. If you miss one entirely, we cannot refund that day on its own — the session ran and the coach was there.',
-      'Replays are not guaranteed. The value of the challenge is being seen and corrected live, which is the one thing a recording cannot do.',
+      'A recording of each session is shared with you, so a missed day can still be caught up. It does not replace attending: being seen and corrected live is the one thing a recording cannot do.',
     ],
   },
   {

@@ -1,5 +1,5 @@
 /**
- * /thank-you · the post-purchase page.
+ * /confirmed · the post-purchase page.
  *
  * Structure follows the bodyworx.in/thank-you reference the client supplied,
  * section for section: confirmation → the diary facts → the ONE required
@@ -22,12 +22,16 @@
  *
  * All dates, times and the invite link come from env — see .env.example.
  *
- * PAYMENT STATE. ./page.tsx verifies the Stripe session server-side and passes
- * the result in. `paid === false` is NOT an error: it is what a hand-typed URL,
- * an expired session id, or an abandoned checkout all produce. That case gets
- * the pending panel below instead of the confirmation, because showing the
- * joining instructions to someone who has not paid is worse than making a
- * genuine buyer wait a moment for their email.
+ * NO PAYMENT GATE. Under Stripe this page re-checked the session server-side
+ * and showed a pending panel when it could not confirm one. Razorpay's hosted
+ * Payment Page redirects here with no session of ours to verify, so that gate
+ * had nothing left to check and has been removed along with the /thank-you
+ * route it lived on.
+ *
+ * The consequence, stated plainly: anyone who types this URL sees the joining
+ * instructions. What they do NOT get is the WhatsApp invite doing anything for
+ * them, or a seat — fulfilment runs off the Razorpay webhook, which is the only
+ * trustworthy record that money moved. The page is noindex/nofollow.
  */
 import {
   ArrowLeft,
@@ -66,8 +70,6 @@ import {
 const HAS_INVITE = WHATSAPP_COMMUNITY_URL.length > 0;
 
 export type ThankYouProps = {
-  /** Stripe says this session is paid. Defaults false — see the note above. */
-  paid?: boolean;
   firstName?: string;
   email?: string;
 };
@@ -183,7 +185,7 @@ const COMMUNITY = [
 const POLICY = [
   'No moving to a later cohort once this one starts',
   'Live sessions are where the correction happens',
-  'Replays are not guaranteed for a session you miss',
+  'A recording of each session is shared with you afterwards',
 ];
 
 const PREP = [
@@ -194,119 +196,33 @@ const PREP = [
 ];
 
 /** Brand bar. Shared by both states; only the status pill differs. */
-function PageHeader({ paid }: { paid: boolean }) {
+function PageHeader() {
   return (
     <header style={{ background: C.white, borderBottom: `1px solid ${C.line}` }}>
       <div className="mx-auto flex max-w-[1120px] items-center justify-between gap-4 px-5 py-4 md:px-8">
         <BrandMark height={34} priority />
         <span
           className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10.5px] font-bold uppercase tracking-[0.16em]"
-          style={
-            paid
-              ? { background: C.greenBed, color: C.greenInk }
-              : { background: C.lightBlue, color: C.skyInk }
-          }
+          style={{ background: C.greenBed, color: C.greenInk }}
         >
-          {paid ? (
-            <>
-              <CheckCircle weight="fill" className="h-3 w-3" />
-              Order confirmed
-            </>
-          ) : (
-            <>
-              <Clock weight="fill" className="h-3 w-3" />
-              Checking payment
-            </>
-          )}
+          <CheckCircle weight="fill" className="h-3 w-3" />
+          Order confirmed
         </span>
       </div>
     </header>
   );
 }
 
-/**
- * Shown when Stripe has NOT confirmed the session — a typed URL, an expired
- * id, or an abandoned checkout. Deliberately gives away none of the joining
- * detail, but does not accuse the reader of anything either: a real buyer whose
- * webhook is a few seconds behind reads this too.
- */
-function PendingState({ email }: { email: string }) {
-  return (
-    <main className="min-h-screen font-body" style={{ background: C.paleBlue, color: C.ink }}>
-      <PageHeader paid={false} />
-
-      <div className="mx-auto max-w-[620px] px-5 py-16 md:py-24">
-        <div
-          className="rounded-3xl p-7 text-center sm:p-10"
-          style={{ background: C.white, border: `1px solid ${C.line}` }}
-        >
-          <span
-            className="mx-auto grid h-14 w-14 place-items-center rounded-2xl"
-            style={{ background: C.skyBed }}
-          >
-            <Clock weight="fill" className="h-7 w-7" style={{ color: C.skyInk }} />
-          </span>
-
-          <h1
-            className="mt-5 font-heading text-[28px] font-bold leading-[1.14] sm:text-[34px]"
-            style={{ color: C.ink }}
-          >
-            We are <span style={{ color: C.goldDeep }}>confirming</span> your
-            payment
-          </h1>
-
-          <p
-            className="mx-auto mt-4 max-w-[460px] text-[15px] leading-relaxed"
-            style={{ color: C.inkSoft }}
-          >
-            If you have just paid, your place is held and the joining email is on
-            its way{email ? ` to ${email}` : ''}. Nothing more is needed from
-            you. If you closed the payment page before finishing, your place is
-            not held yet.
-          </p>
-
-          <p
-            className="mx-auto mt-6 flex max-w-[460px] items-start gap-2.5 rounded-2xl p-3.5 text-left text-[12.5px] leading-snug"
-            style={{ background: C.lightBlue, color: C.ink }}
-          >
-            <EnvelopeSimple
-              weight="fill"
-              className="mt-0.5 h-4 w-4 shrink-0"
-              style={{ color: C.blue }}
-            />
-            Not there within ten minutes? Check spam and promotions before
-            trying again — paying twice is the one thing we would rather you
-            did not do.
-          </p>
-
-          <Link
-            href="/checkout"
-            className="lego-press mt-7 inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full px-7 text-[15px] font-semibold text-white"
-            style={{ background: C.blueFill }}
-          >
-            <ArrowLeft weight="bold" className="h-4 w-4" />
-            Back to checkout
-          </Link>
-        </div>
-      </div>
-    </main>
-  );
-}
-
 export default function ThankYou({
-  paid = false,
   firstName = '',
   email = '',
 }: ThankYouProps) {
-  if (!paid) return <PendingState email={email} />;
-
   return (
     <main className="font-body" style={{ background: C.paleBlue, color: C.ink }}>
-      {/* Inside the paid branch on purpose: PendingState returns above, so a
-          buyer whose payment has not confirmed is never congratulated with
-          confetti. */}
+      {/* Fires on arrival. There is no unpaid branch any more — Razorpay only
+          redirects here after a captured payment. */}
       <ConfettiBurst />
-      <PageHeader paid />
+      <PageHeader />
 
       <div className="mx-auto max-w-[820px] px-5 py-14 md:py-20">
         {/* ── 1 · confirmation ─────────────────────────────────────── */}
@@ -575,8 +491,8 @@ export default function ThankYou({
             How the live <span style={{ color: C.goldDeep }}>cohort works</span>.
           </h2>
           <p className="mx-auto mt-3 max-w-[520px] text-[14.5px]" style={{ color: C.inkSoft }}>
-            Because this is a live, structured five days rather than a library
-            of recordings:
+            Because this is a live, structured five days rather than a course
+            you work through alone:
           </p>
         </section>
 
@@ -618,9 +534,7 @@ export default function ThankYou({
             style={{ color: C.mintInk }}
           />
           <span>
-            <strong>Your Day One promise still stands.</strong> Come to Day One,
-            and if it is not for you, tell us by the end of that day and we
-            refund your {PRICE_LABEL} in full.
+            <strong>100% Money Back Guarantee.</strong>
           </span>
         </p>
 

@@ -1,0 +1,44 @@
+RAZORPAY FIELD-LENGTH TEST — paste these into the live page's ref_id param
+Page: https://rzp.io/rzp/gmoTfXX
+Prefill key must be LOWERCASE: ?ref_id=...
+
+════════════════════════════════════════════════════════════════════════
+TEST A · THE RULER  (run this first — finds the exact cutoff)
+════════════════════════════════════════════════════════════════════════
+Every 10 characters announces its own position. Open the URL, look at the
+Ref ID field, and read the LAST number you can see. That number IS the limit.
+
+https://rzp.io/rzp/gmoTfXX?ref_id=0010______0020______0030______0040______0050______0060______0070______0080______0090______0100______0110______0120______0130______0140______0150______0160______0170______0180______0190______0200______0210______0220______0230______0240______0250______0260______0270______0280______0290______0300______0310______0320______0330______0340______0350______0360______0370______0380______0390______0400______0410______0420______0430______0440______0450______0460______0470______0480______0490______0500______0510______0520______0530______0540______0550______0560______0570______0580______0590______0600______0610______0620______0630______0640______0650______0660______0670______0680______0690______0700______0710______0720______0730______0740______0750______0760______0770______0780______0790______0800______
+
+  If the field shows ...0800______   → no practical limit. Path A.
+  If it shows up to  ...0250______   → limit ~255. Use 3 fields, or a store.
+  If it is blank                     → Razorpay rejected it. Use a store.
+
+════════════════════════════════════════════════════════════════════════
+TEST B · A REAL TOKEN  (739 chars — production shape and size)
+════════════════════════════════════════════════════════════════════════
+This is a genuine brotli+base64url token carrying a full attribution blob:
+event_id, _fbp, _fbc (with your real 171-char fbclid), client IP, iPhone user
+agent, all six UTMs, referrer and landing_url. It decodes cleanly — verified.
+
+https://rzp.io/rzp/gmoTfXX?ref_id=v1.GxQEICwO7MbOGxNJT81eLDe0v75U5wsjnRdQmue1QmtXgJPF0hc6ITL_l9PbvEGO6E5xjI3RHvZfGGgGdVSY2JgA3DB2GQN48v1x-qgSGrLICGh9HkMRGgMDklDIYhlp34YioeTR5jEJEEVUG6WsJaIBUcaFVNrY2kQhpwn5ndJ5xC4z_9zKnvVkERfbxxTLL4JW7pwq5Of-oJXeXsmqUqCBHNavUaFWGA3T5yFbzHPZ0rU2S90a3RxvZMeFZDYlbllKpdqCFSE8snZLbeTwHHXsNBOcJ3236Lm8yF9nu5sd7ltWsWazepmseu0xvzYHF3CHZXh2frx0fofMSh1Was5ng-2tT21nljRTj_xHYRFXiBqOGBGl4aP2ZqtZLBEB79Pbq-Z-gkyzB-AWaHQA1U7uZdU1P3TJ8ONj0Q2DOKhMD1gROX5aErxXnhBVam8X4nC-FtrM0cdUI_nQygVMZY4KAzp-4u-mbYDE8qP94-LhuXdMdVw-jqPK8PKa1GYD8sfVKl7sAdUvLE8Yg1faG80AAa_lM2RH_gtSETAA1kAY-GDT1elpK5hmVlhNqJJWFPFUS8sn3Ym5PaQW3gF_-Jov0Iv7td-rVxYXiQgXyktAk-V1wUmWsR_8PR6Wbk26e2jtV6PO0YPfqc3ma5DxL8Xoc7r_e8hBZTwfJg__-a-XHHsx5MXyr1T0Zb5gzQJz2DT6PbRKPfIyt-f3mOq8JkG4aP5vLgJ2
+
+════════════════════════════════════════════════════════════════════════
+WHAT TO DO WITH THE ₹1 PAYMENT
+════════════════════════════════════════════════════════════════════════
+1. Set the page amount to ₹1 temporarily (or use a ₹1 test page).
+2. Add ONE input field labelled exactly:  Ref ID      (not required)
+   and ONE labelled:                      City        (required)
+3. Dashboard > Settings > Webhooks > add https://webhook.site/<your-id>
+   Active event: payment.captured   ONLY.
+4. Open the TEST B url above, fill name/email/phone/city, pay ₹1.
+5. Send me the ENTIRE webhook.site payload.
+
+What I need to see in it:
+  - WHERE the ref_id value landed (expected: payload.payment.entity.notes)
+  - whether it arrived COMPLETE (should end in ...LgJ2) or truncated
+  - whether City came through in the same place
+  - the exact key names Razorpay used for both
+
+That payload is the last unknown. With it I can write /go and the webhook
+handler against the real shape instead of a guess.
