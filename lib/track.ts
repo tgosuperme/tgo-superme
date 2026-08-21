@@ -39,6 +39,9 @@ export type Attribution = {
   term?: string;
   fbclid?: string;
   gclid?: string;
+  /** Meta's ad id. The single most useful field for joining a CRM row back to
+      Ads Manager, and the one every UTM capture forgets. */
+  utm_id?: string;
   /** Click time in ms, for the `fb.1.<ts>.<fbclid>` rebuild. */
   ts?: number;
   /** First-touch context. */
@@ -91,6 +94,7 @@ export function captureParams() {
       term: g('utm_term'),
       fbclid: g('fbclid'),
       gclid: g('gclid'),
+      utm_id: g('utm_id'),
     };
     const hasAttribution = Object.values(url).some(Boolean);
 
@@ -136,6 +140,7 @@ export function restoreParams(): Attribution {
       term: sp.get('utm_term'),
       fbclid: sp.get('fbclid'),
       gclid: sp.get('gclid'),
+      utm_id: sp.get('utm_id'),
     };
     if (Object.values(live).some(Boolean)) {
       Object.assign(

@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import { CHECKOUT_CONFIG } from '@/lib/checkout-config';
 import { browserContext, capiConfigured, sendCapiEvent } from '@/lib/meta-capi';
-import { encodeRefId, type Attr } from '@/lib/refid';
+import { chunkRefId, type Attr } from '@/lib/refid';
 
 /**
  * /go — the CTA target, and the last moment we are the server answering the
@@ -128,8 +128,14 @@ export async function GET(req: Request) {
     }
   }
 
+  /* Razorpay rejects a `notes` value over 512 characters AT SUBMIT — the field
+     happily prefills longer than that, so an over-long token looks fine on the
+     page and then blocks the payment. Chunked across ref_id and ref_id2, both
+     of which must exist as input fields on the Payment Page. */
   const url = new URL(PAGE_URL);
-  url.searchParams.set('ref_id', encodeRefId(attr));
+  chunkRefId(attr).forEach((chunk, i) => {
+    url.searchParams.set(i === 0 ? 'ref_id' : `ref_id${i + 1}`, chunk);
+  });
 
   /* 302, not 307: this is a GET and a redirect endpoint is what browsers
      expect to be temporary. */

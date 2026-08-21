@@ -21,10 +21,26 @@ import zlib from 'node:zlib';
  * and both cases of the alphabet and nothing else, which is exactly the set
  * Razorpay allows.
  *
- * LENGTH IS NOT THE CONSTRAINT. 745 alphanumeric characters was proven to
- * populate; a full real-world payload encodes to ~744. The `MAX_SAFE` valve
- * below exists only so an absurd outlier can never quietly exceed what we have
- * actually tested.
+ * ── TWO DIFFERENT LIMITS, AND THEY DISAGREE ─────────────────────────────────
+ * PREFILL accepts long values: 745 alphanumeric characters populates the field
+ * in full. SUBMIT does not — Razorpay caps each `notes` VALUE at 512 characters
+ * and rejects the payment outright:
+ *
+ *     "Notes value cannot be greater 512 characters"
+ *
+ * So a token can look perfectly fine on the page and still block the payment.
+ * That is the worst possible failure: it is invisible until someone tries to
+ * pay, and it fails the sale rather than just the tracking.
+ *
+ * No trim keeps the payload under 512 while holding everything we need —
+ * measured: 735 whole, 602 without landing_url, 614 without landing_url and
+ * referrer, and only 461 if stripped back to Meta match keys alone, which
+ * would empty six CRM columns.
+ *
+ * So the token is CHUNKED across two fields of 500 characters. Two fields is
+ * 1000 characters of capacity against a 735-character token, and the worst of
+ * 300 randomised payloads was 744. `ref_id` and `ref_id2` on the Razorpay page;
+ * the webhook concatenates them before decoding.
  *
  * ── WHAT IS IN IT ───────────────────────────────────────────────────────────
  * Single-letter keys, because JSON key names are dead weight repeated on every
@@ -57,8 +73,11 @@ export type Attr = {
 const ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const PREFIX = 'v1';
 
-/** Proven-good ceiling. See the note above — a valve, not a real limit. */
-const MAX_SAFE = 740;
+/** Razorpay's hard per-value cap is 512. 500 leaves margin for their counting
+    to differ from ours by a character or two. */
+export const CHUNK = 500;
+/** Two fields on the page, so two chunks of CHUNK is the whole budget. */
+const MAX_SAFE = CHUNK * 2;
 
 /**
  * A leading 0x01 sentinel is prepended before the big-integer conversion.
@@ -107,12 +126,42 @@ function pack(attr: Attr): string {
 export function encodeRefId(attr: Attr): string {
   const full = pack(attr);
   if (full.length <= MAX_SAFE) return full;
+  /* Only reachable if a payload somehow needs more than 1000 characters.
+     landing_url and referrer are CRM audit fields, not Meta match keys, so
+     dropping them costs two sheet columns rather than conversion quality. */
   const { l, r, ...lean } = attr;
   const trimmed = pack(lean);
   console.warn(
     `[refid] ${full.length} chars exceeded ${MAX_SAFE}; dropped landing_url and referrer, now ${trimmed.length}`,
   );
   return trimmed;
+}
+
+/**
+ * The token split into per-field chunks, each within Razorpay's 512 cap.
+ *
+ * Returned in order. /go writes them to ref_id and ref_id2; the webhook
+ * concatenates in the same order before decoding. The split is a plain slice —
+ * no per-chunk framing — because the pieces are only ever reassembled whole.
+ */
+export function chunkRefId(attr: Attr): string[] {
+  const token = encodeRefId(attr);
+  const out: string[] = [];
+  for (let i = 0; i < token.length; i += CHUNK) out.push(token.slice(i, i + CHUNK));
+  return out;
+}
+
+/**
+ * Reassembles the token from Razorpay's `notes`.
+ *
+ * Order is fixed and explicit rather than derived from Object.keys, which has
+ * no guaranteed order for a JSON object arriving over the wire. A missing
+ * second chunk yields a token that fails to decode, which decodeRefId turns
+ * into null — the sale still reports, with Razorpay's own fields.
+ */
+export function joinRefId(notes: Record<string, string> | undefined): string {
+  const n = notes ?? {};
+  return [n.ref_id, n.ref_id2, n.ref_id3].filter(Boolean).join('');
 }
 
 /**

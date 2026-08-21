@@ -3,7 +3,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { CHECKOUT_CONFIG } from '@/lib/checkout-config';
 import { capiConfigured, externalIdFor, sendCapiEvent } from '@/lib/meta-capi';
 import { pabblyConfigured, sendSaleToPabbly, type SalePayload } from '@/lib/pabbly';
-import { decodeRefId, fbclidFrom } from '@/lib/refid';
+import { decodeRefId, fbclidFrom, joinRefId } from '@/lib/refid';
 
 /**
  * Razorpay webhook — the only trustworthy record that money moved.
@@ -18,8 +18,13 @@ import { decodeRefId, fbclidFrom } from '@/lib/refid';
  * Written against a real captured payload, not a guess. A ₹1 test produced:
  *
  *   payload.payment.entity.notes = {
- *     first_name, last_name, email, phone, city, ref_id
+ *     first_name, last_name, email, phone, city, ref_id, ref_id2
  *   }
+ *
+ * ref_id is CHUNKED. Razorpay caps each notes value at 512 characters on
+ * submit — a longer one prefills fine and then rejects the payment with
+ * "Notes value cannot be greater 512 characters" — so the token arrives in two
+ * pieces that joinRefId() concatenates before decoding.
  *   payload.payment.entity.{ id, order_id, amount, currency, email, contact,
  *                            created_at, status }
  *
@@ -85,7 +90,7 @@ export async function POST(req: Request) {
   /* Absent or corrupt attribution is NOT an error. Someone who opened the
      payment link directly has none to recover, and a lower-EMQ conversion
      beats a dropped one. */
-  const attr = decodeRefId(notes.ref_id);
+  const attr = decodeRefId(joinRefId(notes));
   if (!attr) {
     console.warn(
       `[razorpay-webhook] no usable ref_id on ${e.id}; reporting with Razorpay's fields only`,
