@@ -3,7 +3,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { CHECKOUT_CONFIG } from '@/lib/checkout-config';
 import { capiConfigured, externalIdFor, sendCapiEvent } from '@/lib/meta-capi';
 import { pabblyConfigured, sendSaleToPabbly, type SalePayload } from '@/lib/pabbly';
-import { decodeRefId, fbclidFrom, joinRefId } from '@/lib/refid';
+import { decodeRefId, fbclidFrom, joinRefId, REF_ID_PREFIX } from '@/lib/refid';
 
 /**
  * Razorpay webhook — the only trustworthy record that money moved.
@@ -87,13 +87,62 @@ export async function POST(req: Request) {
   const e = event.payload?.payment?.entity ?? {};
   const notes = e.notes ?? {};
 
-  /* Absent or corrupt attribution is NOT an error. Someone who opened the
-     payment link directly has none to recover, and a lower-EMQ conversion
-     beats a dropped one. */
+  /* ── OWNERSHIP GATE ─────────────────────────────────────────────────────
+     THIS RAZORPAY ACCOUNT IS SHARED. It carries payment pages for several
+     unrelated products, and a webhook subscribed to `payment.captured` is
+     subscribed at the ACCOUNT level — so this endpoint is handed EVERY
+     captured payment on the account, not only ours.
+
+     That is not theoretical. Before this gate existed, a ₹1,999 sale and a
+     ₹7,076 sale from other products reached the sheet and fired `sales` to
+     Meta with their amounts, poisoning both the CRM and the ad dataset.
+
+     Under Stripe the handler deliberately carried on when attribution was
+     missing, on the grounds that a low-EMQ conversion beats a dropped one.
+     That reasoning does not survive a shared account: reporting a stranger's
+     purchase as ours is far worse than missing an occasional direct-link
+     buyer of our own. So a payment must now PROVE it is ours.
+
+     Two accepted proofs:
+
+       1. notes.ref_id begins with the token prefix. /go sets it on every
+          buyer who reaches the page through our site, and nothing else on
+          this account produces that shape.
+       2. notes.funnel matches our slug — for a static marker field on the
+          Payment Page, if one is added later.
+
+     Anything else gets a 200 and is dropped. A 200, not a 4xx: the event is
+     valid and correctly delivered, it simply is not ours, and a non-2xx
+     would make Razorpay retry someone else's payment at us for days. */
+  const isOurs =
+    (notes.ref_id ?? '').startsWith(REF_ID_PREFIX) ||
+    notes.funnel === CHECKOUT_CONFIG.funnelSlug;
+
+  if (!isOurs) {
+    console.warn(
+      `[razorpay-webhook] IGNORED ${e.id} — not this funnel ` +
+        `(amount=${e.amount}, notes=${Object.keys(notes).join(',') || 'none'})`,
+    );
+    return Response.json({ received: true, ignored: 'not-this-funnel' });
+  }
+
   const attr = decodeRefId(joinRefId(notes));
   if (!attr) {
+    /* Past the gate, so this IS our sale — the token is merely unreadable,
+       most likely a missing ref_id2 chunk. Report it with what Razorpay gave
+       us rather than dropping a real buyer. */
     console.warn(
-      `[razorpay-webhook] no usable ref_id on ${e.id}; reporting with Razorpay's fields only`,
+      `[razorpay-webhook] ${e.id} is ours but ref_id would not decode; ` +
+        'reporting without the browser match keys',
+    );
+  }
+
+  /* Not a gate, a canary. If our own page starts producing a different
+     amount, the price and the config have drifted apart and somebody needs
+     to know before the whole cohort is charged the wrong figure. */
+  if (typeof e.amount === 'number' && e.amount !== CHECKOUT_CONFIG.amountMinor) {
+    console.warn(
+      `[razorpay-webhook] ${e.id} amount ${e.amount} != configured ${CHECKOUT_CONFIG.amountMinor}`,
     );
   }
 

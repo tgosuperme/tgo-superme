@@ -71,7 +71,10 @@ export type Attr = {
 };
 
 const ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-const PREFIX = 'v1';
+/** Marks a token as ours. Exported because the webhook uses it as the
+    ownership test on a Razorpay account shared with other products. */
+export const REF_ID_PREFIX = 'v1';
+const PREFIX = REF_ID_PREFIX;
 
 /** Razorpay's hard per-value cap is 512. 500 leaves margin for their counting
     to differ from ours by a character or two. */
