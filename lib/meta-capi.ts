@@ -18,6 +18,21 @@ import { CHECKOUT_CONFIG } from '@/lib/checkout-config';
  * one Meta reserves, so it arrives as a custom conversion and gets used from
  * Events Manager.
  *
+ * ── THAT IS NOT A STYLE CHOICE, IT IS THE RESTRICTION ───────────────────────
+ * This dataset is categorised "Health and wellness condition". Meta blocks
+ * mid/lower-funnel STANDARD events BY NAME for such datasets — Purchase,
+ * AddToCart, InitiateCheckout, Subscribe, Lead — while confirmed custom events
+ * with PHI-free payloads keep flowing and keep optimising. So the three names
+ * above are the whole conversion surface, and reintroducing any standard event
+ * would take the funnel's reporting down with it.
+ *
+ * Two payload rules follow from the same restriction, both enforced below in
+ * sendCapiEvent so no caller can regress them:
+ *   · custom_data carries value and currency ONLY — no content_name, no
+ *     product or category string. "Pain Reset" is a condition term.
+ *   · event_source_url is reduced to the ORIGIN. The path and query would hand
+ *     Meta the landing page's UTMs and fbclid on every event.
+ *
  * ── SERVER ONLY. THE BROWSER FIRES NOTHING BUT PageView ─────────────────────
  * All three events are sent from here and ONLY from here. There is no browser
  * half to deduplicate against.
@@ -147,6 +162,27 @@ export type CapiEvent = {
 };
 
 /**
+ * Any URL reduced to its origin — https://india.mysuperme.com and nothing more.
+ *
+ * Required by the Health & Wellness override: the path and query are where a
+ * restricted dataset leaks, both through health-y path segments and through the
+ * UTMs and fbclid a landing URL carries. Returns '' for anything unparseable,
+ * because an absent event_source_url is better than a malformed one.
+ *
+ * The host itself is the last residual signal, and this one is clean:
+ * `india.mysuperme.com` carries no condition word. A subdomain like `prenatal.`
+ * would still be readable to Meta and would need a neutral host to fix.
+ */
+function hostOnly(url: string | undefined): string | undefined {
+  if (!url) return undefined;
+  try {
+    return new URL(url).origin;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Sends one event to the Conversions API.
  *
  * Throws on failure. Each caller decides what that means: the webhook logs and
@@ -183,9 +219,20 @@ export async function sendCapiEvent(e: CapiEvent): Promise<void> {
     if (userData[k] === undefined) delete userData[k];
   }
 
-  const customData: Record<string, unknown> = {
-    content_name: CHECKOUT_CONFIG.capi.contentName,
-  };
+  /* ── HEALTH & WELLNESS RESTRICTION · PHI-FREE PAYLOAD ─────────────────
+     This dataset is categorised "Health and wellness condition" in Events
+     Manager, so Meta blocks mid/lower-funnel STANDARD events by name and
+     scans custom events for sensitive content. The three names this funnel
+     sends are already neutral and custom (atc_event, ic_event, sales), which
+     is what keeps them flowing — but the payload has to stay clean too.
+
+     content_name is REMOVED. It carried "5-Day Pain Reset Challenge", and
+     "Pain Reset" is exactly the kind of condition string that gets a custom
+     event reclassified as sensitive and filtered. Value and currency are all
+     Meta needs to optimise; the product is identifiable from the pixel.
+
+     Do not reintroduce a product, category or content string here. */
+  const customData: Record<string, unknown> = {};
   if (typeof e.value === 'number') customData.value = e.value;
   if (e.currency) customData.currency = e.currency;
 
@@ -194,7 +241,12 @@ export async function sendCapiEvent(e: CapiEvent): Promise<void> {
     event_time: e.eventTime,
     event_id: e.eventId,
     action_source: 'website',
-    event_source_url: e.eventSourceUrl || undefined,
+    /* HOST-ONLY, never the full URL. Core setup strips the path and query for
+       a restricted dataset anyway, but sending them means handing Meta the
+       landing page's UTMs and fbclid on every event first. Reduced here, in
+       the one function every event passes through, so no call site can leak
+       a full URL by forgetting. */
+    event_source_url: hostOnly(e.eventSourceUrl),
     user_data: userData,
     custom_data: customData,
   };

@@ -153,7 +153,11 @@ export const CHECKOUT_CONFIG = {
       initiateCheckout: 'ic_event',
       sale: 'sales',
     },
-    contentName: '5-Day Pain Reset Challenge',
+    /* contentName is GONE, not merely unused. It read "5-Day Pain Reset
+       Challenge" and rode on every event as custom_data.content_name. On a
+       Health-and-Wellness-categorised dataset that is a condition string in
+       the payload, and it is what gets a custom event reclassified as
+       sensitive and filtered. Do not add a product or category string back. */
     value: PRICE_INR,
     currency: 'INR',
   } as const,
