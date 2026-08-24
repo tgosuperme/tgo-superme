@@ -49,6 +49,7 @@ import { useEffect, useRef, useState } from 'react';
 import BrandMark from '@/components/BrandMark';
 
 import Bonuses from './bonuses';
+import Testimonials from './testimonials';
 import { legoBrick, legoDelay } from './lego-style';
 import { domAnimation, LazyMotion, m, type Variants } from './motion-lite';
 import {
@@ -526,73 +527,10 @@ function Recognition() {
 
 /* ── section 6 · testimonials (PDF p6) ───────────────────────────────── */
 
-/**
- * Three client clips, embedded from Vimeo.
- *
- * ── WHY NOT VERCEL BLOB ─────────────────────────────────────────────────────
- * They used to be .mp4 files on Vercel Blob, streamed in full to every visitor
- * who pressed play. Three portrait clips is a lot of megabytes per view, it is
- * billed as Blob data transfer, and it was the single largest consumer of that
- * quota on the account. Vimeo does the same job with adaptive bitrate, its own
- * CDN, and no per-view cost to us.
- *
- * `loading="lazy"` matters more here than usual: three iframes is three extra
- * documents, and this section sits well below the fold. Lazy keeps them out of
- * the initial load entirely until the reader scrolls near them.
- *
- * dnt=1 asks Vimeo not to track the viewer. It costs nothing, and this page
- * already carries a Pixel and GA — a third tracker nobody chose is not needed.
- */
-const TESTIMONIALS: { name: string; id: string }[] = [
-  { name: 'Testimonial 1', id: '1220112152' },
-  { name: 'Testimonial 2', id: '1220112153' },
-  { name: 'Testimonial 3', id: '1220112154' },
-];
-
-/** Player params: no Vimeo branding competing with ours, no autoplay. */
-const VIMEO_PARAMS = 'badge=0&byline=0&portrait=0&title=0&dnt=1';
-
-function Testimonials() {
-  return (
-    <section className="px-4 py-16 sm:py-24" style={{ background: C.white }}>
-      <SectionHeading sub="From working professionals and busy parents to people who had stopped moving the way they used to, these are real people who used the Inner Brace Method to improve their mobility, build strength and move with greater ease.">
-        {/* Three deliberate lines on desktop, broken on sense rather than
-            wherever the measure happens to run out. Below lg the breaks are
-            display:none, so the headline wraps naturally on a phone. */}
-        Real People Who Refused To Let
-        <br className="hidden lg:inline" /> Pain Decide What They
-        <br className="hidden lg:inline" />{' '}
-        <span style={{ color: C.goldDeep }}>Could &amp; Couldn&apos;t Do</span>
-      </SectionHeading>
-
-      {/* Three across from sm up. On the narrowest phones they stack one per
-          row and the rail is capped, because a 9:14 portrait clip at full
-          viewport width is taller than the screen. */}
-      <ul className="mx-auto mt-11 grid max-w-[340px] grid-cols-1 gap-4 sm:max-w-[1080px] sm:grid-cols-3 sm:gap-5">
-        {TESTIMONIALS.map((t, idx) => (
-          <li
-            key={t.name}
-            data-lego=""
-            /* No hover lift. The card IS the video player: moving it under the
-               cursor fights the scrub bar and the play button the reader is
-               aiming at. Entrance animation only. */
-            className="aspect-[9/14] overflow-hidden rounded-2xl border"
-            style={{ ...legoBrick(idx, 110), borderColor: C.line, background: C.sand }}
-          >
-            <iframe
-              src={`https://player.vimeo.com/video/${t.id}?${VIMEO_PARAMS}`}
-              title={t.name}
-              loading="lazy"
-              allow="autoplay; fullscreen; picture-in-picture"
-              allowFullScreen
-              className="h-full w-full border-0"
-            />
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
+/* Lives in ./testimonials, because it now owns real state: which card is
+   playing in place on desktop, and which clip is open full screen on mobile.
+   Keeping it inline would have put a modal and a marquee in the middle of a
+   1,600-line file for no gain. */
 
 /* ── section 7 · who is Atul (PDF p7) ────────────────────────────────── */
 
