@@ -513,6 +513,57 @@ button {
   }
 }
 
+/* ── the testimonial rail (mobile only) ──────────────────────────────────
+ *  A continuous linear slide, not a stepped carousel: constant speed reads as
+ *  a shelf of stories moving past rather than as a widget demanding input.
+ *
+ *  The track holds the list TWICE and translates by exactly -50%, which lands
+ *  copy two where copy one began — so it loops with no reset jump. That only
+ *  holds if every item carries its own trailing margin, the last one included;
+ *  a flex `gap` puts one fewer gap than items into the track and half its width
+ *  stops being one full set, which is what makes a marquee visibly drift.
+ *
+ *  Speed is deliberately slow. At roughly 40px a second a 300px card takes
+ *  seven seconds to cross its own width, which is what makes a moving target
+ *  tappable rather than a game of chance.
+ * ─────────────────────────────────────────────────────────────────────── */
+.tst-rail {
+  overflow: hidden;
+}
+
+@keyframes tst-marq {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
+}
+
+.tst-marq {
+  animation: tst-marq var(--tst-dur, 46s) linear infinite;
+  will-change: transform;
+}
+
+/* Paused while a clip is open full screen — the rail is what the reader comes
+   back to, and animating it behind an opaque overlay is wasted work. */
+.tst-marq[data-paused='true'] { animation-play-state: paused; }
+.tst-rail:hover .tst-marq { animation-play-state: paused; }
+
+@media (prefers-reduced-motion: reduce) {
+  /* Motion is the whole mechanism here, so there is nothing to soften — it
+     becomes an ordinary swipeable shelf instead. The duplicate half is removed
+     rather than hidden, or the reader can scroll into a second copy of a list
+     they have already passed. */
+  .tst-marq {
+    animation: none !important;
+    transform: none !important;
+  }
+  .tst-marq > li[data-clone='true'] { display: none !important; }
+  .tst-rail {
+    overflow-x: auto !important;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tst-marq > li { scroll-snap-align: center; }
+}
+
 /* ── the sticky bottom CTA ───────────────────────────────────────────────── */
 @keyframes lego-dock {
   0% { opacity: 0; transform: translate3d(0, 100%, 0); }
