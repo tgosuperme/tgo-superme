@@ -100,6 +100,61 @@ button {
   }
 }
 
+/* ── Testimonial rail · phones only ───────────────────────────────────────
+   Two identical copies of the five clips sit in one flex track, so shifting
+   it -50% lands copy two exactly where copy one began and the loop is
+   seamless. Same idiom as .bw-marquee-track above.
+
+   LINEAR, and deliberately slow. An eased marquee reads as a fault: it keeps
+   changing speed for no reason the eye can attribute to anything. Linear is
+   the only timing function that looks like steady travel. */
+@keyframes sm-testi-rail {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.sm-testi-track {
+  display: flex;
+  width: max-content;
+  animation: sm-testi-rail 46s linear infinite;
+  will-change: transform;
+}
+
+/* Held still while a clip is open, and while a finger is down. A rail
+   travelling behind a modal is motion nobody asked for, and a card that
+   slides out from under the thumb aiming at it is worse. */
+.sm-testi-track[data-paused='true'] {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The global reduce block further down collapses EVERY animation to
+     0.01ms. For a marquee that is not a stop — it jumps straight to -50% and
+     sits there, showing copy two. So this overrides it to a real stop and
+     hands the rail back to the reader as an ordinary swipeable strip. */
+  .sm-testi-track {
+    animation: none !important;
+    transform: none !important;
+  }
+  .sm-testi-viewport {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+  }
+  .sm-testi-viewport .sm-testi-card {
+    scroll-snap-align: center;
+  }
+  /* Copy two exists only to make the loop seamless. With no loop running it
+     is five duplicate testimonials in a row, which reads as a bug. */
+  .sm-testi-dup {
+    display: none !important;
+  }
+}
+
 /* ──────────────────────────────────────────────────────────────────────
  *  Scroll-reveal (motion-lite). Replaces framer-motion's whileInView with
  *  pure CSS driven by one IntersectionObserver, so the page ships no
