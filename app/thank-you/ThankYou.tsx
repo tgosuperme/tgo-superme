@@ -605,8 +605,8 @@ export default function ThankYou({
           ))}
         </ul>
 
-        {/* The refund promise, restated. The reference page says "no refunds"
-            here; ours cannot, because the Day-One refund is the offer. */}
+        {/* The guarantee, restated. The reference page says "no refunds"
+            here; ours cannot, because the money-back promise is the offer. */}
         <p
           data-lego=""
           className="mt-3 flex items-start gap-2.5 rounded-2xl px-5 py-4 text-[13.5px] leading-snug"
@@ -618,9 +618,7 @@ export default function ThankYou({
             style={{ color: C.mintInk }}
           />
           <span>
-            <strong>Your Day One promise still stands.</strong> Come to Day One,
-            and if it is not for you, tell us by the end of that day and we
-            refund your {PRICE_LABEL} in full.
+            <strong>100% Money Back Guarantee.</strong>
           </span>
         </p>
 

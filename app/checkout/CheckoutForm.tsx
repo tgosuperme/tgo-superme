@@ -73,8 +73,14 @@ type Fields = {
 type FieldKey = keyof Fields;
 
 /* Challenge + bonuses, summed rather than written down, so the struck figure
-   on the order summary can never drift from the two lines it is made of. */
-const FULL_VALUE = PRICE + BONUS_TOTAL;
+   on the order summary can never drift from the two lines it is made of.
+
+   ROUNDED, and not for tidiness. 4.99 + 27 is 31.990000000000002 in binary
+   floating point, and that is exactly what rendered on the page. This is a
+   decorative "what it is worth" figure rather than anything anyone is charged
+   — the charged amount is amountPence, an integer, computed separately — so
+   rounding it to a whole pound is safe as well as correct to look at. */
+const FULL_VALUE = Math.round(PRICE + BONUS_TOTAL);
 
 const INCLUDED = [
   { icon: VideoCamera, text: 'Five live, coach-led sessions on Zoom' },
@@ -290,11 +296,9 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
             <span style={{ color: C.goldDeep }}>5-Day Pain Reset</span>
           </h1>
           <p className="mt-3 text-[15.5px]" style={{ color: C.inkSoft }}>
-            Two minutes to book. Come to Day One,{' '}
+            Two minutes to book.{' '}
             <br className="sm:hidden" />
-            and if it is not for you, tell us by the end of that day{' '}
-            <br className="sm:hidden" />
-            and we refund the {PRICE_LABEL} in full.
+            100% Money Back Guarantee.
           </p>
         </div>
 
@@ -637,8 +641,7 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
                 className="mt-0.5 h-4 w-4 shrink-0"
                 style={{ color: C.mintInk }}
               />
-              Come to Day One. If it is not for you, tell us by the end of that
-              day and we refund the {PRICE_LABEL} in full.
+              100% Money Back Guarantee.
             </p>
               </div>
             </div>
@@ -662,7 +665,7 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
         note={
           <>
             <ShieldCheck weight="fill" className="h-3 w-3 shrink-0" style={{ color: C.mintInk }} />
-            Refund by end of Day One
+            100% Money Back Guarantee
           </>
         }
       >

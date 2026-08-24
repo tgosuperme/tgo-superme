@@ -1,25 +1,32 @@
 'use client';
 
 /**
- * Client testimonial clips — five of them, from two different sources.
+ * Client testimonial clips — five of them, all hosted on Vimeo.
  *
- * TWO SOURCES, ONE CARD
- * Three clips are self-hosted MP4s on object storage; two are Vimeo. Rather
- * than let each source impose its own player chrome, both sit behind the same
- * FACADE: a still frame plus our own play button. Nothing loads a player until
- * the reader asks for one, so the section costs two images and three metadata
- * requests instead of two full Vimeo embeds.
+ * WHY NOT VERCEL BLOB
+ * The first three used to be .mp4 files on Vercel Blob, streamed in full to
+ * every visitor who pressed play. Portrait clips are a lot of megabytes per
+ * view, it is billed as Blob data transfer, and they were the single largest
+ * consumer of that quota on the account. Vimeo does the same job with adaptive
+ * bitrate, its own CDN, and no per-view cost to us. Nothing goes back on Blob.
  *
- * The Vimeo stills are stored locally in /public/testimonials rather than
- * hot-linked from Vimeo's CDN — those URLs carry a rotating hash and are not a
- * contract.
+ * THE FACADE
+ * A Vimeo embed is a whole extra document, and five of them below the fold is
+ * five documents the reader has not asked for — `loading="lazy"` defers that
+ * cost but does not remove it, since scrolling past the section is enough to
+ * trigger all five. So no iframe exists until a card is activated. Until then
+ * each card is a still frame and our own play button, which also means the
+ * player chrome never gets a chance to disagree with the rest of the page.
+ *
+ * The stills live in /public/testimonials rather than hot-linked from Vimeo's
+ * CDN — those URLs carry a rotating hash and are not a contract.
  *
  * TWO LAYOUTS, TWO BEHAVIOURS
- *   ≥ sm  a 3 + 2 grid, the second row centred, and a tapped clip plays
- *         IN ITS OWN FRAME. Nothing covers the page.
- *   < sm  a continuously sliding carousel, and a tapped clip opens FULL SCREEN
- *         and starts immediately. A 9:14 card inside a moving rail is too small
- *         to watch in place.
+ *   >= sm  a 3 + 2 grid, the second row centred, and a tapped clip plays
+ *          IN ITS OWN FRAME. Nothing covers the page.
+ *   <  sm  a continuously sliding carousel, and a tapped clip opens FULL SCREEN
+ *          and starts immediately. A 9:14 card inside a moving rail is too
+ *          small to watch in place.
  *
  * The two are separate subtrees rather than one CSS-switched list, because a
  * marquee needs its items duplicated and a grid must not have them. Only one is
@@ -32,44 +39,23 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { legoBrick } from './lego-style';
 import { C, SectionHeading } from './shared';
 
-const BLOB = 'https://pm4wnvllwxriwvmg.public.blob.vercel-storage.com';
-
-type Clip =
-  | { kind: 'file'; name: string; src: string; poster?: string }
-  | { kind: 'vimeo'; name: string; id: string; poster: string };
+type Clip = { name: string; id: string; poster: string };
 
 const CLIPS: Clip[] = [
-  { kind: 'file', name: 'Client story 1', src: `${BLOB}/testimonial-1.mp4` },
-  { kind: 'file', name: 'Client story 2', src: `${BLOB}/testimonial-2.mp4` },
-  { kind: 'file', name: 'Client story 3', src: `${BLOB}/testimonial-3.mp4` },
-  {
-    kind: 'vimeo',
-    name: 'Client story 4',
-    id: '1220752306',
-    poster: '/testimonials/vimeo-1220752306.jpg',
-  },
-  {
-    kind: 'vimeo',
-    name: 'Client story 5',
-    id: '1220752305',
-    poster: '/testimonials/vimeo-1220752305.jpg',
-  },
+  { name: 'Client story 1', id: '1220112152', poster: '/testimonials/vimeo-1220112152.jpg' },
+  { name: 'Client story 2', id: '1220112153', poster: '/testimonials/vimeo-1220112153.jpg' },
+  { name: 'Client story 3', id: '1220112154', poster: '/testimonials/vimeo-1220112154.jpg' },
+  { name: 'Client story 4', id: '1220752306', poster: '/testimonials/vimeo-1220752306.jpg' },
+  { name: 'Client story 5', id: '1220752305', poster: '/testimonials/vimeo-1220752305.jpg' },
 ];
 
-/* dnt=1 keeps Vimeo's tracking out; the chrome flags strip its branding so the
-   player reads as part of the page rather than as an embed. */
-function vimeoSrc(id: string, autoplay: boolean) {
-  const q = [
-    'dnt=1',
-    'title=0',
-    'byline=0',
-    'portrait=0',
-    'playsinline=1',
-    autoplay ? 'autoplay=1' : '',
-  ]
-    .filter(Boolean)
-    .join('&');
-  return `https://player.vimeo.com/video/${id}?${q}`;
+/* dnt=1 asks Vimeo not to track the viewer — it costs nothing, and this page
+   already carries a Pixel and GA; a third tracker nobody chose is not needed.
+   The chrome flags strip Vimeo's branding so the player reads as part of the
+   page rather than as an embed. autoplay is safe to ask for here because the
+   iframe only ever mounts in response to a tap. */
+function vimeoSrc(id: string) {
+  return `https://player.vimeo.com/video/${id}?badge=0&byline=0&portrait=0&title=0&dnt=1&playsinline=1&autoplay=1`;
 }
 
 /* ── the still + play button every card shows before it is asked ────── */
@@ -89,33 +75,15 @@ function Facade({
       aria-label={`Play ${clip.name}`}
       className="group relative block h-full w-full cursor-pointer overflow-hidden"
     >
-      {clip.kind === 'vimeo' ? (
-        <Image
-          src={clip.poster}
-          alt=""
-          fill
-          sizes="(max-width: 640px) 72vw, 340px"
-          className="object-cover"
-          priority={false}
-          loading={eager ? 'eager' : 'lazy'}
-        />
-      ) : (
-        /* No poster art exists for the self-hosted clips, so the still IS the
-           video: preload="metadata" pulls the header and first frame only —
-           a few KB — and the browser paints it as an implicit poster. Muted,
-           controls-free and aria-hidden, because the button above it is what
-           the reader actually operates. */
-        <video
-          src={clip.src}
-          poster={clip.poster}
-          muted
-          playsInline
-          preload="metadata"
-          tabIndex={-1}
-          aria-hidden
-          className="h-full w-full object-cover"
-        />
-      )}
+      <Image
+        src={clip.poster}
+        alt=""
+        fill
+        sizes="(max-width: 640px) 72vw, 340px"
+        className="object-cover"
+        priority={false}
+        loading={eager ? 'eager' : 'lazy'}
+      />
 
       {/* A soft floor behind the button so it survives a bright first frame. */}
       <span
@@ -142,28 +110,14 @@ function Facade({
 }
 
 /* ── the live player, once a card has been activated ─────────────────── */
-function Player({ clip, className }: { clip: Clip; className?: string }) {
-  if (clip.kind === 'vimeo') {
-    return (
-      <iframe
-        src={vimeoSrc(clip.id, true)}
-        title={clip.name}
-        allow="autoplay; fullscreen; picture-in-picture"
-        allowFullScreen
-        className={`absolute inset-0 h-full w-full border-0 ${className ?? ''}`}
-      />
-    );
-  }
+function Player({ clip }: { clip: Clip }) {
   return (
-    // eslint-disable-next-line jsx-a11y/media-has-caption
-    <video
-      src={clip.src}
-      controls
-      autoPlay
-      playsInline
-      preload="auto"
-      aria-label={clip.name}
-      className={`h-full w-full object-cover ${className ?? ''}`}
+    <iframe
+      src={vimeoSrc(clip.id)}
+      title={clip.name}
+      allow="autoplay; fullscreen; picture-in-picture"
+      allowFullScreen
+      className="absolute inset-0 h-full w-full border-0"
     />
   );
 }
@@ -180,7 +134,6 @@ export default function Testimonials() {
   const [inFrame, setInFrame] = useState<string | null>(null);
   const [modal, setModal] = useState<Clip | null>(null);
 
-  const railRef = useRef<HTMLUListElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
 
   const close = useCallback(() => setModal(null), []);
@@ -218,21 +171,17 @@ export default function Testimonials() {
      work, and it is what the reader returns to. */
   const railPaused = modal !== null;
 
-  const heading = (
-    <SectionHeading sub="From working professionals and busy parents to people who had stopped moving the way they used to, these are real people who used the Inner Brace Method to improve their mobility, build strength and move with greater ease.">
-      {/* Three deliberate lines on desktop, broken on sense rather than
-          wherever the measure happens to run out. Below lg the breaks are
-          display:none, so the headline wraps naturally on a phone. */}
-      Real People Who Refused To Let
-      <br className="hidden lg:inline" /> Pain Decide What They
-      <br className="hidden lg:inline" />{' '}
-      <span style={{ color: C.goldDeep }}>Could &amp; Couldn&apos;t Do</span>
-    </SectionHeading>
-  );
-
   return (
     <section className="px-4 py-16 sm:py-24" style={{ background: C.white }}>
-      {heading}
+      <SectionHeading sub="From working professionals and busy parents to people who had stopped moving the way they used to, these are real people who used the Inner Brace Method to improve their mobility, build strength and move with greater ease.">
+        {/* Three deliberate lines on desktop, broken on sense rather than
+            wherever the measure happens to run out. Below lg the breaks are
+            display:none, so the headline wraps naturally on a phone. */}
+        Real People Who Refused To Let
+        <br className="hidden lg:inline" /> Pain Decide What They
+        <br className="hidden lg:inline" />{' '}
+        <span style={{ color: C.goldDeep }}>Could &amp; Couldn&apos;t Do</span>
+      </SectionHeading>
 
       {/* ══ MOBILE · continuously sliding rail ════════════════════════
           The list is rendered twice and the track is translated by exactly
@@ -241,11 +190,7 @@ export default function Testimonials() {
           trailing margin (including the last), or half the track width does
           not equal one full set and the seam drifts. */}
       <div className="tst-rail mt-10 sm:hidden" aria-roledescription="carousel">
-        <ul
-          ref={railRef}
-          className="tst-marq flex w-max"
-          data-paused={railPaused ? 'true' : 'false'}
-        >
+        <ul className="tst-marq flex w-max" data-paused={railPaused ? 'true' : 'false'}>
           {[...CLIPS, ...CLIPS].map((clip, i) => {
             const clone = i >= CLIPS.length;
             return (
@@ -256,21 +201,14 @@ export default function Testimonials() {
                 className="mr-4 aspect-[9/14] w-[72vw] max-w-[300px] shrink-0 overflow-hidden rounded-2xl border"
                 style={cardStyle()}
               >
-                <Facade
-                  clip={clip}
-                  eager={i < 2}
-                  onActivate={() => setModal(clip)}
-                />
+                <Facade clip={clip} eager={i < 2} onActivate={() => setModal(clip)} />
               </li>
             );
           })}
         </ul>
       </div>
 
-      <p
-        className="mt-4 text-center text-[12.5px] sm:hidden"
-        style={{ color: C.inkMuted }}
-      >
+      <p className="mt-4 text-center text-[12.5px] sm:hidden" style={{ color: C.inkMuted }}>
         Tap a story to watch it
       </p>
 
@@ -337,7 +275,7 @@ export default function Testimonials() {
             className="relative aspect-[9/16] w-full max-w-[440px] overflow-hidden rounded-2xl"
             style={{ background: '#000000', maxHeight: 'calc(100dvh - 132px)' }}
           >
-            <Player clip={modal} className="object-contain" />
+            <Player clip={modal} />
           </div>
         </div>
       )}

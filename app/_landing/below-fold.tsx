@@ -467,7 +467,7 @@ function SessionsBand() {
             className="mt-3 text-[13px] font-medium"
             style={{ color: 'rgba(250,245,234,0.7)' }}
           >
-            Refundable If You Don&apos;t Love Day One
+            100% Money Back Guarantee
           </p>
         </div>
       </div>
@@ -939,7 +939,7 @@ function Promise() {
         background: `radial-gradient(ellipse 70% 40% at 50% 0%, rgba(38,140,179,0.08), transparent 60%), ${C.canvas}`,
       }}
     >
-      {/* The refund promise, given the Sreshtha promise-band treatment: sealed
+      {/* The guarantee, given the Sreshtha promise-band treatment: sealed
           medallion, gold flourish, serif centre-set. It is the single most
           load-bearing sentence on the page, so it gets its own object rather
           than being one more block of body copy. */}
@@ -979,9 +979,7 @@ function Promise() {
           style={{ color: C.inkSoft }}
         >
           Join Day 1 of the 5-Day Pain Reset Challenge and experience the Inner
-          Brace Method for yourself. If you attend Day 1 and decide it&apos;s not
-          for you, simply let us know by the end of the day and we&apos;ll refund
-          your {PRICE_LABEL} in full.
+          Brace Method for yourself. 100% Money Back Guarantee.
         </p>
 
         <p className="sm-promise-closer">
@@ -1085,7 +1083,7 @@ function TwoOptions() {
             className="mt-3 text-center text-[12.5px]"
             style={{ color: 'rgba(250,245,234,0.7)' }}
           >
-            Refundable If You Don&apos;t Love Day One
+            100% Money Back Guarantee
           </p>
         </div>
       </div>
@@ -1137,7 +1135,7 @@ const FAQS = [
 /* ── section 10c · the people behind this challenge ───────────────────────
    Sits after the close and before the FAQ, and deliberately does NOT sell
    again. Its job is the last surviving objection: who are these people, and
-   why trust a £6 Zoom link? So it runs on authority and on taking the blame
+   why trust a cheap Zoom link? So it runs on authority and on taking the blame
    off the reader, and every principle re-explains a feature of the challenge
    they have already read about, which is what stops it reading as a corporate
    about-us block.
@@ -1373,7 +1371,7 @@ function Initiative() {
         >
           <PrimaryCTA label={`Hold my place for ${PRICE_LABEL}`} />
           <CtaNote
-            text={`Come to Day One. If it is not for you, tell us by the end of that day and we refund the ${PRICE_LABEL} in full.`}
+            text="100% Money Back Guarantee"
           />
         </m.div>
       </div>
@@ -1541,7 +1539,7 @@ function Footer() {
           {' · '}
         </span>
         <span className="block sm:inline">
-          {PRICE_LABEL}, refunded in full if day one is not for you
+          {PRICE_LABEL}, 100% Money Back Guarantee
         </span>
       </p>
 

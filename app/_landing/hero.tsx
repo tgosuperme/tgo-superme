@@ -37,6 +37,55 @@ import {
   START_DATE,
 } from './shared';
 
+/**
+ * A soft wash behind a number in the headline. Reserved for NUMBERS — the body
+ * areas keep their coloured words, so the two systems stay tellable apart.
+ *
+ * ── WHY A WASH AND NOT A SLAB ───────────────────────────────────────────────
+ * Solid sky (#2AAAEF) is 2.59:1 against a white page: at headline size that is
+ * not a highlight, it is a block of colour with type trapped inside it, and it
+ * shouts over the words either side. Sky at 34% blends to #B7E2FA — 1.38:1
+ * against the page, so it still reads as a deliberate mark, while navy type
+ * sits on it at 11:1.
+ *
+ * The type colour does NOT change inside the mark. Everything in the headline
+ * is navy; only the ground behind these words shifts. That is what makes it
+ * subtle rather than a second competing colour.
+ *
+ * The pale blues in the palette were the obvious first reach and are the wrong
+ * answer: lightBlue and skyBed sit at 1.13:1 and 1.12:1 against white, which
+ * is a highlight nobody can see.
+ *
+ * ── TWO PROPERTIES THAT ARE NOT OPTIONAL ────────────────────────────────────
+ * `white-space: nowrap` keeps the marked phrase whole. Without it "10–80%"
+ * breaks after the en dash and the wash renders as two ragged blocks on two
+ * lines, which is exactly what it did the first time.
+ *
+ * `box-decoration-break: clone` covers the case where a mark still has to
+ * wrap; without it the padding and rounded corners land on the outer ends only
+ * and the break looks like a rendering fault.
+ *
+ * Padding and radius are in `em`, so they scale with the headline at each
+ * breakpoint instead of being three fixed values that only look right at one.
+ */
+function Mark({ children }: { children: React.ReactNode }) {
+  return (
+    <span
+      style={{
+        background: 'rgba(42,170,239,0.34)',
+        color: C.ink,
+        padding: '0.02em 0.2em',
+        borderRadius: '0.14em',
+        whiteSpace: 'nowrap',
+        boxDecorationBreak: 'clone',
+        WebkitBoxDecorationBreak: 'clone',
+      }}
+    >
+      {children}
+    </span>
+  );
+}
+
 /* ── 1. Offer strip ───────────────────────────────────────────────────────
    A single quiet line on pale blue. The dark scrolling marquee this replaces
    belonged to the old palette and fought the white canvas. */
@@ -112,34 +161,46 @@ export function Hero() {
             </span>
           </span>
 
-          {/* Four phrases carry colour, one accent each: the three body areas
-              in coral, mint and yellow, then the commitment in blue.
-              Everything else stays navy, which is what stops it reading as a
-              rainbow. Same rule as before, applied to the new line.
+          {/* ONE SIZE, ONE WEIGHT, ONE FACE for the whole headline. Both
+              sentences are the headline; stepping the second one down made it
+              read as two competing blocks rather than a single statement.
 
-              "1 Hour A Day" is kept whole with non-breaking spaces: it is the
-              objection the headline answers, and letting it wrap mid-phrase
-              across a line break is what breaks the sentence. */}
+              The overall size drops a notch from the old one-sentence version,
+              because the headline is now roughly twice as long and the hero
+              still has to hold the CTA above the fold on a laptop.
+
+              Two emphasis systems, doing two different jobs: a soft wash on
+              the NUMBERS, coloured words on the BODY AREAS. Same treatment for
+              both would leave the reader nothing to rank.
+
+              `text-balance` is what fixes the ragged wrap — the browser evens
+              the line lengths itself instead of dumping one orphan word onto a
+              line of its own, and it does that at every width, so it needs no
+              per-breakpoint <br> babysitting.
+
+              NO HARD BREAK between the two sentences. A <br> forced "Ease
+              Stiffness" onto a line of its own and left a short, half-empty
+              line above it on a phone. An ordinary full stop lets the two run
+              continuously and the balancer fill every line, so the block reads
+              as one headline and squares off at both edges.
+
+              The same measure as the standfirst below (`max-w-[560px]
+              mx-auto`), so the headline, the paragraph and the CTA all share
+              one set of left and right edges instead of each finding its own. */}
           <h1
-            className="mt-6 font-heading text-[34px] font-bold leading-[1.08] tracking-[-0.02em] sm:text-[44px] lg:text-[52px]"
-            /* textWrap: balance evens the lines out instead of filling each
-               one and leaving the remainder — without it the last line is a
-               stranded word or two. Same device the promise card uses;
-               browsers without it just wrap normally.
-
-               52px rather than the 58px this replaces, for two reasons that
-               compound: the line itself is longer than the old headline, and
-               the site moved from Lora to Inter, which is appreciably wider at
-               bold. At 58px it overruns and pushes the CTA off a laptop's
-               first screen. If a shorter headline is ever set here, this can
-               go back up. */
-            style={{ color: C.ink, textWrap: 'balance' } as React.CSSProperties}
+            className="mx-auto mt-6 max-w-[560px] text-balance font-heading text-[30px] font-bold leading-[1.14] tracking-[-0.02em] sm:text-[38px] lg:mx-0 lg:max-w-none lg:text-[46px]"
+            style={{ color: C.ink }}
           >
+            {/* A plain full stop, tight against the mark and outside it so the
+                wash does not cover the punctuation. It ends the sentence and
+                lets the next one run straight on, which is what keeps the
+                block filling every line. */}
+            
             Ease <span style={{ color: C.hlCoral }}>Back</span>,{' '}
             <span style={{ color: C.hlMint }}>Neck</span> &amp;{' '}
             <span style={{ color: C.hlYellow }}>Knee</span> Pain With Just{' '}
-            <span style={{ color: C.hlBlue }}>1&nbsp;Hour&nbsp;A&nbsp;Day</span>,
-            LIVE With An Expert Coach
+            <Mark>1 Hour</Mark> A Day,{' '}
+            <span style={{ color: C.hlBlue }}>LIVE</span> With An Expert Coach
           </h1>
 
           <p
@@ -171,7 +232,7 @@ export function Hero() {
             style={{ color: C.inkMuted }}
           >
             <ShieldCheck weight="fill" className="h-4 w-4" style={{ color: C.green }} />
-            Full refund if you don&apos;t love Day One
+            100% Money Back Guarantee
           </p>
 
           <ul className="mt-7 flex flex-wrap justify-center gap-2.5 lg:justify-start">
@@ -265,7 +326,7 @@ export function Hero() {
                   {PRICE_LABEL}
                 </span>
                 <span className="text-[13px]" style={{ color: C.inkMuted }}>
-                  refunded in full if Day One is not for you
+                  100% Money Back Guarantee
                 </span>
               </div>
 
