@@ -7,20 +7,25 @@
  * play button, stat glyphs). No large colour areas, no gradient surfaces, no
  * decorative shapes. The page background stays white.
  *
- * Copy is from the signed-off PDF, except the H1, which the client has since
- * replaced. Three devices from the reference page are deliberately absent and
- * must stay absent: a rising-price line, a struck list price with a savings
- * badge, and a percentage outcome claim. That came from the UK review this
- * page was originally run against, and it holds for India too — ASCI's code
- * and the Consumer Protection Act 2019 treat all three the same way.
+ * Copy is verbatim from the signed-off PDF. Two devices from the reference
+ * page are deliberately absent and must stay absent: a rising-price line, and
+ * a struck list price with a savings badge.
  *
- * THE THIRD ONE IS NOW ACTUALLY TRUE. The previous H1 opened "Experience
- * 10–80% Pain Relief in Just 5 Days", which is a percentage outcome claim
- * sitting directly above a rule forbidding percentage outcome claims — the
- * page carried the contradiction rather than resolving it. The replacement
- * headline states what the reader DOES (an hour a day, live, with a coach)
- * instead of what their body will do, so the gap closed on its own.
- * Reintroducing a figure like that would reopen it.
+ * ── THE "10–80%" IN THE H1 IS A KNOWN, ACCEPTED RISK ────────────────────────
+ * That figure is a percentage outcome claim, and the UK review this page was
+ * originally run against forbade those outright. India is not more permissive
+ * here: ASCI's code and the Consumer Protection Act 2019's rules on
+ * misleading advertisements both expect a quantified result claim to be
+ * substantiated, and an unsubstantiated one on a health page is squarely the
+ * kind of thing they exist to catch.
+ *
+ * It was removed for that reason and the client has since asked for it back,
+ * which is their call to make — recorded here rather than argued with. If it
+ * runs, it needs evidence behind it: the client case files the "Results"
+ * section of /terms already points at have to actually support a 10 to 80%
+ * range, and the page's existing "results vary from person to person" line
+ * has to stay everywhere it appears. Do not extend the pattern — a second
+ * quantified claim elsewhere on the page compounds the exposure.
  */
 import {
   ArrowRight,
@@ -69,11 +74,9 @@ import {
  * is a highlight nobody can see.
  *
  * ── TWO PROPERTIES THAT ARE NOT OPTIONAL ────────────────────────────────────
- * `white-space: nowrap` keeps the marked phrase whole. It earned its place on
- * the previous headline's "10–80%", which broke after the en dash and rendered
- * the wash as two ragged blocks on two lines. It still matters for "1 Hour",
- * which would otherwise be free to break between the number and the unit —
- * the same fault with a less obvious trigger.
+ * `white-space: nowrap` keeps the marked phrase whole. Without it "10–80%"
+ * breaks after the en dash and the wash renders as two ragged blocks on two
+ * lines, which is exactly what it did the first time.
  *
  * `box-decoration-break: clone` covers the case where a mark still has to
  * wrap; without it the padding and rounded corners land on the outer ends only
@@ -178,32 +181,29 @@ export function Hero() {
             </span>
           </span>
 
-          {/* ONE SIZE, ONE WEIGHT, ONE FACE for the whole headline.
+          {/* ONE SIZE, ONE WEIGHT, ONE FACE for the whole headline. Both
+              sentences are the headline; stepping the second one down made it
+              read as two competing blocks rather than a single statement.
+
+              The overall size sits a notch below the one-sentence version,
+              because this headline is roughly twice as long and the hero still
+              has to hold the CTA above the fold on a laptop.
 
               Two emphasis systems, doing two different jobs: a soft wash on
-              the NUMBER, coloured words on the BODY AREAS. Same treatment for
+              the NUMBERS, coloured words on the BODY AREAS. Same treatment for
               both would leave the reader nothing to rank.
-
-              THE SIZE STEPS ARE UNCHANGED, and that is a decision rather than
-              an oversight. They were dropped a notch when the headline grew to
-              two sentences; this one is a single sentence and shorter, so
-              there is now room to step them back up. Left alone because the
-              constraint that set them is still live — the CTA has to stay
-              above the fold on a laptop — and because a headline that fits
-              comfortably is worth more than one that fills its box. Worth
-              revisiting on a real screen, not by arithmetic.
 
               `text-balance` is what fixes the ragged wrap — the browser evens
               the line lengths itself instead of dumping one orphan word onto a
               line of its own, and it does that at every width, so it needs no
               per-breakpoint <br> babysitting.
 
-              NO HARD BREAK, though the copy was supplied broken after "With".
-              A <br> here pins one wrap point at every width: it is right on a
-              laptop and wrong on a phone, where it strands a short line above
-              a full one — which is exactly what the previous headline's break
-              did before it was removed. The balancer gets the same result on
-              wide screens and a better one on narrow.
+              NO HARD BREAK between the two sentences, though the copy is
+              supplied on two lines. A <br> forced "Ease Stiffness" onto a line
+              of its own and left a short, half-empty line above it on a phone.
+              An ordinary full stop lets the two run continuously and the
+              balancer fill every line, so the block reads as one headline and
+              squares off at both edges.
 
               The same measure as the standfirst below (`max-w-[560px]
               mx-auto`), so the headline, the paragraph and the CTA all share
@@ -212,25 +212,25 @@ export function Hero() {
             className="mx-auto mt-6 max-w-[560px] text-balance font-heading text-[30px] font-bold leading-[1.14] tracking-[-0.02em] sm:text-[38px] lg:mx-0 lg:max-w-none lg:text-[46px]"
             style={{ color: C.ink }}
           >
-            {/* Both emphasis systems still do their original jobs, and the
-                mapping is the one the rest of the page already uses: coral is
-                the back, mint the neck, yellow the knees, everywhere they
-                appear. Changing the headline does not get to re-cast them.
+            {/* Both emphasis systems do their original jobs, and the mapping
+                is the one the rest of the page already uses: coral is the
+                back, mint the neck, yellow the knees, everywhere they appear.
 
-                The wash lands on "1 Hour", which is the only number in the
-                sentence and the whole substance of the offer — an hour a day
-                is what the reader is being asked for, so it is what the eye
-                should catch first.
-
-                LIVE keeps the client's capitals AND takes primary blue. The
-                capitals alone read as shouting; the blue turns them into the
-                headline's one branded word, and without it blue disappears
-                from the headline entirely. */}
-            Ease <span style={{ color: C.hlCoral }}>Back</span>,{' '}
+                A PLAIN FULL STOP after "5 Days", tight against the mark and
+                outside it so the wash does not cover the punctuation. The
+                client supplied this headline as two lines; it is set as one
+                continuous block instead, because a <br> pins one wrap point
+                at every width — right on a laptop, and on a phone it strands
+                a short line above a full one. The full stop does the same
+                separating work and lets the balancer fill every line. Without
+                it, "…in Just 5 Days Ease Stiffness…" runs together and reads
+                as a missing word. */}
+            Experience <Mark>10–80%</Mark> Pain Relief in Just <Mark>5 Days</Mark>.{' '}
+            Ease Stiffness, Improve Mobility &amp; Feel{' '}
+            <span style={{ color: C.hlBlue }}>Stronger</span> in Your{' '}
+            <span style={{ color: C.hlCoral }}>Back</span>,{' '}
             <span style={{ color: C.hlMint }}>Neck</span> &amp;{' '}
-            <span style={{ color: C.hlYellow }}>Knee</span> Pain With Just{' '}
-            <Mark>1 Hour</Mark> A Day,{' '}
-            <span style={{ color: C.hlBlue }}>LIVE</span> With An Expert Coach
+            <span style={{ color: C.hlYellow }}>Knees</span> Again
           </h1>
 
           <p
