@@ -9,6 +9,7 @@
 import dynamic from 'next/dynamic';
 
 import CtaTracker from '@/components/CtaTracker';
+import RegisterModal from '@/components/RegisterModal';
 import { OFFER_CONFIG } from '@/lib/offer-config';
 
 import { Hero, OfferStrip, SiteHeader } from './_landing/hero';
@@ -39,8 +40,17 @@ export default function Page() {
       style={{ background: C.white, color: C.ink }}
     >
       {/* One delegated listener for every CTA on the page, so the hero and the
-          sections below it stay Server Components. Fires atc_event. */}
+          sections below it stay Server Components. Fires atc_event.
+
+          MOUNT ORDER WITH RegisterModal DOES NOT MATTER, and it is worth
+          knowing why rather than discovering it later: this listens on the
+          CAPTURE phase and the modal intercepts on the BUBBLE phase, so the
+          event reaches the tracker first however the two are ordered here. */}
       <CtaTracker eventName={OFFER_CONFIG.capi.events.addToCart} />
+      {/* Turns every /register link on the page into a dialog. The links stay
+          real links, so no-JS readers and anyone this component fails for get
+          the standalone page instead. */}
+      <RegisterModal />
       <OfferStrip />
       <SiteHeader />
       <Hero />

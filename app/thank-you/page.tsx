@@ -9,31 +9,26 @@ import ThankYou from './ThankYou';
 /**
  * Post-registration page.
  *
- * ── WHAT REPLACED THE STRIPE GATE ───────────────────────────────────────────
+ * ── NO GATE ─────────────────────────────────────────────────────────────────
  * The paid build reached this page as Stripe's success_url and re-retrieved
  * the session server-side, because a redirect is not proof that money moved.
- * With nothing to pay there is no session to check and nothing to protect: the
- * only thing behind this gate is a WhatsApp invite for a free challenge.
+ * A later version gated on the registration cookie instead. Both are gone: the
+ * page renders the confirmation for anyone who opens it.
  *
- * So the gate is now the short-lived httpOnly cookie /api/register sets on the
- * response that records the registration. It does two jobs: it says a
- * registration just happened in this browser, and it carries the first name
- * and email the page greets the reader with. Nothing identifying travels in
- * the URL, which is the one thing a query-string handover would have got
- * wrong — an email address in a URL ends up in referrer headers and analytics.
+ * The only thing behind it is a WhatsApp invite to a FREE challenge, which is
+ * worth nothing to someone who has not registered — while a cookie that had
+ * expired, been blocked, or been dropped by an in-app browser would have shown
+ * a genuine registrant a screen saying their place was not held. Gating cost
+ * more than it protected.
  *
- * `?registered=1` is a FALLBACK, not a second gate. If the cookie is refused
- * or dropped, a reader who genuinely just registered still lands on the
- * confirmation instead of the pending panel; they simply are not greeted by
- * name. Someone typing that query by hand sees the joining instructions, and
- * that is an accepted trade for a free offer — the alternative is telling real
- * registrants that nothing happened.
+ * The cookie is still read, for the greeting alone. Nothing identifying
+ * travels in the URL, which is the one thing a query-string handover would
+ * have got wrong — an email address in a URL ends up in referrer headers and
+ * analytics.
  *
  * Nothing is fulfilled here and nothing is reported here. Both happen in
  * /api/register, because a reader who registers and closes the tab never loads
  * this page.
- *
- * This file is the GATE; ./ThankYou is what the registrant actually sees.
  */
 
 export const metadata: Metadata = {
@@ -46,10 +41,7 @@ export const metadata: Metadata = {
 /* Reads a cookie and a query param, so this can never be statically rendered. */
 export const dynamic = 'force-dynamic';
 
-type Search = { searchParams: { registered?: string } };
-
-export default function ThankYouPage({ searchParams }: Search) {
-  let confirmed = searchParams.registered === '1';
+export default function ThankYouPage() {
   let firstName = '';
   let email = '';
 
@@ -62,11 +54,9 @@ export default function ThankYouPage({ searchParams }: Search) {
       };
       firstName = parsed.firstName ?? '';
       email = parsed.email ?? '';
-      confirmed = true;
     } catch {
-      /* A malformed cookie is treated as absent rather than thrown on. The
-         query fallback above may still confirm, and the pending panel is a
-         safe landing either way. */
+      /* A malformed cookie only costs the greeting. The page reads correctly
+         with or without a name. */
     }
   }
 
@@ -80,7 +70,7 @@ export default function ThankYouPage({ searchParams }: Search) {
           browser Pixel fires PageView and nothing else. */}
       {/* GA join_whatsapp, on all three WhatsApp buttons. */}
       <JoinTracker />
-      <ThankYou confirmed={confirmed} firstName={firstName} email={email} />
+      <ThankYou firstName={firstName} email={email} />
     </>
   );
 }

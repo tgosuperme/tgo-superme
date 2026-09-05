@@ -197,6 +197,13 @@ export async function POST(req: Request) {
 
     /* ── SuperMe extras ────────────────────────────────────────────── */
     full_name: `${firstName} ${lastName}`.trim(),
+    /* EVERY row written here is "free", including the ones belonging to
+       people who go on to buy VIP a minute later. This row records the
+       registration, not the outcome; the upgrade gets its own row on the VIP
+       sheet, carrying this same lead_id. Rewriting this to "vip" after the
+       fact would mean the registrations sheet no longer counts
+       registrations. */
+    tier: 'free',
     amount_minor: 0,
     currency: 'GBP',
     payment_status: 'free',
@@ -282,13 +289,35 @@ export async function POST(req: Request) {
     }
   }
 
-  /* The confirmation cookie. httpOnly because it carries a first name and an
-     email address and no script has any business reading them; sameSite lax
-     so it survives the ordinary same-site navigation to /thank-you; secure
-     everywhere but local http. */
+  /* ── the registration cookie ──────────────────────────────────────────
+     Does three jobs downstream, which is why it carries more than a name:
+
+       /upgrade      greets them and proves a registration happened
+       /thank-you    the same
+       /api/checkout builds the VIP Stripe session from THIS, never from
+                     anything the browser posts — so a crafted request cannot
+                     attach someone else's identity to a payment, and the VIP
+                     row is guaranteed to describe the person who registered
+
+     httpOnly, so no script can read the identity it carries. SameSite=Lax so
+     it survives the ordinary same-site navigations through the funnel and
+     Stripe's redirect back. Secure everywhere except local http.
+
+     Well inside the 4KB cookie limit: seven short fields. Attribution is
+     deliberately NOT stored here — it is still in localStorage and is re-read
+     in the browser at OTO time, which keeps this small and keeps one source
+     of truth for UTMs. */
   const res = Response.json({ ok: true, id: registrationId });
   const cookie = encodeURIComponent(
-    JSON.stringify({ id: registrationId, firstName, email }),
+    JSON.stringify({
+      id: registrationId,
+      firstName,
+      lastName,
+      email,
+      phone,
+      phoneCountry,
+      city,
+    }),
   );
   res.headers.append(
     'Set-Cookie',

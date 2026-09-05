@@ -71,8 +71,12 @@ button {
   cursor: pointer;
 }
 
+/* Brand blue, not the #4fa8c7 teal this carried. That teal is a survivor of
+   the palette this site moved off: nothing else on the page is that colour any
+   more, so every keyboard user was getting a focus ring that matched nothing
+   they could see. */
 :focus-visible {
-  outline: 2px solid #4fa8c7;
+  outline: 2px solid #1054c2;
   outline-offset: 3px;
 }
 
@@ -735,4 +739,36 @@ button {
     transform: none;
   }
   .tl-fill { transition: none !important; }
+}
+
+/* ── the registration dialog ──────────────────────────────────────────────
+ * Two separate entrances, because a scrim and a panel are doing different
+ * jobs: the scrim fades so the page behind recedes, the panel rises and
+ * settles so it reads as arriving rather than blinking into existence.
+ *
+ * The panel's curve is the same cubic-bezier every other motion on this site
+ * uses, so the dialog belongs to the page it opens over.
+ *
+ * `prefers-reduced-motion` drops both to a plain fade. The dialog still needs
+ * to appear — hiding it entirely would break the only way to register — so
+ * the movement goes and the opacity stays.
+ */
+@keyframes sm-modal-in {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+}
+@keyframes sm-modal-panel-in {
+  0%   { opacity: 0; transform: translate3d(0, 14px, 0) scale(0.97); }
+  100% { opacity: 1; transform: none; }
+}
+.sm-modal-backdrop {
+  animation: sm-modal-in 0.22s ease-out both;
+}
+.sm-modal-panel {
+  animation: sm-modal-panel-in 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sm-modal-panel {
+    animation: sm-modal-in 0.2s ease-out both;
+  }
 }

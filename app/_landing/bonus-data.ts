@@ -42,6 +42,17 @@ export type Bonus = {
       read as a deliberate set rather than four unrelated products. */
   bed: string;
   ink: string;
+  /**
+   * Which tier this guide belongs to.
+   *
+   * TWO come with the free place and TWO are part of the VIP upgrade. This
+   * flag is the single source of that split: the landing page's bonuses
+   * section, the registration form's summary, the OTO's two cards and both
+   * thank-you pages all read it, so the free tier cannot end up promising a
+   * guide the OTO then sells. Getting that wrong is not a cosmetic bug — it
+   * is a page promising something it takes back one screen later.
+   */
+  tier: 'free' | 'vip';
 };
 
 export const BONUSES: Bonus[] = [
@@ -54,6 +65,7 @@ export const BONUSES: Bonus[] = [
     alt: 'The Back Pain Relief Guide',
     bed: C.coralBed,
     ink: C.coralInk,
+    tier: 'free',
   },
   {
     n: 'Bonus 2',
@@ -64,6 +76,7 @@ export const BONUSES: Bonus[] = [
     alt: 'The Knee Support Guide',
     bed: C.mintBed,
     ink: C.mintInk,
+    tier: 'vip',
   },
   {
     n: 'Bonus 3',
@@ -74,6 +87,7 @@ export const BONUSES: Bonus[] = [
     alt: 'The Neck and Shoulder Relief Guide',
     bed: C.lavenderBed,
     ink: C.lavenderInk,
+    tier: 'vip',
   },
   {
     n: 'Bonus 4',
@@ -84,8 +98,15 @@ export const BONUSES: Bonus[] = [
     alt: 'The Unload Breath Guide',
     bed: C.peachBed,
     ink: C.peachInk,
+    tier: 'free',
   },
 ];
 
 /** Summed, never typed in, so it cannot disagree with the list above. */
 export const BONUS_TOTAL = BONUSES.reduce((sum, b) => sum + b.value, 0);
+
+/* The two halves of the split, derived rather than hand-listed. Every surface
+   that names guides reads one of these, so the free tier and the OTO can never
+   disagree about which two are which. */
+export const FREE_BONUSES = BONUSES.filter((b) => b.tier === 'free');
+export const VIP_BONUSES = BONUSES.filter((b) => b.tier === 'vip');

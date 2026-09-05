@@ -121,7 +121,7 @@ export const C = {
 export const FREE_LABEL = OFFER_CONFIG.priceLabel;
 export const CTA_NOTE = OFFER_CONFIG.ctaNote;
 
-export const REGISTER_HREF = OFFER_CONFIG.registerPath;
+export const REGISTER_HREF = OFFER_CONFIG.registerAnchor;
 export const THANK_YOU_HREF = OFFER_CONFIG.thankYouPath;
 
 /* Every date and time string on the site comes through these four, and each

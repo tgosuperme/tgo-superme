@@ -23,25 +23,35 @@
  *
  * All dates, times and the invite link come from env — see .env.example.
  *
- * CONFIRMATION STATE. ./page.tsx reads the registration cookie /api/register
- * set and passes the result in. `confirmed === false` is NOT an error: it is
- * what a hand-typed URL or an expired cookie produces. That case gets the
- * pending panel below, which points the reader back at the form rather than
- * handing out joining instructions to someone who never filled it in.
+ * ── NO GATE ─────────────────────────────────────────────────────────────────
+ * This page used to have a second state: a "we cannot see a place held here"
+ * panel for anyone arriving without the registration cookie. That is gone, and
+ * so is the cookie check that drove it. The page always shows the
+ * confirmation.
+ *
+ * The reason is that the gate protected nothing and cost something real. What
+ * sits behind it is a WhatsApp invite to a free challenge — no value to
+ * anyone who has not registered — while an expired cookie, a blocked cookie or
+ * an in-app browser would show a genuine registrant a screen telling them
+ * their place was not held. That is a bad trade in both directions.
+ *
+ * The cookie is still read by ./page.tsx, for the greeting alone.
  */
 import {
-  ArrowLeft,
   ArrowRight,
   BellRinging,
   CalendarBlank,
   CheckCircle,
   Clock,
   Confetti,
-  EnvelopeSimple,
+  Crown,
   Heart,
+  Lightning,
   Note,
+  PlayCircle,
   Prohibit,
   ShieldCheck,
+  Star,
   VideoCamera,
   WarningCircle,
   WhatsappLogo,
@@ -51,12 +61,12 @@ import Link from 'next/link';
 import BrandMark from '@/components/BrandMark';
 import ConfettiBurst from '@/components/ConfettiBurst';
 
+import { VIP_BONUSES } from '../_landing/bonus-data';
 import { legoBrick, legoDelay } from '../_landing/lego-style';
 import MobileCtaBar, { MOBILE_CTA_BAR_SPACE } from '../_landing/mobile-cta-bar';
 import {
   C,
   LEGAL_LINKS,
-  REGISTER_HREF,
   SESSION_TIMES_TZ,
   SESSIONS_LABEL,
   START_DATE,
@@ -66,8 +76,17 @@ import {
 const HAS_INVITE = WHATSAPP_COMMUNITY_URL.length > 0;
 
 export type ThankYouProps = {
-  /** A registration was recorded in this browser. Defaults false — see above. */
-  confirmed?: boolean;
+  /**
+   * This person also paid for the VIP upgrade.
+   *
+   * ONE COMPONENT SERVES BOTH THANK-YOU PAGES. Everything a free registrant
+   * needs — the diary facts, the WhatsApp step, the attendance notes, the prep
+   * list — is identical for a VIP buyer, and duplicating the page to add three
+   * paragraphs would guarantee the two drift the first time a session time
+   * changes. So VIP is a flag that ADDS a block and adjusts two lines, never a
+   * second copy.
+   */
+  vip?: boolean;
   firstName?: string;
   email?: string;
 };
@@ -193,119 +212,34 @@ const PREP = [
   'Join the WhatsApp community now',
 ];
 
-/** Brand bar. Shared by both states; only the status pill differs. */
-function PageHeader({ confirmed }: { confirmed: boolean }) {
+/** Brand bar. The status pill is always the confirmed one — see below. */
+function PageHeader() {
   return (
     <header style={{ background: C.white, borderBottom: `1px solid ${C.line}` }}>
       <div className="mx-auto flex max-w-[1120px] items-center justify-between gap-4 px-5 py-4 md:px-8">
         <BrandMark height={34} priority />
         <span
           className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10.5px] font-bold uppercase tracking-[0.16em]"
-          style={
-            confirmed
-              ? { background: C.greenBed, color: C.greenInk }
-              : { background: C.lightBlue, color: C.skyInk }
-          }
+          style={{ background: C.greenBed, color: C.greenInk }}
         >
-          {confirmed ? (
-            <>
-              <CheckCircle weight="fill" className="h-3 w-3" />
-              Place confirmed
-            </>
-          ) : (
-            <>
-              <Clock weight="fill" className="h-3 w-3" />
-              No place held yet
-            </>
-          )}
+          <CheckCircle weight="fill" className="h-3 w-3" />
+          Place confirmed
         </span>
       </div>
     </header>
   );
 }
 
-/**
- * Shown when no registration was recorded in this browser — a typed URL or an
- * expired cookie. Deliberately gives away none of the joining detail, but does
- * not accuse the reader of anything either: someone who registered an hour ago
- * and came back to the tab reads this too.
- */
-function PendingState({ email }: { email: string }) {
-  return (
-    <main className="min-h-screen font-body" style={{ background: C.paleBlue, color: C.ink }}>
-      <PageHeader confirmed={false} />
-
-      <div className="mx-auto max-w-[620px] px-5 py-16 md:py-24">
-        <div
-          className="rounded-3xl p-7 text-center sm:p-10"
-          style={{ background: C.white, border: `1px solid ${C.line}` }}
-        >
-          <span
-            className="mx-auto grid h-14 w-14 place-items-center rounded-2xl"
-            style={{ background: C.skyBed }}
-          >
-            <Clock weight="fill" className="h-7 w-7" style={{ color: C.skyInk }} />
-          </span>
-
-          <h1
-            className="mt-5 font-heading text-[28px] font-bold leading-[1.14] sm:text-[34px]"
-            style={{ color: C.ink }}
-          >
-            We cannot see a{' '}
-            <span style={{ color: C.goldDeep }}>place</span> held here
-          </h1>
-
-          <p
-            className="mx-auto mt-4 max-w-[460px] text-[15px] leading-relaxed"
-            style={{ color: C.inkSoft }}
-          >
-            If you filled in the form a moment ago, your place is held and your
-            joining email is on its way{email ? ` to ${email}` : ''} — nothing
-            more is needed from you. If you never finished the form, it takes
-            under a minute and it costs nothing.
-          </p>
-
-          <p
-            className="mx-auto mt-6 flex max-w-[460px] items-start gap-2.5 rounded-2xl p-3.5 text-left text-[12.5px] leading-snug"
-            style={{ background: C.lightBlue, color: C.ink }}
-          >
-            <EnvelopeSimple
-              weight="fill"
-              className="mt-0.5 h-4 w-4 shrink-0"
-              style={{ color: C.blue }}
-            />
-            Not there within ten minutes? Check spam and promotions first. If it
-            still has not arrived, fill the form in again — there is nothing to
-            pay, so registering twice costs you nothing.
-          </p>
-
-          <Link
-            href={REGISTER_HREF}
-            className="lego-press mt-7 inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full px-7 text-[15px] font-semibold text-white"
-            style={{ background: C.blueFill }}
-          >
-            <ArrowLeft weight="bold" className="h-4 w-4" />
-            Back to the form
-          </Link>
-        </div>
-      </div>
-    </main>
-  );
-}
 
 export default function ThankYou({
-  confirmed = false,
+  vip = false,
   firstName = '',
   email = '',
 }: ThankYouProps) {
-  if (!confirmed) return <PendingState email={email} />;
-
   return (
     <main className="font-body" style={{ background: C.paleBlue, color: C.ink }}>
-      {/* Inside the confirmed branch on purpose: PendingState returns above, so
-          a reader with no place held is never congratulated with confetti. */}
       <ConfettiBurst />
-      <PageHeader confirmed />
+      <PageHeader />
 
       <div className="mx-auto max-w-[820px] px-5 py-14 md:py-20">
         {/* ── 1 · confirmation ─────────────────────────────────────── */}
@@ -348,13 +282,105 @@ export default function ThankYou({
             className="mx-auto mt-4 max-w-[560px] text-[15.5px] leading-relaxed"
             style={{ ...legoDelay(3, 80), color: C.inkSoft }}
           >
-            Your free place is held on the live 5-Day Pain Reset Challenge with
-            Atul, and your joining email is on its way
+            {vip
+              ? 'Your place and your VIP access are both confirmed on the live 5-Day Pain Reset Challenge with Atul, and your joining email is on its way'
+              : 'Your free place is held on the live 5-Day Pain Reset Challenge with Atul, and your joining email is on its way'}
             {email ? ` to ${email}` : ''}. Please read this page before you
             close it — there is one step left, and your session links come
             through it.
           </p>
         </div>
+
+        {/* ── VIP extras ───────────────────────────────────────────────
+            Sits directly under the confirmation and ABOVE the WhatsApp step,
+            because it is the thing this reader just paid for and the thing
+            they will look for first. It does not displace the WhatsApp step
+            as "step 1 of 1" though — the recordings still arrive through the
+            community, so that instruction has to stay the single required
+            action for VIP and free alike. */}
+        {vip && (
+          <section
+            data-lego=""
+            className="mx-auto mt-9 max-w-[620px] rounded-3xl p-6 sm:p-7"
+            style={{
+              ...legoDelay(4, 80),
+              background: C.white,
+              border: `2px solid ${C.blueFill}`,
+              boxShadow: '0 26px 60px -34px rgba(16,84,194,0.5)',
+            }}
+          >
+            <span
+              className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-white"
+              style={{ background: C.blueFill }}
+            >
+              <Crown weight="fill" className="h-3 w-3" />
+              VIP access confirmed
+            </span>
+
+            <h2
+              className="mt-3.5 font-heading text-[19px] font-bold leading-snug"
+              style={{ color: C.ink }}
+            >
+              What your VIP access adds.
+            </h2>
+
+            <ul className="mt-4 grid gap-3">
+              {[
+                {
+                  icon: PlayCircle,
+                  title: 'Full recordings of all 5 sessions',
+                  body: 'They unlock the moment the challenge starts, not weeks later, so you can rewatch each day the same evening. Yours to keep for life.',
+                },
+                {
+                  icon: Star,
+                  title: 'Priority attention in the room',
+                  body: 'Your form corrections and your questions go first, and there is extra support between sessions.',
+                },
+                {
+                  icon: Lightning,
+                  title: `Your ${VIP_BONUSES.length} extra guides`,
+                  body: `${VIP_BONUSES.map((b) => b.title).join(' and ')}, posted alongside the two that come with every place.`,
+                },
+              ].map(({ icon: Icon, title, body }, i) => (
+                <li key={title} className="flex items-start gap-3" style={legoBrick(i, 60)}>
+                  <span
+                    className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full"
+                    style={{ background: C.lightBlue }}
+                  >
+                    <Icon weight="fill" className="h-3.5 w-3.5" style={{ color: C.blueFill }} />
+                  </span>
+                  <span className="min-w-0">
+                    <span
+                      className="block text-[14px] font-semibold leading-snug"
+                      style={{ color: C.ink }}
+                    >
+                      {title}
+                    </span>
+                    <span
+                      className="mt-0.5 block text-[13.5px] leading-snug"
+                      style={{ color: C.inkSoft }}
+                    >
+                      {body}
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+
+            <p
+              className="mt-4 flex items-start gap-2 rounded-2xl p-3 text-[12.5px] leading-snug"
+              style={{ background: C.lightBlue, color: C.ink }}
+            >
+              <WarningCircle
+                weight="fill"
+                className="mt-0.5 h-4 w-4 shrink-0"
+                style={{ color: C.blueFill }}
+              />
+              Your recordings and extra guides are delivered inside the same
+              WhatsApp community, so the step below still applies to you.
+            </p>
+          </section>
+        )}
 
         {/* ── 2 · the two diary facts ──────────────────────────────── */}
         <ul className="mx-auto mt-9 grid max-w-[560px] gap-3 sm:grid-cols-2">

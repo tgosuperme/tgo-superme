@@ -36,7 +36,7 @@ import { getFbc, newEventId, readCookie } from './MetaPixel';
  * makes a retry or a double-click collapse into one conversion at Meta's end.
  */
 
-const REGISTER_PATH = '/register';
+const REGISTER_ANCHOR = '#register';
 
 export default function CtaTracker({ eventName }: { eventName: string }) {
   useEffect(() => {
@@ -48,7 +48,7 @@ export default function CtaTracker({ eventName }: { eventName: string }) {
       /* getAttribute, not link.href: the latter is resolved to an absolute URL
          and would need parsing to compare. */
       const href = link.getAttribute('href') ?? '';
-      if (!href.startsWith(REGISTER_PATH)) return;
+      if (href !== REGISTER_ANCHOR) return;
 
       const eventId = newEventId();
       /* GA4 only. Meta's atc_event is sent by /api/track below — the browser

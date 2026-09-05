@@ -31,17 +31,15 @@
  * naked form. What replaced it says the same true thing without the
  * arithmetic: the guides come with the place, and the place costs nothing.
  */
-import { CheckCircle, Lightning } from '@phosphor-icons/react/dist/ssr';
+import { CheckCircle, Crown, Lightning } from '@phosphor-icons/react/dist/ssr';
 import Image from 'next/image';
 
-import { BONUS_TOTAL, BONUSES } from './bonus-data';
+import { BONUSES, FREE_BONUSES, VIP_BONUSES } from './bonus-data';
 import { legoBrick, legoDelay } from './lego-style';
 import { C, FREE_LABEL, SectionEyebrow, SectionHeading } from './shared';
 
-const TOTAL = BONUS_TOTAL;
-/* The symbol was CHECKOUT_CONFIG.currencySymbol, which went with the price.
-   These four figures are the value of the guides, not a price anyone pays, so
-   they keep their sterling symbol and it is stated here once. */
+/* The per-guide values keep their sterling symbol — they describe what a guide
+   is worth, not a price anyone is charged for it. Stated once here. */
 const POUND = '£';
 
 /* Inverted from the rest of the page: the copy sits on the page's pale blue,
@@ -64,9 +62,11 @@ export default function Bonuses() {
   return (
     <section className="px-4 py-16 sm:py-24" style={{ background: C.white }}>
       <div className="mx-auto mb-4 flex max-w-3xl justify-center">
-        <SectionEyebrow text="Included With Your Place" />
+        <SectionEyebrow text="The Guides" />
       </div>
-      <SectionHeading sub="Four guides written by Atul, sent the moment you register, so you arrive on Day One already knowing what your body needs.">
+      <SectionHeading
+        sub={`Four guides written by Atul. ${FREE_BONUSES.length} arrive the moment you register, free. The other ${VIP_BONUSES.length} come with the optional VIP upgrade you can add afterwards.`}
+      >
         Everything You Get{' '}
         {/* Desktop breaks the headline into its two natural halves. Below lg it
             wraps on its own, so the break is suppressed. */}
@@ -160,13 +160,30 @@ export default function Bonuses() {
                     <Lightning weight="fill" className="h-3 w-3" style={{ color: C.yellowInk }} />
                     Instant access
                   </span>
-                  <span
-                    className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.14em]"
-                    style={{ color: C.greenInk }}
-                  >
-                    <CheckCircle weight="fill" className="h-3 w-3" />
-                    Included
-                  </span>
+                  {/* WHICH TIER THIS GUIDE BELONGS TO, read from bonus-data's
+                      own flag. Two come with the free place and two come with
+                      the VIP upgrade offered after registering, and this badge
+                      is the only thing on the card that says which. Saying
+                      "Included" on all four — as this did when everything was
+                      free — would promise two guides the upgrade then charges
+                      for. */}
+                  {b.tier === 'free' ? (
+                    <span
+                      className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.14em]"
+                      style={{ color: C.greenInk }}
+                    >
+                      <CheckCircle weight="fill" className="h-3 w-3" />
+                      Free with your place
+                    </span>
+                  ) : (
+                    <span
+                      className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-white"
+                      style={{ background: C.blueFill }}
+                    >
+                      <Crown weight="fill" className="h-3 w-3" />
+                      VIP
+                    </span>
+                  )}
                 </div>
               </div>
             </li>
@@ -187,20 +204,17 @@ export default function Bonuses() {
             className="text-[11px] font-bold uppercase tracking-[0.18em]"
             style={{ color: C.inkMuted }}
           >
-            Total value of the four guides
+            {FREE_BONUSES.length} guides with every free place
           </p>
 
           <p className="mt-3 flex flex-wrap items-baseline justify-center gap-x-3 gap-y-1">
-            {/* The struck value is decoration around the real answer, so it is
-                aria-hidden and the readable word carries the meaning. */}
-            <span
-              aria-hidden
-              className="font-heading text-[26px] font-bold leading-none line-through"
-              style={{ color: C.inkMuted, textDecorationThickness: '2px' }}
-            >
-              {POUND}
-              {TOTAL}
-            </span>
+            {/* The struck total is GONE, and its absence is the point. When
+                every guide was free, "£27 → Free" described the whole set
+                honestly. Now two of the four sit behind a £4.99 upgrade, so
+                striking the full £27 against the word "Free" would price the
+                free tier at something it does not include — the exact
+                value-stacking sleight this funnel's compliance review ruled
+                out, and this time factually wrong as well. */}
             <span
               className="font-heading text-[40px] font-bold leading-none"
               style={{ color: C.goldDeep }}
@@ -218,7 +232,9 @@ export default function Bonuses() {
           </p>
 
           <p className="mt-3 text-[12.5px]" style={{ color: C.inkMuted }}>
-            All four are included with your free place on the challenge.
+            {FREE_BONUSES.map((b) => b.title).join(' and ')} come with your free
+            place. The other {VIP_BONUSES.length} are part of the optional VIP
+            upgrade you can add after registering.
           </p>
         </div>
       </div>

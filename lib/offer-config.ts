@@ -1,20 +1,29 @@
 /**
  * SuperMe · 5-Day Pain Reset — offer config (single source of truth).
  *
- * THE CHALLENGE IS FREE. There is no price, no currency and no payment
- * processor anywhere in this funnel: the reader fills in a short stepwise form
- * at /register and their place is held. Everything the old paid build carried
- * about money — amountPence, amountGbpString, the currency symbol, Stripe — is
- * gone rather than zeroed, so nothing can quietly render "£0.00" or open a
- * checkout for nothing.
+ * ── TWO TIERS ───────────────────────────────────────────────────────────────
+ * The challenge itself is FREE and always will be. A paid VIP upgrade is
+ * offered ONCE, on the OTO page, after the reader has already registered:
  *
- * Every date, time and session label on the site still reads from here, so a
- * cohort change is an env edit and a redeploy, never a code change:
+ *     FREE   the five live sessions, both timings, real-time correction, the
+ *            Day 1 to Day 4 score, and two of the four guides
+ *     VIP    everything above plus the recordings of all five sessions kept
+ *            for life, priority attention in the room, and the other two
+ *            guides. One payment of £4.99, no subscription.
+ *
+ * THE ORDER MATTERS AND IS DELIBERATE. The registration is recorded the moment
+ * the form is submitted, BEFORE the upgrade is offered. Someone who abandons
+ * the OTO is still a registered attendee with a row in the sheet — the upsell
+ * can only ever add, never gate.
+ *
+ * Every date, time and session label on the site reads from here, so a cohort
+ * change is an env edit and a redeploy, never a code change:
  *
  *     NEXT_PUBLIC_START_DATE=18th August                  # cohort start
  *     NEXT_PUBLIC_SESSION_TIMES=7 AM & 7 PM               # the two daily session times
  *     NEXT_PUBLIC_SESSIONS_LABEL=Live Sessions, Twice A Day
  *     NEXT_PUBLIC_SESSION_TIMEZONE=UK time                # appended where a zone reads naturally
+ *     NEXT_PUBLIC_VIP_PRICE_GBP=4.99                      # the VIP upgrade only
  *     NEXT_PUBLIC_WHATSAPP_COMMUNITY_URL=https://chat.whatsapp.com/…
  *
  * These are NEXT_PUBLIC_* because the same strings render in the server HTML
@@ -22,12 +31,29 @@
  * needs a rebuild, not just a restart.
  *
  * NOTE ON UK COMPLIANCE: there is deliberately no list price, no "was" price
- * and no savings figure here, and now no price at all. The advertising rules
- * this page is built to satisfy forbid price-rise pressure and value stacking,
- * so the shape the postpartum page uses (strikethrough + SAVE badge) must not
- * be reintroduced — and on a free offer a "you save 100%" device would be the
- * worst version of it.
+ * and no savings figure on the VIP tier. The advertising rules this funnel was
+ * reviewed against forbid price-rise pressure and value stacking, so the shape
+ * the postpartum page uses (strikethrough + SAVE badge) must not be
+ * reintroduced. £4.99 is stated once, plainly, as what it is.
  */
+
+/**
+ * parseFLOAT, not parseInt.
+ *
+ * This lesson is carried over from the original paid build, where it was
+ * parseInt and silently truncated: a price of "4.99" produced 4, so the page
+ * read "£4" and Stripe charged 400p. Nothing errored — it just quietly charged
+ * the wrong amount, which is the worst way for a price to be wrong.
+ *
+ * Guarded to two decimals, because a price is money and "4.999" is not a thing
+ * anyone can be charged.
+ */
+function parsePriceEnv(value: string | undefined, fallback: number): number {
+  if (!value) return fallback;
+  const n = Number.parseFloat(value);
+  if (!Number.isFinite(n) || n <= 0) return fallback;
+  return Math.round(n * 100) / 100;
+}
 
 /** Trim an env string and fall back when it is missing or blank. */
 function text(value: string | undefined, fallback: string): string {
@@ -41,6 +67,9 @@ const SESSIONS_LABEL = text(
   'Live Sessions, Twice A Day',
 );
 const SESSION_TIMEZONE = text(process.env.NEXT_PUBLIC_SESSION_TIMEZONE, 'UK time');
+
+/** The VIP upgrade price. The free tier has no price and never gets one. */
+const VIP_PRICE_GBP = parsePriceEnv(process.env.NEXT_PUBLIC_VIP_PRICE_GBP, 4.99);
 
 /* The thank-you page's one required action. Fills both "Join the Community"
    buttons there. An empty value still renders them, flat and non-clickable, so
@@ -59,70 +88,98 @@ const CONTACT_EMAIL = text(
 );
 
 export const OFFER_CONFIG = {
-  /* The word the page uses wherever a price used to sit. Defined once so the
-     hero card, the docked bars and the CTA labels cannot end up saying three
-     different things ("Free", "£0", "No cost"). */
+  /* The word the page uses wherever the FREE tier's price would sit. Defined
+     once so the hero card, the docked bars and the CTA labels cannot end up
+     saying three different things ("Free", "£0", "No cost"). */
   priceLabel: 'Free',
-  /* The reassurance line under every CTA, in place of the old money-back
-     guarantee. Same rule: one string, used everywhere. */
+  /* The reassurance line under every CTA on the landing page and the form.
+     Note this describes REGISTERING, which is genuinely free and genuinely
+     needs no card. It must not be repeated on the OTO or anywhere past it,
+     where a card is being asked for. */
   ctaNote: '100% Free · No Card Needed',
 
-  /* Meta reporting. This funnel sends THREE CUSTOM events and no standard
-     ones: no AddToCart, no InitiateCheckout, no Purchase. The names below are
-     the only ones the browser Pixel and the Conversions API are allowed to
-     send, and the ad account optimises on them.
+  /* ── the VIP upgrade ─────────────────────────────────────────────────
+     ROUNDED to an integer of minor units. Stripe takes pence and rejects
+     anything else, and float maths does not oblige: 4.99 * 100 is not
+     reliably 499 across every value. This is the number the buyer is actually
+     charged, so it is forced to an integer here rather than hoped about at
+     the call site. */
+  vip: {
+    amountPence: Math.round(VIP_PRICE_GBP * 100),
+    amountGbpString: String(VIP_PRICE_GBP),
+    amountGbpNumeric: VIP_PRICE_GBP,
+    currency: 'GBP',
+    currencySymbol: '£',
+    /** "£4.99" — the one place the VIP price is composed. */
+    priceLabel: `£${VIP_PRICE_GBP}`,
+    productName: '5-Day Pain Reset — VIP Access',
+  },
 
-         atc_event              a CTA tap on the landing page, which is now a
-                                link to /register
+  /* Meta reporting. This funnel sends FOUR CUSTOM events and no standard
+     ones: no AddToCart, no InitiateCheckout, no Purchase.
+
+         atc_event              a CTA tap on the landing page, which opens the
+                                registration modal
          ic_event               the reader completes step 1 of the form
-         registration_complete  the registration is recorded — the conversion
+         registration_complete  the registration is recorded — the FREE
+                                conversion, and the one the ad account
+                                optimises on
+         sales                  a VIP upgrade is paid for, confirmed by the
+                                Stripe webhook
 
-     ── ON THE CONVERSION EVENT'S NAME ──────────────────────────────────
-     It was `sales`, and it is renamed because the word became a lie: nothing
-     is sold. A conversion named `sales` sitting in Events Manager against a
-     free offer is the kind of thing that reads fine to whoever built it and
-     misleads everyone afterwards — including anyone judging cost-per-sale
-     against a funnel that has no sales.
+     ── ON `sales` COMING BACK ──────────────────────────────────────────
+     It was retired when the funnel went free, on the grounds that a
+     conversion named for a sale is a lie when nothing is sold. A sale now
+     exists again — the VIP upgrade — so the name is accurate once more and
+     is reused rather than invented afresh, which keeps whatever history the
+     old custom conversion still carries.
 
-     THIS IS A BREAKING CHANGE ON THE META SIDE and cannot be avoided by code:
-     `registration_complete` arrives as a NEW custom event with no history, so
-     a custom conversion has to be created against it and every ad set
-     optimising for `sales` has to be repointed. Until that is done the ad
-     account is optimising toward an event nothing sends any more. The
-     learning on the old event does not transfer.
+     BE PRECISE ABOUT WHAT IT MEANS NOW. `sales` counts VIP upgrades ONLY,
+     never registrations. The volume will be a fraction of
+     registration_complete, and anyone reading the two side by side needs to
+     know that is correct rather than a tracking fault.
 
-     The other two names are deliberately untouched, precisely so that this
-     re-pointing is limited to the one event that had to move.
-
-     What also changed is `ic_event`'s trigger. There is no pay button to tap
-     any more, so it fires when the reader finishes the first step of the form
-     — the first real commitment they make — which keeps a genuine mid-funnel
-     signal between the CTA tap and the completed registration.
-
-     No `value` and no `currency` are sent. A free registration is worth £0 and
-     telling Meta so on every event would train value-based bidding on zeros;
-     omitting the fields entirely is what a lead event is supposed to look
-     like. */
+     `sales` is the ONLY event that carries a value and a currency. The other
+     three are free actions worth £0, and telling Meta so on every one of them
+     would train value-based bidding on a stream of zeros. */
   capi: {
     events: {
       addToCart: 'atc_event',
       initiateCheckout: 'ic_event',
       registrationComplete: 'registration_complete',
+      vipSale: 'sales',
     },
     contentName: '5-Day Pain Reset Challenge',
   } as const,
 
-  registerPath: '/register',
+  /* ── routes, in funnel order ──────────────────────────────────────────
+     /               landing, CTAs open the registration modal
+     /upgrade        the OTO, shown once, immediately after registering
+     /thank-you      free confirmation
+     /thank-you-vip  VIP confirmation, everything the free one says plus the
+                     VIP extras
+
+     THERE IS NO /register ROUTE. Registration happens only in the modal on the
+     landing page, so the CTAs point at a fragment rather than a URL — there is
+     no page for them to fall back to.
+
+     WHAT THAT COSTS, stated plainly rather than discovered later: without
+     JavaScript the CTAs do nothing. There is no no-JS path to registering any
+     more. If that matters, the fix is to bring back a /register page rendering
+     the same component, not to make the modal cleverer. */
+  registerAnchor: '#register',
+  upgradePath: '/upgrade',
   thankYouPath: '/thank-you',
+  thankYouVipPath: '/thank-you-vip',
   funnelSlug: 'superme-pain-reset',
   utmSessionKey: 'superme_utm',
 
-  /* Set by /api/register on the response that completes a registration, read
-     by /thank-you to personalise the confirmation. httpOnly and short-lived:
-     it carries a first name and an email address and has no business being
-     readable by script or surviving the session. */
+  /* Set by /api/register on the response that records a registration. Read by
+     /upgrade and /thank-you to personalise, and by /api/checkout to attach the
+     VIP purchase to the SAME person without trusting anything the browser
+     says. httpOnly, so no script can read the identity it carries. */
   registrationCookie: 'superme_reg',
-  registrationCookieMaxAge: 60 * 60, // one hour
+  registrationCookieMaxAge: 60 * 60 * 2, // two hours, enough to finish the OTO
 
   startDate: START_DATE,
   sessionTimes: SESSION_TIMES,

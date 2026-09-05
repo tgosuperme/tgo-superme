@@ -10,16 +10,17 @@ import { OFFER_CONFIG } from '@/lib/offer-config';
  * no InitiateCheckout, no Purchase. The ad account optimises on these three
  * and nothing else:
  *
- *     atc_event              a CTA tap on the landing page → /register
+ *     atc_event              a CTA tap, which opens the registration modal
  *     ic_event               the reader completes step 1 of the form
- *     registration_complete  the registration is recorded — the conversion
+ *     registration_complete  the registration is recorded — the free
+ *                            conversion, and the one carrying the volume
+ *     sales                  a VIP upgrade is paid for, from the Stripe
+ *                            webhook
  *
- * THE CHALLENGE IS FREE, so no event carries a value or a currency, and the
- * conversion is no longer called `sales` — nothing is sold, and a conversion
- * named for a sale against a free offer misleads every report built on it.
- * See the note in lib/offer-config.ts: the rename means a NEW custom
- * conversion and re-pointed ad sets in Events Manager, and the old event's
- * learning does not transfer.
+ * REGISTERING IS FREE; THE VIP UPGRADE IS NOT. So `sales` is the only event
+ * that carries a value and a currency, and the other three deliberately carry
+ * neither. `sales` counts upgrades ONLY, never registrations — the two numbers
+ * are supposed to be far apart.
  *
  * Custom events are sent exactly like standard ones: the name simply is not
  * one Meta reserves, so it arrives as a custom conversion and gets used from
@@ -138,6 +139,15 @@ export type CapiEvent = {
   eventTime: number;
   eventSourceUrl?: string;
   user: CapiUser;
+  /**
+   * Money. ONLY `sales` sets these — it is the one paid thing in the funnel.
+   *
+   * Left undefined on the other three, deliberately: they are free actions
+   * worth £0, and a `value: 0` is worse than the field being absent because it
+   * is a real number that value-based bidding will happily optimise toward.
+   */
+  value?: number;
+  currency?: string;
 };
 
 /**
@@ -177,12 +187,15 @@ export async function sendCapiEvent(e: CapiEvent): Promise<void> {
     if (userData[k] === undefined) delete userData[k];
   }
 
-  /* Content name only. NO value and NO currency: the challenge is free, and a
-     `value: 0` on every event is worse than the field being absent — it is a
-     real number that value-based bidding will happily optimise toward. */
+  /* Value and currency are attached ONLY when the caller supplies them, which
+     in this funnel means the `sales` event and nothing else. The three free
+     events omit both: a `value: 0` is worse than an absent field, because it
+     is a real number that value-based bidding will happily optimise toward. */
   const customData: Record<string, unknown> = {
     content_name: OFFER_CONFIG.capi.contentName,
   };
+  if (typeof e.value === 'number') customData.value = e.value;
+  if (e.currency) customData.currency = e.currency;
 
   const event = {
     event_name: e.eventName,
