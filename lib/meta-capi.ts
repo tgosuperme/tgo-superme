@@ -26,6 +26,24 @@ import { OFFER_CONFIG } from '@/lib/offer-config';
  * one Meta reserves, so it arrives as a custom conversion and gets used from
  * Events Manager.
  *
+ * ── THIS PIXEL IS HEALTH & WELLNESS RESTRICTED ──────────────────────────────
+ * That is not a style preference, it changes what may be sent, and it is the
+ * reason for three things in this file that would otherwise look arbitrary:
+ *
+ *   1. CUSTOM EVENT NAMES, NOT STANDARD ONES. A restricted data source has
+ *      Meta's standard events blocked BY NAME — AddToCart, InitiateCheckout,
+ *      Purchase would be dropped. Custom names are not, which is what keeps
+ *      this funnel reporting at all.
+ *   2. custom_data CARRIES MONEY AND NOTHING ELSE. No content_name, no
+ *      content_category. A price is not health data; "Pain Reset" is.
+ *   3. event_source_url IS THE ORIGIN ONLY. The path names the funnel step
+ *      and the query string carries every UTM and the fbclid, and a campaign
+ *      name is exactly where a condition string ends up by accident.
+ *
+ * Match keys are UNAFFECTED — email, phone, name, city, country, fbc, fbp, IP
+ * and user agent are all still sent, so EMQ does not move. The restriction is
+ * about describing the CONDITION, not about identifying the person.
+ *
  * ── SERVER ONLY. THE BROWSER FIRES NOTHING BUT PageView ─────────────────────
  * All three events are sent from here and ONLY from here. There is no browser
  * half to deduplicate against.
@@ -151,6 +169,21 @@ export type CapiEvent = {
 };
 
 /**
+ * "https://5day.mysuperme.com/upgrade?utm_campaign=…" → "https://5day.mysuperme.com"
+ *
+ * Returns undefined for a blank or unparseable value, so a malformed URL never
+ * becomes a rejected event — the field is simply omitted, which costs nothing.
+ */
+function hostOnly(url: string | undefined): string | undefined {
+  if (!url) return undefined;
+  try {
+    return new URL(url).origin;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Sends one event to the Conversions API.
  *
  * Throws on failure. Each caller decides what that means: /api/register logs
@@ -187,13 +220,25 @@ export async function sendCapiEvent(e: CapiEvent): Promise<void> {
     if (userData[k] === undefined) delete userData[k];
   }
 
-  /* Value and currency are attached ONLY when the caller supplies them, which
-     in this funnel means the `sales` event and nothing else. The three free
-     events omit both: a `value: 0` is worse than an absent field, because it
-     is a real number that value-based bidding will happily optimise toward. */
-  const customData: Record<string, unknown> = {
-    content_name: OFFER_CONFIG.capi.contentName,
-  };
+  /* ── HEALTH & WELLNESS: custom_data CARRIES MONEY AND NOTHING ELSE ────
+     `content_name: '5-Day Pain Reset Challenge'` USED TO BE HERE and has been
+     removed. This pixel's data source is categorised Health & Wellness, and
+     under that restriction a payload may not describe a health condition,
+     symptom, treatment or the care someone is seeking. "Pain Reset" is a
+     condition string by any reasonable reading of that rule, sent on every
+     single event in the funnel.
+
+     Nothing replaces it. There is no sanitised product name worth the risk
+     here: the funnel sells one thing, the pixel only ever receives events
+     from this funnel, and `event_name` already says which step it is. The
+     field was decoration.
+
+     Value and currency stay, and are attached ONLY when the caller supplies
+     them — which in this funnel means `sales` and nothing else. A price is
+     not health data. The three free events omit both deliberately: a
+     `value: 0` is worse than an absent field, because it is a real number
+     that value-based bidding will happily optimise toward. */
+  const customData: Record<string, unknown> = {};
   if (typeof e.value === 'number') customData.value = e.value;
   if (e.currency) customData.currency = e.currency;
 
@@ -202,7 +247,19 @@ export async function sendCapiEvent(e: CapiEvent): Promise<void> {
     event_time: e.eventTime,
     event_id: e.eventId,
     action_source: 'website',
-    event_source_url: e.eventSourceUrl || undefined,
+    /* ── HEALTH & WELLNESS: ORIGIN ONLY, NEVER THE FULL URL ──────────
+       The full URL was leaking two things Meta must not receive from a
+       restricted source: the PATH, which names the funnel step ("/upgrade",
+       and on other builds paths that describe the condition outright), and
+       the QUERY STRING, which carries every UTM and the fbclid — campaign
+       names written by a marketer who was not thinking about compliance are
+       exactly where a condition string ends up.
+
+       Reduced to the origin, so Meta learns the site and nothing more.
+       Attribution is NOT harmed: Meta attributes on fbc/fbp, never on this
+       field, and the full URL with all its UTMs still reaches the CRM row
+       where it is actually read. */
+    event_source_url: hostOnly(e.eventSourceUrl),
     user_data: userData,
     custom_data: customData,
   };

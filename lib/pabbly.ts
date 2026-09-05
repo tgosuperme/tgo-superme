@@ -95,6 +95,39 @@ export type LeadPayload = {
   referrer: string; // X · first-touch, classifies untagged leads
   landing_url: string; // Y · first-touch entry point
 
+  /* ── Z–AL · lifecycle block (SOP §4) ──────────────────────────────
+     WRITTEN BY THE SHEET, NOT BY THIS FUNNEL. Every one of these is sent as
+     an empty string on every row, and that is the point: the columns have to
+     EXIST from the first row so Pabbly's field mapping binds them, otherwise
+     the Apps Script that fills them later has no column to write into and
+     every field to its right shifts by one.
+
+     They record what happens AFTER the funnel is done with the person — did
+     they turn up to the session, did they qualify, did a call close — and
+     each pairs with the event_id and a sent-flag for the CAPI event the Apps
+     Script fires at that moment. That event has no cookies, no IP and no user
+     agent of its own, weeks after the fact; it reuses the ones parked in
+     columns I–M of this very row. That is the whole reason the universal
+     block is carried onto the VIP row too.
+
+     `sale_closed` / `contracted_value` / `sales_time` mean a HIGH-TICKET sale
+     closed on a call. They deliberately stay blank on a VIP row: the £4.99
+     upgrade is not that sale, and filling them here would make the Apps
+     Script fire HighTicketPurchase for every micro-upgrade. */
+  attended: string; // Z  · "true" / "false", set after the session
+  showup_time: string; // AA · ISO 8601
+  leadshowup_capi_event_id: string; // AB
+  leadshowup_capi_sent: string; // AC · "true" / "false"
+  qualified: string; // AD
+  qualified_time: string; // AE
+  qualified_capi_event_id: string; // AF
+  qualified_capi_sent: string; // AG
+  sale_closed: string; // AH
+  contracted_value: string; // AI · decimal string, e.g. "1500.00"
+  sales_time: string; // AJ
+  htsale_capi_event_id: string; // AK
+  htsale_capi_sent: string; // AL
+
   /* ── AM onward · SuperMe extras, right of the lifecycle block ─────── */
   full_name: string;
   /** "free" or "vip". The one field that says which sheet this belongs in. */
@@ -114,6 +147,31 @@ export type LeadPayload = {
   cohort_start_date: string;
   session_times: string;
 };
+
+/**
+ * The lifecycle block, blank.
+ *
+ * Spread into every row by both senders. Defined ONCE here rather than typed
+ * out at each call site, because thirteen empty strings written twice is
+ * thirteen chances for one of them to be forgotten on the less-travelled path
+ * — and a key that is absent on some rows and present on others is exactly the
+ * thing that unmaps a Pabbly column silently.
+ */
+export const BLANK_LIFECYCLE = {
+  attended: '',
+  showup_time: '',
+  leadshowup_capi_event_id: '',
+  leadshowup_capi_sent: '',
+  qualified: '',
+  qualified_time: '',
+  qualified_capi_event_id: '',
+  qualified_capi_sent: '',
+  sale_closed: '',
+  contracted_value: '',
+  sales_time: '',
+  htsale_capi_event_id: '',
+  htsale_capi_sent: '',
+} as const;
 
 export function pabblyConfigured(): boolean {
   return Boolean(process.env.PABBLY_WEBHOOK_URL);

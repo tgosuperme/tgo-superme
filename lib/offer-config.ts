@@ -149,7 +149,20 @@ export const OFFER_CONFIG = {
       registrationComplete: 'registration_complete',
       vipSale: 'sales',
     },
-    contentName: '5-Day Pain Reset Challenge',
+    /* THERE IS NO `contentName` HERE ANY MORE, and it must not come back.
+       This pixel's data source is categorised HEALTH & WELLNESS. Under that
+       restriction nothing sent to Meta may describe a health condition,
+       symptom or treatment, and "5-Day Pain Reset Challenge" — which is what
+       this key held, on every event — is a condition string.
+
+       Custom event NAMES survive the restriction; PAYLOADS describing the
+       condition do not. That is precisely why this funnel reports atc_event /
+       ic_event / registration_complete / sales rather than Meta's standard
+       AddToCart / InitiateCheckout / Purchase: standard events are blocked by
+       name for a restricted source, custom ones are not.
+
+       See lib/meta-capi.ts, where custom_data is now money-only and
+       event_source_url is reduced to the origin. */
   } as const,
 
   /* ── routes, in funnel order ──────────────────────────────────────────

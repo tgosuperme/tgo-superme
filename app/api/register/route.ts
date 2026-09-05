@@ -2,7 +2,12 @@ import { randomUUID } from 'node:crypto';
 
 import { browserContext, capiConfigured, externalIdFor, sendCapiEvent } from '@/lib/meta-capi';
 import { OFFER_CONFIG } from '@/lib/offer-config';
-import { pabblyConfigured, sendLeadToPabbly, type LeadPayload } from '@/lib/pabbly';
+import {
+  BLANK_LIFECYCLE,
+  pabblyConfigured,
+  sendLeadToPabbly,
+  type LeadPayload,
+} from '@/lib/pabbly';
 
 /**
  * Registers one free place on the 5-Day Pain Reset.
@@ -194,6 +199,9 @@ export async function POST(req: Request) {
     fbclid,
     referrer,
     landing_url: landingUrl,
+
+    /* ── Z–AL · lifecycle, blank ───────────────────────────────────── */
+    ...BLANK_LIFECYCLE,
 
     /* ── SuperMe extras ────────────────────────────────────────────── */
     full_name: `${firstName} ${lastName}`.trim(),

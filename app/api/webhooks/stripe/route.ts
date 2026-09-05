@@ -2,7 +2,12 @@ import type Stripe from 'stripe';
 
 import { capiConfigured, externalIdFor, sendCapiEvent } from '@/lib/meta-capi';
 import { OFFER_CONFIG } from '@/lib/offer-config';
-import { pabblyVipConfigured, sendVipToPabbly, type LeadPayload } from '@/lib/pabbly';
+import {
+  BLANK_LIFECYCLE,
+  pabblyVipConfigured,
+  sendVipToPabbly,
+  type LeadPayload,
+} from '@/lib/pabbly';
 import { getStripe, stripeConfigured } from '@/lib/stripe';
 
 /**
@@ -103,6 +108,30 @@ export async function POST(req: Request) {
  */
 async function onVipPaid(session: Stripe.Checkout.Session) {
   const m = session.metadata ?? {};
+
+  /* ── OWNERSHIP GATE ───────────────────────────────────────────────────
+     A Stripe account is shared. Every payment taken on it — other products,
+     other funnels, a manual payment link, an invoice paid from the dashboard
+     — arrives at THIS endpoint if the endpoint is registered account-wide,
+     and without this check every one of them would fire a `sales` conversion
+     into the Meta pixel and write a row into the VIP sheet.
+     That is not hypothetical: it is exactly what happened on the India
+     funnel's shared Razorpay account, where two unrelated sales poisoned the
+     pixel before it was caught.
+
+     /api/checkout stamps `funnel` into the session metadata on every session
+     it opens, so anything without our slug did not come from this funnel and
+     is none of our business.
+
+     Returns quietly rather than throwing. A 500 would make Stripe retry
+     someone else's payment at us for three days. */
+  if (m.funnel !== OFFER_CONFIG.funnelSlug) {
+    console.warn(
+      `[stripe-webhook] IGNORED ${session.id} — metadata.funnel is ${JSON.stringify(m.funnel ?? null)}, not "${OFFER_CONFIG.funnelSlug}". Not this funnel's payment.`,
+    );
+    return;
+  }
+
   const firstName = m.firstName ?? '';
   const lastName = m.lastName ?? '';
   const minor = session.amount_total ?? OFFER_CONFIG.vip.amountPence;
@@ -163,6 +192,9 @@ async function onVipPaid(session: Stripe.Checkout.Session) {
     fbclid: m.fbclid ?? '',
     referrer: m.referrer ?? '',
     landing_url: m.landingUrl ?? '',
+
+    /* ── Z–AL · lifecycle, blank ───────────────────────────────────── */
+    ...BLANK_LIFECYCLE,
 
     /* ── SuperMe extras ────────────────────────────────────────────── */
     full_name: `${firstName} ${lastName}`.trim(),
