@@ -144,11 +144,15 @@ export const SESSION_TIMES_TZ = CHECKOUT_CONFIG.sessionTimesWithZone;
 export const WHATSAPP_COMMUNITY_URL = CHECKOUT_CONFIG.whatsappCommunityUrl;
 export const CONTACT_EMAIL = CHECKOUT_CONFIG.contactEmail;
 
-/** The three legal pages, in the order they appear in every footer. */
+/** The legal pages, in the order they appear in every footer.
+    "Important Information" joined them when that block came off the landing
+    page: it has to stay reachable from every page, not only from the one
+    footer line that summarises it. */
 export const LEGAL_LINKS = [
   { href: CHECKOUT_CONFIG.privacyPath, label: 'Privacy Policy' },
   { href: CHECKOUT_CONFIG.termsPath, label: 'Terms of Use' },
   { href: CHECKOUT_CONFIG.refundsPath, label: 'Refund Policy' },
+  { href: '/important-information', label: 'Important Information' },
 ];
 
 export function SectionEyebrow({ text }: { text: string }) {

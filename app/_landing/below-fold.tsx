@@ -54,6 +54,7 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 
 import BrandMark from '@/components/BrandMark';
+import type { ResolvedOffer } from '@/lib/offer';
 
 import Bonuses from './bonuses';
 import { legoBrick, legoDelay } from './lego-style';
@@ -63,13 +64,10 @@ import {
   C,
   CtaNote,
   LEGAL_LINKS,
-  PRICE_LABEL,
   PrimaryCTA,
   SectionEyebrow,
   SectionHeading,
-  SESSION_TIMES_TZ,
   SESSIONS_LABEL,
-  START_DATE,
 } from './shared';
 
 // ── Animation primitives (same curve and timings as the reference page) ──
@@ -122,12 +120,7 @@ const EXPERIENCE: { icon: typeof Wind; title: string; body: string }[] = [
   {
     icon: Wind,
     title: 'Unload Before You Strengthen',
-    body: 'Learn how to take the load off first, using breath work and supported movement before asking your body to do more.',
-  },
-  {
-    icon: Lightning,
-    title: 'Wake Up Your Inner Support',
-    body: 'Activate the deeper muscles around your core, spine, hips and joints that are meant to help carry the load.',
+    body: 'Learn how to take the load off first, using breath work and supported movement — then wake up the deeper muscles around your core, spine, hips and joints that are meant to help carry it.',
   },
   {
     icon: Barbell,
@@ -175,6 +168,19 @@ function Experience() {
           >
             Don&apos;t take our word for it. Experience the approach live and see
             your own progress across 5 days.
+          </m.p>
+          {/* The five principles of the Inner Brace Method, as one line rather
+              than the five sticky cards they used to be. Those cards restated
+              features the reader had already met three sections earlier; the
+              titles were the only part carrying anything new. */}
+          <m.p
+            variants={fadeUp}
+            className="mt-3 text-[13.5px] font-medium"
+            style={{ color: C.inkMuted }}
+          >
+            Unload before you stretch · Brace before you strengthen · Move
+            without forcing · Strengthen what supports you · Retrain everyday
+            movement
           </m.p>
         </m.div>
 
@@ -250,8 +256,12 @@ function Experience() {
 const DAYS = [
   {
     n: 'Day 1',
-    title: 'Unload & Release',
-    body: 'Start by taking pressure off the areas doing too much. Guided breathing, supported movement, gentle spinal mobility and prop-assisted positions help you move without forcing the painful area.',
+    /* "Score" leads the title on Day 1 and closes it on Day 4. The Day 1 to
+       Day 4 score is what the hero promises and what the whole page rests on;
+       naming it at both ends of the schedule is what stops it reading as a
+       claim made once above the fold and never mentioned again. */
+    title: 'Score, Unload & Release',
+    body: 'You score your pain out of 10 on six everyday movements before we begin. Then we take pressure off the areas doing too much: guided breathing, supported movement, gentle spinal mobility and prop-assisted positions help you move without forcing the painful area.',
   },
   {
     n: 'Day 2',
@@ -265,8 +275,8 @@ const DAYS = [
   },
   {
     n: 'Day 4',
-    title: 'Stand Tall & Measure',
-    body: "Bring everything together through standing movements, hip opening, leg strengthening and better alignment. Then measure your progress and see what's changed since Day 1.",
+    title: 'Stand Tall & Score Again',
+    body: 'Bring everything together through standing movements, hip opening, leg strengthening and better alignment. Then you score the same six movements and see what has changed since Day 1.',
   },
   {
     n: 'Day 5',
@@ -425,7 +435,7 @@ function Schedule() {
 
 /* ── section 4 · live sessions band (PDF p5) ─────────────────────────── */
 
-function SessionsBand() {
+function SessionsBand({ offer }: { offer: ResolvedOffer }) {
   return (
     <section className="px-4 py-14" style={{ background: C.white }}>
       <div
@@ -449,23 +459,26 @@ function SessionsBand() {
           {/* Bright sky, not goldDeep: this h2 sits on the navy band, where
               primary blue is 2.22:1 and bright sky is 5.85:1. The one place the
               highlight flips colour, because the ground flipped. */}
-          {SESSION_TIMES_TZ}, <span style={{ color: C.sky }}>live on Zoom</span>.
+          {offer.sessionTimes}, <span style={{ color: C.sky }}>live on Zoom</span>.
         </h2>
         <p className="mt-3 text-[15px]" style={{ color: 'rgba(250,245,234,0.75)' }}>
-          Pick whichever time fits your day — and every session is recorded,
-          so a day you cannot make live is never a day you lose.
+          {/* Recordings moved to the VIP pass, so this line can no longer
+              promise them to everyone. It now sells the thing that IS free —
+              two timings — and points recordings at the upsell. */}
+          Pick whichever time fits your day, and switch between them across the
+          week. Cannot make one live? Recordings are included in the VIP pass.
         </p>
         <div className="mx-auto mt-7 flex max-w-[400px] flex-col items-center">
           <a
-            href="/go"
-            className="lego-press lego-pulse group inline-flex min-h-[56px] w-full items-center justify-center gap-2 rounded-full px-7 py-4 font-heading text-[15px] font-bold"
+            href={offer.ctaHref}
+            className="lego-press lego-pulse-glow lego-glow-light group inline-flex min-h-[56px] w-full items-center justify-center gap-2 rounded-full px-7 py-4 font-heading text-[15px] font-bold"
             style={{
               background: C.white,
               color: C.ink,
               ['--pulse-color' as string]: 'rgba(255,255,255,0.5)',
             }}
           >
-            Start Your 5-Day Reset · {PRICE_LABEL}
+            Start Your 5-Day Reset · {offer.priceLabel}
             <ArrowRight
               weight="bold"
               className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5"
@@ -489,11 +502,39 @@ function SessionsBand() {
    as their own. Split into three parts rather than marked up inline so the
    sentences stay exactly as signed off, just wrapped. */
 const RECOGNITION: [string, string, string][] = [
+  [
+    'You have spent money on physio, painkillers, belts or oil massages, and ',
+    'you are still stiff every morning',
+    '.',
+  ],
   ['Your back, neck or knee pain ', 'keeps coming back', ', even after trying exercises and stretches.'],
   ['You wake up ', 'feeling stiff', ', or find yourself avoiding certain movements because they hurt.'],
   ["You're ", 'afraid of making things worse', ", so you've stopped doing the activities you actually enjoy."],
   ["You've tried random YouTube routines and workouts, but still ", "don't know what your body actually needs", '.'],
   ["You're ", 'tired of managing the pain day after day', ' and want a clear, guided approach to move better and feel stronger.'],
+];
+
+/* The four situations the ads are cut for, so the page repeats the segment the
+   creative targeted. Deliberately situations rather than ages or job titles:
+   "nine hours in a chair" is recognisable, "35-54 desk-based professional" is
+   a media plan. */
+const AUDIENCE: { title: string; body: string }[] = [
+  {
+    title: 'Desk workers',
+    body: 'Nine hours in a chair and a back that tightens the moment you stand.',
+  },
+  {
+    title: 'Business owners',
+    body: 'No time to be laid up, and no patience for a plan that takes six months to start.',
+  },
+  {
+    title: '55 and over',
+    body: 'Stairs, the floor and long walks have quietly become something to think about.',
+  },
+  {
+    title: 'Booking for a parent',
+    body: 'Book this for your mother or father — the WhatsApp group and the Zoom link go to them.',
+  },
 ];
 
 function Recognition() {
@@ -529,6 +570,41 @@ function Recognition() {
           </li>
         ))}
       </ul>
+
+      {/* ── who this is for ────────────────────────────────────────────────
+          Four named situations, straight after the five symptoms. The list
+          above asks "is this you?"; these answer "yes, and specifically you".
+
+          The fourth tile is the one that earns its place. A meaningful share
+          of this audience is an adult child booking for a parent, and until
+          it is said out loud they assume the programme is not for that — then
+          hesitate over whose name and whose phone number to enter. Naming it
+          removes the hesitation and tells them where the links go. */}
+      <div className="mx-auto mt-12 max-w-[900px]">
+        <h3
+          className="text-center font-heading text-[18px] font-bold sm:text-[20px]"
+          style={{ color: C.ink }}
+        >
+          Who this is for
+        </h3>
+        <ul className="mt-6 grid gap-3 sm:grid-cols-2">
+          {AUDIENCE.map(({ title, body }, idx) => (
+            <li
+              key={title}
+              data-lego=""
+              className="lego-hover-sm rounded-2xl border px-5 py-4"
+              style={{ ...legoBrick(idx, 80), borderColor: C.line, background: C.white }}
+            >
+              <p className="text-[15px] font-bold" style={{ color: C.ink }}>
+                {title}
+              </p>
+              <p className="mt-1.5 text-[13.5px] leading-relaxed" style={{ color: C.inkSoft }}>
+                {body}
+              </p>
+            </li>
+          ))}
+        </ul>
+      </div>
     </section>
   );
 }
@@ -697,178 +773,6 @@ function Guide() {
 /* One accent per step, so the five stages of the method are visually
    countable. Same construction as the Experience grid: the bed is the accent
    held back to a pale wash, the glyph is its matching ink. */
-const MECH_ACCENTS: { bed: string; fg: string }[] = [
-  { bed: 'rgba(159,218,203,0.34)', fg: C.mintInk },     // 01 unload
-  { bed: 'rgba(140,207,227,0.30)', fg: C.skyInk },      // 02 brace
-  { bed: 'rgba(169,154,203,0.24)', fg: C.lavenderInk }, // 03 move
-  { bed: 'rgba(114,183,122,0.24)', fg: C.greenInk },    // 04 strengthen
-  { bed: 'rgba(255,178,109,0.30)', fg: C.peachInk },    // 05 retrain
-];
-
-const MECHANISM = [
-  {
-    n: '01',
-    icon: Wind,
-    title: 'Unload Before You Stretch',
-    body: 'Take pressure off the areas already doing too much before asking them to move further.',
-  },
-  {
-    n: '02',
-    icon: ShieldCheck,
-    title: 'Brace Before You Strengthen',
-    body: "Reconnect your body's deeper support before adding more load.",
-  },
-  {
-    n: '03',
-    icon: FunctionIcon,
-    title: 'Move Without Forcing',
-    body: 'Use breath, props and controlled mobility to restore movement without pushing through stiffness.',
-  },
-  {
-    n: '04',
-    icon: Barbell,
-    title: 'Strengthen What Supports You',
-    body: "Build strength through your core, hips, spine and joints so the load isn't concentrated in one area.",
-  },
-  {
-    n: '05',
-    icon: Lightning,
-    title: 'Retrain Everyday Movement',
-    body: 'Take that new support into sitting, standing, bending, walking and the movements you do every day.',
-  },
-];
-
-function Mechanism() {
-  return (
-    <section className="px-4 py-16 sm:py-24" style={{ background: C.white }}>
-      <SectionHeading
-        sub={
-          <>
-            Most programmes either tell you to stretch more, strengthen more, or
-            rest more. But if the same back, neck or knee discomfort keeps
-            returning, doing more of the same isn&apos;t necessarily the answer.
-            The Inner Brace Method™ changes{' '}
-            <strong style={{ color: C.ink }}>what you do</strong>, and{' '}
-            <strong style={{ color: C.ink }}>the order you do it in</strong>.
-          </>
-        }
-      >
-        Why This <span style={{ color: C.goldDeep }}>Works</span>.
-      </SectionHeading>
-
-      <ul className="mx-auto mt-11 grid max-w-[1120px] gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        {MECHANISM.map((step, idx) => (
-          <MechanismCard key={step.n} step={step} idx={idx} />
-        ))}
-      </ul>
-    </section>
-  );
-}
-
-/**
- * One step of the method, in two shapes from the SAME markup.
- *
- * Desktop (sm and up) is untouched from the original: a flat grid, icon
- * top-left, number top-right, title below, body below that.
- *
- * Mobile is a DEALT STACK. Each card is `position: sticky` at a top offset one
- * header-height further down than the card before it, so as you scroll a card
- * parks and the next one slides up over it, leaving only its header strip
- * showing. By the last card the four before it read as a pile of tabs — the
- * five stages of the method visible at once, in order, without five full
- * paragraphs of scrolling.
- *
- * Three things this depends on, all easy to break:
- *
- *  1. The card must be OPAQUE. It is covering the one beneath it; a
- *     translucent background would show both sets of type at once.
- *  2. No ancestor may have `overflow: hidden` or a `transform`. Either one
- *     silently turns `position: sticky` into `position: static` — the classic
- *     way this effect dies. The section and the <ul> are therefore left plain.
- *  3. The title must sit BESIDE the icon on the header row, not under it, so
- *     the strip left showing is one line tall and actually names the step.
- *
- * The lego entrance is dropped on mobile for these cards: an entrance
- * transform on a sticky element fights the stick, and the stack is the motion
- * here anyway. Above sm it comes back.
- */
-function MechanismCard({
-  step,
-  idx,
-}: {
-  step: (typeof MECHANISM)[number];
-  idx: number;
-}) {
-  const { n, icon: Icon, title, body } = step;
-  const accent = MECH_ACCENTS[idx % MECH_ACCENTS.length];
-
-  return (
-    <li
-      className="sm-stack-card sm:!static"
-      style={{
-        /* Each card parks 58px lower than the last, which is the height of the
-           header strip plus its padding. Read by the CSS in globals.css. */
-        ['--stack-i' as string]: idx,
-        zIndex: idx + 1,
-      }}
-    >
-      {/* sm:h-full is what levels the row on desktop. The grid item is the
-          <li>, which stretches by default, but the card the reader actually
-          sees is this inner div — without a height it wraps its own copy and
-          the five cards end up with ragged bottoms, because the bodies are
-          two, three and four lines long. Left off below sm, where the cards
-          are a sticky stack and each one must keep its natural height. */}
-      <div
-        data-lego=""
-        className="lego-hover rounded-2xl border p-5 sm:h-full"
-        style={{
-          ...legoBrick(idx, 80),
-          borderColor: C.line,
-          /* Opaque, not C.canvas's translucency — see note 1 above. */
-          background: C.canvas,
-        }}
-      >
-        {/* Header strip: the part that stays visible once the card is parked. */}
-        <div className="flex w-full items-center gap-3 sm:block">
-          <span className="flex shrink-0 items-center sm:mb-0 sm:w-full sm:justify-between">
-            <span
-              data-lego-stud=""
-              className="lego-stud inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
-              style={{ ...legoBrick(idx, 80), background: accent.bed }}
-            >
-              <Icon weight="bold" className="h-4 w-4" style={{ color: accent.fg }} />
-            </span>
-            <span
-              className="ml-auto hidden font-heading text-[12px] font-bold tracking-[0.1em] sm:inline"
-              style={{ color: C.inkMuted }}
-            >
-              {n}
-            </span>
-          </span>
-
-          <h3
-            className="min-w-0 flex-1 font-heading text-[15px] font-bold leading-snug sm:mt-4"
-            style={{ color: C.ink }}
-          >
-            {title}
-          </h3>
-
-          {/* The step number rides the header row on mobile. */}
-          <span
-            className="ml-auto shrink-0 font-heading text-[12px] font-bold tracking-[0.1em] sm:hidden"
-            style={{ color: C.inkMuted }}
-          >
-            {n}
-          </span>
-        </div>
-
-        <p className="mt-2 text-[13px] leading-relaxed" style={{ color: C.inkSoft }}>
-          {body}
-        </p>
-      </div>
-    </li>
-  );
-}
 
 /* ── section 9 · what people notice (PDF p9) ─────────────────────────── */
 
@@ -945,7 +849,7 @@ function Notice() {
 
 /* ── section 10a · come to day one, then decide (PDF p10) ─────────────── */
 
-function Promise() {
+function Promise({ offer }: { offer: ResolvedOffer }) {
   return (
     <section
       className="px-4 py-20 sm:py-28"
@@ -1015,7 +919,7 @@ function Promise() {
    A section of its own, not a tail on the promise: it gets the masthead
    treatment, its own band, and the full section rhythm. */
 
-function TwoOptions() {
+function TwoOptions({ offer }: { offer: ResolvedOffer }) {
   return (
     <section className="px-4 py-16 sm:py-24" style={{ background: C.white }}>
       <div className="mx-auto mb-4 flex max-w-3xl justify-center">
@@ -1080,15 +984,15 @@ function TwoOptions() {
             strength, stability and ease.
           </p>
           <a
-            href="/go"
-            className="lego-press lego-pulse group mt-6 inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full px-6 py-3.5 font-heading text-[14.5px] font-bold"
+            href={offer.ctaHref}
+            className="lego-press lego-pulse-glow lego-glow-light group mt-6 inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full px-6 py-3.5 font-heading text-[14.5px] font-bold"
             style={{
               background: C.white,
               color: C.ink,
               ['--pulse-color' as string]: 'rgba(255,255,255,0.45)',
             }}
           >
-            Start Your 5-Day Reset · {PRICE_LABEL}
+            Start Your 5-Day Reset · {offer.priceLabel}
             <ArrowRight
               weight="bold"
               className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5"
@@ -1108,54 +1012,58 @@ function TwoOptions() {
 
 /* ── section 11 · FAQ (PDF p11) ──────────────────────────────────────── */
 
-const FAQS = [
-  {
-    q: 'Is this just another stretching or exercise routine?',
-    a: 'No. This is a live, coach-led programme built specifically for back, neck and knee pain, using a named method, the Inner Brace Method. Every session is sequenced around what your body needs to unload and support first, not a generic set of stretches.',
-  },
-  {
-    q: "I've tried exercise routines before and they didn't help, or made things worse. Why would this be different?",
-    a: "A generic routine isn't sequenced for a back, neck or knee that's already guarding and the wrong movement on an irritated area can make things worse. That's exactly why the Inner Brace Method starts by taking the load off before asking anything to stretch or strengthen. Nothing is forced, and every movement is adapted live by your coach.",
-  },
-  {
-    q: 'There are free yoga videos on YouTube. Why would I pay for a challenge?',
-    a: "Those videos are useful, and plenty of them are taught well. But a video is recorded — nobody is watching how you move or correcting you in real time, and with a back, neck or knee that is already guarding, the correction is the part that matters. This challenge is live, with a coach adjusting what you're doing as you're doing it. It's a different kind of support, not a replacement.",
-  },
-  {
-    /* Priced at a few hundred rupees, the page invites the question the UK
-       version never had to answer. Left unanswered it reads as a catch. */
-    q: `Why is it only ${PRICE_LABEL}? What is the catch?`,
-    a: "There isn't one. The price is low on purpose: this is the first time most people meet the Inner Brace Method, and we would rather it cost almost nothing to find out whether it suits you. You get all five live sessions and the four guides for that one payment. On Day 5 we talk about how to keep going if you want to — and if you don't, nothing happens and nothing renews.",
-  },
-  {
-    q: "Isn't physiotherapy enough?",
-    a: "Physiotherapy is a great first step, and this isn't a replacement for medical care. What we often hear is that the exercises help while the sessions are happening, and things drift back afterwards. This challenge focuses on the ongoing part, learning to move differently day to day, for longer than a six-week course.",
-  },
-  {
-    q: "I've already spent money on this problem. Why would this be different?",
-    a: "Because most approaches focus on where it hurts, not on why the load keeps landing there in the first place. This method starts by unloading the area, then rebuilding the support around it, the sequence itself is what's different, not just another set of exercises.",
-  },
-  {
-    q: 'Will this fix my pain in 5 days?',
-    a: "No and we won't tell you it will. Five days is enough to safely experience the method, understand what your body needs, and see your own progress from Day 1 to Day 4. Most people notice a real shift by session three or four; lasting change comes from the months that follow, not the five days alone.",
-  },
-  {
-    q: "What if I can't make the live session time?",
-    a: `Every session runs twice a day, ${SESSION_TIMES_TZ}, so you can pick whichever fits. And every session is recorded — the recording is shared with you afterwards, so a day you genuinely cannot make is never a day you lose.`,
-  },
-  {
-    q: 'Do I get the recordings?',
-    a: "Yes. Every one of the five sessions is recorded and the recording is shared with you, so you can catch up on a day you missed or go back over a movement you want to get right. Attending live is still where the real value is — that is the only place a coach can see how you are moving and correct it — but the recordings mean a bad day at work does not cost you a day of the challenge.",
-  },
-  {
-    q: 'What happens after the 5 days?',
-    a: "Day 5 is where we talk about what your 5 days actually showed you, and how to keep building on it if you'd like to continue. There's no obligation, it's entirely your decision.",
-  },
-  {
-    q: 'Is this safe if I have a diagnosed condition?',
-    a: 'If you have a diagnosed condition where your clinician has advised against certain movement, please check with them first. This programme is a complement to medical care, not a replacement for it.',
-  },
-];
+/**
+ * EIGHT questions, cut down from eleven, and now a function of the offer
+ * rather than a module constant — the price appears in one of them and the
+ * price moves with the clock.
+ *
+ * Three were dropped as part of the tightening: "I have already spent money on
+ * this problem" (it answers the same objection as the failed-routines one),
+ * "Do I get the recordings?" (recordings are now the VIP pass, and a FAQ
+ * promising them free contradicted the upsell), and "What happens after the 5
+ * days?" (Day 5 is covered in the schedule section directly above).
+ */
+function faqsFor(offer: ResolvedOffer) {
+  return [
+    {
+      q: 'Is this just another stretching or exercise routine?',
+      a: 'No. This is a live, coach-led programme built specifically for back, neck and knee pain, using a named method, the Inner Brace Method. Every session is sequenced around what your body needs to unload and support first, not a generic set of stretches.',
+    },
+    {
+      q: "I've tried exercise routines before and they didn't help, or made things worse. Why would this be different?",
+      a: "A generic routine isn't sequenced for a back, neck or knee that's already guarding and the wrong movement on an irritated area can make things worse. That's exactly why the Inner Brace Method starts by taking the load off before asking anything to stretch or strengthen. Nothing is forced, and every movement is adapted live by your coach.",
+    },
+    {
+      q: 'There are free yoga videos on YouTube. Why would I pay for a challenge?',
+      a: "Those videos are useful, and plenty of them are taught well. But a video is recorded — nobody is watching how you move or correcting you in real time, and with a back, neck or knee that is already guarding, the correction is the part that matters. This challenge is live, with a coach adjusting what you're doing as you're doing it. It's a different kind of support, not a replacement.",
+    },
+    {
+      /* Priced at a few hundred rupees, the page invites the question the UK
+         version never had to answer. Left unanswered it reads as a catch. */
+      q: `Why is it only ${offer.priceLabel}? What is the catch?`,
+      a: "There isn't one. The price is low on purpose: this is the first time most people meet the Inner Brace Method, and we would rather it cost almost nothing to find out whether it suits you. You get all five live sessions and the guides for that one payment. On Day 5 we talk about how to keep going if you want to — and if you don't, nothing happens and nothing renews.",
+    },
+    {
+      q: "Isn't physiotherapy enough?",
+      a: "Physiotherapy is a great first step, and this isn't a replacement for medical care. What we often hear is that the exercises help while the sessions are happening, and things drift back afterwards. This challenge focuses on the ongoing part, learning to move differently day to day, for longer than a six-week course.",
+    },
+    {
+      q: 'Will this fix my pain in 5 days?',
+      a: "No and we won't tell you it will. Five days is enough to safely experience the method, understand what your body needs, and see your own progress from Day 1 to Day 4. Most people notice a real shift by session three or four; lasting change comes from the months that follow, not the five days alone. Results vary from person to person.",
+    },
+    {
+      /* The recordings answer changed with the VIP pass. It says what is true —
+         two live timings cover almost everyone, and recordings exist but are
+         part of VIP — rather than the old answer, which gave them away free. */
+      q: "What if I can't make the live session time?",
+      a: `Every session runs twice a day, ${offer.sessionTimes}, so you can pick whichever fits, and you can switch between them across the week. If you genuinely cannot make either on a given day, recordings are included in the VIP pass, which you can add straight after you register.`,
+    },
+    {
+      q: 'Is this safe if I have a diagnosed condition?',
+      a: 'If you have a diagnosed condition where your clinician has advised against certain movement, please check with them first. This programme is a complement to medical care, not a replacement for it.',
+    },
+  ];
+}
 
 /* ── section 10c · the people behind this challenge ───────────────────────
    Sits after the close and before the FAQ, and deliberately does NOT sell
@@ -1181,240 +1089,8 @@ const FAQS = [
    Founder photos are the ones published on mysuperme.com/about, re-cropped to
    matching squares so the two heads sit at the same scale. */
 
-const PRINCIPLES = [
-  {
-    icon: ShieldCheck,
-    bed: C.skyBed,
-    fg: C.skyInk,
-    title: 'Trust is earned, not assumed',
-    body: 'E-RYT 500 certified. A postgraduate diploma in Yoga Education from Kaivalyadhama. 16+ years of teaching. Every credential and every number on this page can be evidenced, and nothing goes on it until it can.',
-  },
-  {
-    icon: VideoCamera,
-    bed: C.mintBed,
-    fg: C.mintInk,
-    title: 'Human connection over convenience',
-    body: 'Convenience would be a video you press play on and follow alone. We would rather you were actually seen: five days live on Zoom, with a teacher watching how you move and correcting you in the moment.',
-  },
-  {
-    icon: Ruler,
-    bed: C.peachBed,
-    fg: C.peachInk,
-    title: 'Precision over volume',
-    body: 'We would rather get one thing right than give you twenty things to try. So this is one method, one teacher, five days. Nothing else to choose between.',
-  },
-  {
-    icon: CheckCircle,
-    bed: C.lavenderBed,
-    fg: C.lavenderInk,
-    title: 'Progress, not performance',
-    body: 'Nobody is asking you to be impressive. You show up at 7 AM or 7 PM, you do the small thing properly, and you do it again the next day. That is the whole ask.',
-  },
-];
-
-const FOUNDERS = [
-  {
-    photo: '/brand/founders/sriram-natarajan.jpg',
-    name: 'Sriram Natarajan',
-    role: 'Co-founder',
-    body: 'Comes from technology and venture-building. Leads the direction, the growth and the commercial side of SuperMe.',
-  },
-  {
-    photo: '/brand/founders/stephane-bezencon.jpg',
-    name: 'Stéphane Daniel Bezençon',
-    role: 'Co-founder',
-    body: 'Precise and considered by nature. Oversees operations and the standard every session run under the SuperMe name has to meet.',
-  },
-];
-
-function Initiative() {
-  return (
-    <section className="px-4 py-16 sm:py-24" style={{ background: C.white }}>
-      <div className="mx-auto max-w-[1060px]">
-        <m.div
-          variants={fadeUp}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, amount: 0.25 }}
-          className="text-center"
-        >
-          <SectionEyebrow text="THE PEOPLE BEHIND THIS CHALLENGE" />
-          <h2
-            className="mx-auto mt-4 max-w-[820px] font-heading text-[clamp(26px,4vw,40px)] font-bold leading-[1.15]"
-            style={{ color: C.ink }}
-          >
-            The hard part was never the exercise. It was{' '}
-            <span style={{ color: C.goldDeep }}>knowing who to listen to.</span>
-          </h2>
-
-          <p
-            className="mx-auto mt-5 max-w-[720px] text-[15px] leading-relaxed sm:text-[15.5px]"
-            style={{ color: C.inkSoft }}
-          >
-            Most people carrying pain have been passed between opinions for
-            years. Stretch more. Rest it. Push through. By the time you find
-            someone worth your time, you have already given up twice.
-          </p>
-        </m.div>
-
-        {/* The mission, framed as its own object rather than run on as more
-            body copy. It is the pivot from the reader's problem to the
-            company, so it has to land as a statement, not as a sentence you
-            skim past. */}
-        <m.div
-          variants={fadeUp}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, amount: 0.3 }}
-          className="mx-auto mt-10 max-w-[760px] rounded-3xl px-6 py-7 text-center sm:px-10"
-          style={{ background: C.canvas, border: `1px solid ${C.line}` }}
-        >
-          <p
-            className="font-heading text-[clamp(18px,2.5vw,25px)] font-bold leading-[1.35]"
-            style={{ color: C.ink }}
-          >
-            <span style={{ color: C.goldDeep }}>Becoming more, every day.</span>{' '}
-            Not transformation. Not reinvention. Small, consistent,
-            expert-guided progress.
-          </p>
-        </m.div>
-
-        {/* ── principles ───────────────────────────────────────────────── */}
-        <p
-          className="mt-14 text-center text-[10.5px] font-bold uppercase tracking-[0.2em]"
-          style={{ color: C.inkMuted }}
-        >
-          What we hold ourselves to
-        </p>
-
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
-          {PRINCIPLES.map(({ icon: Icon, bed, fg, title, body }, i) => (
-            <m.div
-              key={title}
-              variants={fadeUpSm}
-              initial="hidden"
-              whileInView="show"
-              viewport={{ once: true, amount: 0.3 }}
-              transition={{ delay: i * 0.06 }}
-              className="rounded-2xl border p-6 sm:p-7"
-              style={{ borderColor: C.line, background: C.white }}
-            >
-              <span
-                className="grid h-10 w-10 place-items-center rounded-xl"
-                style={{ background: bed }}
-              >
-                <Icon weight="bold" className="h-5 w-5" style={{ color: fg }} />
-              </span>
-              <h3
-                className="mt-4 font-heading text-[17px] font-bold leading-snug"
-                style={{ color: C.ink }}
-              >
-                {title}
-              </h3>
-              <p
-                className="mt-2 text-[14px] leading-relaxed"
-                style={{ color: C.inkSoft }}
-              >
-                {body}
-              </p>
-            </m.div>
-          ))}
-        </div>
-
-        {/* ── founders ─────────────────────────────────────────────────── */}
-        <p
-          className="mt-14 text-center text-[10.5px] font-bold uppercase tracking-[0.2em]"
-          style={{ color: C.inkMuted }}
-        >
-          Our founders
-        </p>
-
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
-          {FOUNDERS.map(({ photo, name, role, body }) => (
-            <m.div
-              key={name}
-              variants={fadeUpSm}
-              initial="hidden"
-              whileInView="show"
-              viewport={{ once: true, amount: 0.3 }}
-              className="flex flex-col items-center gap-4 rounded-2xl border p-6 text-center sm:flex-row sm:items-start sm:gap-5 sm:text-left"
-              style={{ borderColor: C.line, background: C.canvas }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={photo}
-                alt={name}
-                width={440}
-                height={440}
-                className="h-[92px] w-[92px] shrink-0 rounded-full object-cover"
-                style={{ border: `1px solid ${C.lineStrong}` }}
-                loading="lazy"
-              />
-              <span className="min-w-0">
-                <span
-                  className="block font-heading text-[16.5px] font-bold leading-snug"
-                  style={{ color: C.ink }}
-                >
-                  {name}
-                </span>
-                <span
-                  className="mt-1 block text-[10.5px] font-bold uppercase tracking-[0.16em]"
-                  style={{ color: C.goldDeep }}
-                >
-                  {role}
-                </span>
-                <span
-                  className="mt-2.5 block text-[13.5px] leading-relaxed"
-                  style={{ color: C.inkSoft }}
-                >
-                  {body}
-                </span>
-              </span>
-            </m.div>
-          ))}
-        </div>
-
-        <p
-          className="mx-auto mt-6 max-w-[720px] text-center text-[12.5px] leading-relaxed"
-          style={{ color: C.inkMuted }}
-        >
-          {/* THE ENTITY IS A FACT, NOT COPY, and it has been extended rather
-              than rewritten: MyEntourage Sàrl is who this funnel said operated
-              SuperMe, and inventing an Indian entity here would put a false
-              statement on a page that also takes money. India is added to the
-              reach because the site now sells there.
-
-              If an Indian entity is registered for the Stripe India account —
-              which INR settlement requires — THIS LINE MUST NAME IT, and the
-              privacy, terms and refund pages need the same name. Flagged, not
-              guessed at. */}
-          SuperMe is operated by MyEntourage Sàrl, Lausanne, Switzerland, and
-          works with people across India, the UK, EU and Switzerland. SuperMe is
-          a yoga and movement education service, not a medical service.
-        </p>
-
-        {/* ── the quiet mop-up click ─────────────────────────────────────
-            No closing paragraph above it by choice: the close is one section
-            up, and a second summing-up here made this read as a pause in the
-            page rather than a reassurance. */}
-        <m.div
-          variants={fadeUp}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, amount: 0.3 }}
-          className="mt-11 flex flex-col items-center"
-        >
-          <PrimaryCTA label={`Hold my place for ${PRICE_LABEL}`} />
-          <CtaNote
-            text="100% Money Back Guarantee"
-          />
-        </m.div>
-      </div>
-    </section>
-  );
-}
-
-function Faq() {
+function Faq({ offer }: { offer: ResolvedOffer }) {
+  const FAQS = faqsFor(offer);
   const [open, setOpen] = useState<number | null>(0);
   return (
     <section className="px-4 py-16 sm:py-24" style={{ background: C.canvas }}>
@@ -1479,77 +1155,9 @@ function Faq() {
   );
 }
 
-/* ── section 12 · important information (PDF p12) ────────────────────── */
-
-function LegalNotice() {
-  return (
-    <section className="px-4 py-14 sm:py-20" style={{ background: C.white }}>
-      <div
-        className="mx-auto max-w-[820px] rounded-2xl border p-7 sm:p-9"
-        style={{ borderColor: C.line, background: C.canvas }}
-      >
-        <h2
-          className="font-heading text-[19px] font-bold"
-          style={{ color: C.ink }}
-        >
-          Important Information{' '}
-          <span style={{ color: C.goldDeep }}>Before You Start</span>
-        </h2>
-
-        <div
-          className="mt-4 space-y-3.5 text-[13.5px] leading-relaxed"
-          style={{ color: C.inkSoft }}
-        >
-          <p>
-            SuperMe is a yoga and movement education service. It is not a medical
-            service and is not a substitute for medical care. Nothing on this page
-            is medical advice, a diagnosis, or a treatment plan.
-          </p>
-          <p>
-            The 5-Day Pain Reset is designed to provide guided movement, breath
-            work, mobility and strengthening education. It is not intended to
-            diagnose, treat or manage a diagnosed medical condition.
-          </p>
-          <p>
-            Atul Mishra is a yoga teacher with a postgraduate diploma in Yoga
-            Education from Kaivalyadhama and an E-RYT 500 certification with Yoga
-            Alliance. He is not a doctor, physiotherapist or registered clinician.
-            The 5-Day Pain Reset is therefore not a replacement for physiotherapy
-            or any medical care you are currently receiving.
-          </p>
-          <p>
-            Please speak with your doctor or physiotherapist before starting,
-            particularly if you are recovering from an acute injury or surgery,
-            have not been cleared to exercise, or have been advised that
-            movement is not appropriate for you.
-          </p>
-          <p>
-            During any session, do not push through pain. If something hurts, stop
-            the movement and tell the teacher.
-          </p>
-
-          <h3
-            className="pt-2 font-heading text-[15px] font-bold"
-            style={{ color: C.ink }}
-          >
-            About The Results You See On This Page
-          </h3>
-          <p>
-            Any timelines or outcomes mentioned on this page come from individual
-            client case files and experiences. They are not typical results,
-            predictive of what you will experience, or guaranteed. Your body,
-            history, movement patterns and circumstances are different, so your
-            experience may be different too.
-          </p>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 /* ── footer ──────────────────────────────────────────────────────────── */
 
-function Footer() {
+function Footer({ offer }: { offer: ResolvedOffer }) {
   return (
     <footer
       className="px-4 py-10 text-center text-[12.5px]"
@@ -1568,14 +1176,34 @@ function Footer() {
           each one wraps as its own unit rather than reflowing into the other. */}
       <p className="mx-auto max-w-[640px]">
         <span className="inline-block">
-          Starts {START_DATE} · Live on Zoom
+          Starts {offer.startsLabel} · Live on Zoom
         </span>
         <span aria-hidden className="hidden sm:inline">
           {' · '}
         </span>
         <span className="block sm:inline">
-          {PRICE_LABEL}, 100% Money Back Guarantee
+          {offer.priceLabel}, 100% Money-Back Guarantee
         </span>
+      </p>
+
+      {/* The one-line summary that replaces the nine-paragraph "Important
+          information" block. That block sat between the FAQ and the footer,
+          which on a phone is most of a screen of small grey type in the last
+          position before the final CTA.
+
+          NOT A SHORTENED DISCLAIMER. The full text moved to
+          /important-information unchanged and is linked from here and from the
+          legal row below — softening a medical disclaimer so a sales page
+          flows better is the version of this change that would not be
+          defensible. */}
+      <p className="mx-auto mt-5 max-w-[640px] text-[11.5px] leading-relaxed">
+        SuperMe is a yoga and movement education service, not medical care.
+        Results vary from person to person. Speak to your doctor before starting
+        if you have not been cleared to exercise.{' '}
+        <Link href="/important-information" className="underline hover:text-white">
+          Read the full note
+        </Link>
+        .
       </p>
 
       <ul className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
@@ -1596,7 +1224,7 @@ function Footer() {
   );
 }
 
-export default function BelowFold() {
+export default function BelowFold({ offer }: { offer: ResolvedOffer }) {
   /* LazyMotion is not decoration: it mounts the single IntersectionObserver
      that adds `bw-in` to revealed elements. Without it every .bw-reveal-*
      stays at opacity 0 once .bw-js is on the document. */
@@ -1604,7 +1232,7 @@ export default function BelowFold() {
     <LazyMotion features={domAnimation}>
       <Experience />
       <Schedule />
-      <SessionsBand />
+      <SessionsBand offer={offer} />
       <Recognition />
       <Testimonials />
       {/* The bonuses sit here, immediately above Meet Your Guide, so the
@@ -1612,14 +1240,11 @@ export default function BelowFold() {
           they are introduced to the person delivering it. */}
       <Bonuses />
       <Guide />
-      <Mechanism />
       <Notice />
-      <Promise />
-      <TwoOptions />
-      <Initiative />
-      <Faq />
-      <LegalNotice />
-      <Footer />
+      <Promise offer={offer} />
+      <TwoOptions offer={offer} />
+      <Faq offer={offer} />
+      <Footer offer={offer} />
     </LazyMotion>
   );
 }

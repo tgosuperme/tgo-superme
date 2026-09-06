@@ -34,7 +34,6 @@ import {
   Heart,
   Lock,
   ShieldCheck,
-  MonitorPlay,
   Student,
   UsersThree,
   VideoCamera,
@@ -43,16 +42,11 @@ import Image from 'next/image';
 import Link from 'next/link';
 
 import BrandMark from '@/components/BrandMark';
-import { PAYMENT_METHODS_LABEL } from '@/lib/payments';
+import type { ResolvedOffer } from '@/lib/offer';
+import { PAIN_EYEBROW, PAIN_KEYS } from '@/lib/variants';
 
 import { legoBrick, legoDelay } from './lego-style';
-import {
-  C,
-  CHECKOUT_HREF,
-  PRICE_LABEL,
-  SESSION_TIMES_TZ,
-  START_DATE,
-} from './shared';
+import { C } from './shared';
 
 /**
  * A soft wash behind a number in the headline. Reserved for NUMBERS — the body
@@ -106,21 +100,71 @@ function Mark({ children }: { children: React.ReactNode }) {
 /* ── 1. Offer strip ───────────────────────────────────────────────────────
    A single quiet line on pale blue. The dark scrolling marquee this replaces
    belonged to the old palette and fought the white canvas. */
-export function OfferStrip() {
+/** One pass of the strip's five facts. Rendered twice on phones, see below. */
+function StripRun({ offer }: { offer: ResolvedOffer }) {
+  const dot = (
+    <span className="px-2" style={{ color: C.blue }} aria-hidden>
+      ·
+    </span>
+  );
+  return (
+    /* whitespace-nowrap is what makes it a marquee rather than a wrapping
+       paragraph: without it the run breaks at the viewport and the track
+       collapses to one screen wide, so -50% travels almost nothing. */
+    <span className="flex shrink-0 items-center whitespace-nowrap px-2">
+      <span className="font-semibold">5-Day Pain Reset Challenge</span>
+      {dot}
+      {offer.priceLabel}
+      {dot}
+      Starts {offer.startsLabel}
+      {dot}
+      {offer.sessionTimes}
+      {dot}
+      100% Money-Back Guarantee
+      {/* Trailing separator so copy one runs into copy two the same way every
+          other pair of facts meets. Without it the loop point reads as a gap. */}
+      {dot}
+    </span>
+  );
+}
+
+export function OfferStrip({ offer }: { offer: ResolvedOffer }) {
   return (
     <div
-      className="w-full px-4 py-2.5 text-center text-[12.5px] font-medium"
+      className="w-full text-[12.5px] font-medium"
       style={{ background: C.lightBlue, color: C.ink }}
     >
-      {/* Two centred lines on a phone, split between WHAT the offer is and
-          WHEN it runs. One line from sm up, where it fits. */}
-      <span className="font-semibold">Special offer:</span> 5-Day Pain Reset
-      Challenge for {PRICE_LABEL}
-      <br className="sm:hidden" />
-      <span className="mx-2" style={{ color: C.blue }}>
-        ·
-      </span>
-      Live, starts {START_DATE}, {SESSION_TIMES_TZ}
+      {/* ══ phones · one moving line ═══════════════════════════════════════
+          Five facts across 360px wrapped to three ragged centred lines, which
+          read as a paragraph that had lost its layout rather than as a strip.
+          Running them past once keeps the strip one line tall at every width
+          and gets the guarantee in front of people who would never have
+          reached line three. */}
+      <div className="sm-strip-viewport overflow-hidden py-2.5 sm:hidden">
+        <div className="sm-strip-track">
+          <StripRun offer={offer} />
+          {/* The seam copy. aria-hidden so the facts are announced once. */}
+          <span className="sm-strip-dup flex shrink-0" aria-hidden>
+            <StripRun offer={offer} />
+          </span>
+        </div>
+      </div>
+
+      {/* ══ sm and up · the original centred line ══════════════════════════
+          It fits from sm up, and a marquee on a line that already fits is
+          motion for its own sake — worse than the static line, not better. */}
+      <div className="hidden px-4 py-2.5 text-center sm:block">
+        <span className="font-semibold">5-Day Pain Reset Challenge</span> ·{' '}
+        {offer.priceLabel}
+        <span className="mx-2" style={{ color: C.blue }}>
+          ·
+        </span>
+        Starts {offer.startsLabel} · {offer.sessionTimes}
+        <span className="mx-2" style={{ color: C.blue }}>
+          ·
+        </span>
+        100% Money-Back Guarantee
+      </div>
     </div>
   );
 }
@@ -138,23 +182,38 @@ export function SiteHeader() {
   );
 }
 
-/* ── the three information pills under the CTA ────────────────────────── */
-const PILLS = [
-  { icon: CalendarBlank, text: `Starts ${START_DATE}`, bed: C.lightBlue, fg: C.skyInk },
-  { icon: Clock, text: SESSION_TIMES_TZ, bed: C.peachBed, fg: C.peachInk },
-  { icon: VideoCamera, text: 'Live on Zoom', bed: C.mintBed, fg: C.mintInk },
-  /* Recordings are part of the offer, so they belong above the fold with
-     the other three facts a reader checks before deciding. */
-  { icon: MonitorPlay, text: 'Recordings included', bed: C.lavenderBed, fg: C.lavenderInk },
-];
+/* ── the three information pills under the CTA ──────────────────────────
+   THREE, not four. "Recordings included" is gone deliberately: recordings are
+   now what the VIP pass is FOR, so promising them above the fold sells the
+   upsell away before the buyer reaches it — and contradicts the sessions band
+   further down, which now says recordings come with VIP. */
+function pillsFor(offer: ResolvedOffer) {
+  return [
+    { icon: CalendarBlank, text: `Starts ${offer.startsLabel}`, bed: C.lightBlue, fg: C.skyInk },
+    { icon: Clock, text: offer.sessionTimes, bed: C.peachBed, fg: C.peachInk },
+    { icon: VideoCamera, text: 'Live on Zoom', bed: C.mintBed, fg: C.mintInk },
+  ];
+}
 
 /* ── 2. Hero ──────────────────────────────────────────────────────────── */
-export function Hero() {
+export function Hero({ offer }: { offer: ResolvedOffer }) {
+  const PILLS = pillsFor(offer);
   return (
     /* Top padding is lighter than it was: the header now sits above this
        and supplies most of the breathing room the hero used to make. */
     <section data-hero className="bg-white pb-6 pt-4 md:pt-7 lg:pt-9">
-      <div className="mx-auto grid max-w-[1180px] items-center gap-12 px-5 md:px-8 lg:grid-cols-[1.02fr_0.98fr] lg:gap-16">
+      {/* The column split and the gap are set by the EYEBROW, not by the
+          picture. At 1.02fr with a 64px gutter the left column was ~536px and
+          the eyebrow needs ~570px, so it broke to two lines and the pill
+          became a two-line lozenge sitting above the headline — the widest,
+          loudest thing in the hero being the smallest type on it.
+
+          So the gutter drops to 40px (56px from xl, where there is room to
+          spare) and the split moves to 1.12fr. That buys the left column
+          ~66px, which is enough at every width from lg up. The image column
+          loses the same 66px and is unharmed by it: it is a photographic card
+          that scales, with no text of its own to reflow. */}
+      <div className="mx-auto grid max-w-[1180px] items-center gap-12 px-5 md:px-8 lg:grid-cols-[1.12fr_0.88fr] lg:gap-10 xl:gap-14">
         {/* ══ LEFT ══════════════════════════════════════════════════════ */}
         <div className="text-center lg:text-left">
           {/* Eyebrow in primary blue, not the derived skyInk it used to carry.
@@ -162,8 +221,15 @@ export function Hero() {
               reached 4.04 and bright sky #2AAAEF is 2.30, so neither can hold
               it. Primary blue is 6.08:1 here. Bright sky moves to the dot,
               which is a mark rather than type and has no floor to clear. */}
+          {/* Tracking eases from 0.14em to 0.08em at lg. Wide tracking is what
+              makes 11px uppercase legible on a phone, where the pill has the
+              full column to itself; on a desktop it was costing ~35px of the
+              line and buying nothing, because the same text is being read at
+              the same size in a wider space. lg:whitespace-nowrap then makes
+              the single line a guarantee rather than a hope — with the column
+              widened above, it has room at 1024 and up. */}
           <span
-            className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em]"
+            className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] lg:whitespace-nowrap lg:tracking-[0.08em]"
             style={{ background: C.lightBlue, color: C.blue }}
           >
             <span
@@ -173,21 +239,25 @@ export function Hero() {
                 ['--dot-pulse' as string]: 'rgba(42,170,239,0.6)',
               }}
             />
-            {/* Wrapped so the two mobile lines centre against each other
+            {/* Four eyebrows, one shown. `?p=knee` on the ad's URL swaps this
+                to the knee wording so the page repeats the promise the ad
+                made; without the parameter the general one stands. The CSS
+                that picks one is in globals.css, driven by data-p on <html>.
+
+                Wrapped so the two mobile lines centre against each other
                 rather than ragging off the dot. */}
-            <span className="text-center">
-              For Adults 35+ With Persistent Back,
-              <br className="sm:hidden" /> Neck or Knee Pain
-            </span>
+            {(['all', ...PAIN_KEYS] as const).map((k) => (
+              <span key={k} data-v-p={k} className="text-center">
+                {PAIN_EYEBROW[k]}
+              </span>
+            ))}
           </span>
 
-          {/* ONE SIZE, ONE WEIGHT, ONE FACE for the whole headline. Both
-              sentences are the headline; stepping the second one down made it
-              read as two competing blocks rather than a single statement.
-
-              The overall size sits a notch below the one-sentence version,
-              because this headline is roughly twice as long and the hero still
-              has to hold the CTA above the fold on a laptop.
+          {/* ONE SIZE, ONE WEIGHT, ONE FACE, and one size for BOTH variants.
+              The size is set by variant B, which is roughly twice the length
+              of A — sizing to A would make B overflow the fold on a laptop,
+              and a headline that changes size with the query string reads as
+              a rendering fault rather than a test.
 
               Two emphasis systems, doing two different jobs: a soft wash on
               the NUMBERS, coloured words on the BODY AREAS. Same treatment for
@@ -198,13 +268,6 @@ export function Hero() {
               line of its own, and it does that at every width, so it needs no
               per-breakpoint <br> babysitting.
 
-              NO HARD BREAK between the two sentences, though the copy is
-              supplied on two lines. A <br> forced "Ease Stiffness" onto a line
-              of its own and left a short, half-empty line above it on a phone.
-              An ordinary full stop lets the two run continuously and the
-              balancer fill every line, so the block reads as one headline and
-              squares off at both edges.
-
               The same measure as the standfirst below (`max-w-[560px]
               mx-auto`), so the headline, the paragraph and the CTA all share
               one set of left and right edges instead of each finding its own. */}
@@ -212,44 +275,83 @@ export function Hero() {
             className="mx-auto mt-6 max-w-[560px] text-balance font-heading text-[30px] font-bold leading-[1.14] tracking-[-0.02em] sm:text-[38px] lg:mx-0 lg:max-w-none lg:text-[46px]"
             style={{ color: C.ink }}
           >
-            {/* Both emphasis systems do their original jobs, and the mapping
-                is the one the rest of the page already uses: coral is the
-                back, mint the neck, yellow the knees, everywhere they appear.
+            {/* The colour mapping is the one the rest of the page already
+                uses: coral is the back, mint the neck, yellow the knees,
+                everywhere they appear. The wash is reserved for the two
+                numbers, so the claim and the timeframe are what the eye
+                lands on first.
 
-                A PLAIN FULL STOP after "5 Days", tight against the mark and
-                outside it so the wash does not cover the punctuation. The
-                client supplied this headline as two lines; it is set as one
-                continuous block instead, because a <br> pins one wrap point
-                at every width — right on a laptop, and on a phone it strands
-                a short line above a full one. The full stop does the same
-                separating work and lets the balancer fill every line. Without
-                it, "…in Just 5 Days Ease Stiffness…" runs together and reads
-                as a missing word. */}
-            Experience <Mark>10–80%</Mark> Pain Relief in Just <Mark>5 Days</Mark>.{' '}
-            Ease Stiffness, Improve Mobility &amp; Feel{' '}
-            <span style={{ color: C.hlBlue }}>Stronger</span> in Your{' '}
-            <span style={{ color: C.hlCoral }}>Back</span>,{' '}
-            <span style={{ color: C.hlMint }}>Neck</span> &amp;{' '}
-            <span style={{ color: C.hlYellow }}>Knees</span> Again
+                NO TRAILING FULL STOP. The previous, longer headline needed one
+                to separate its two sentences; this is a single clause, and a
+                stop after it would read as a period of hesitation before the
+                subline rather than as punctuation. */}
+            {/* BOTH variants are in the HTML and CSS shows one. `?h=b` on the
+                ad's URL picks B. See lib/variants.ts for why this is not
+                searchParams — briefly: searchParams would make the whole page
+                dynamic, and this is where the ad spend lands. */}
+            <span data-v-h="a">
+              Get <Mark>10–80%</Mark> Relief From{' '}
+              <span style={{ color: C.hlCoral }}>Back</span>,{' '}
+              <span style={{ color: C.hlMint }}>Neck</span> &amp;{' '}
+              <span style={{ color: C.hlYellow }}>Knee</span> Pain in Just{' '}
+              <Mark>5 Days</Mark>
+            </span>
+            <span data-v-h="b">
+              End <span style={{ color: C.hlCoral }}>Back</span>,{' '}
+              <span style={{ color: C.hlMint }}>Neck</span> &amp;{' '}
+              <span style={{ color: C.hlYellow }}>Knee</span> Pain Naturally in{' '}
+              <Mark>5 Live Days</Mark>, Without Medicines, Oil Massages or Surgery
+            </span>
           </h1>
 
           <p
             className="mx-auto mt-5 max-w-[560px] text-[16px] leading-relaxed lg:mx-0"
             style={{ color: C.inkSoft }}
           >
-            A live, coach-led pain reset challenge that combines guided
-            movement, breath work, strengthening and real-time correction to
-            ease stiffness, improve mobility, and make everyday movement feel
-            easier again. Starts {START_DATE}, live on Zoom.
+            {/* Line 2 is variant-specific: A leads on what the reader is
+                avoiding, B on what most people see. Line 3 is the same under
+                both, because the Day 1 / Day 4 score is the proof mechanic the
+                whole page rests on. */}
+            <span data-v-h="a">
+              Without painkillers, oil massages, physio sessions or surgery.
+            </span>
+            <span data-v-h="b">
+              Most people see 10–80% less pain by Day 4. Results vary from
+              person to person.
+            </span>{' '}
+            Score your pain on Day 1. Score it again on Day 4. See your own
+            number drop.
+          </p>
+
+          {/* A1's subline. Kept as its OWN paragraph rather than folded into
+              the one above, because that one is the promise (variant-specific,
+              two short sentences) and this is the description of the thing
+              being sold — the same split the brief makes between the lines
+              under the headline and the line under the image.
+
+              Set a step down in size and weight so it reads as explanation
+              rather than a second claim, and it carries the start date and
+              the platform, which is why the line above no longer repeats them. */}
+          <p
+            className="mx-auto mt-3.5 max-w-[560px] text-[14.5px] leading-relaxed lg:mx-0"
+            style={{ color: C.inkMuted }}
+          >
+            A live, coach-led 5-day challenge. Guided movement, breath work,
+            strengthening and real-time correction from Atul, so you learn to
+            support your back, neck and knees instead of pushing through them.
+            Starts {offer.startsLabel}, live on Zoom.
           </p>
 
           <div className="mt-8 flex justify-center lg:justify-start">
             <Link
-              href={CHECKOUT_HREF}
+              href={offer.ctaHref}
+              data-cta="hero"
               className="lego-press lego-pulse-glow group inline-flex min-h-[56px] w-full items-center justify-center gap-2.5 rounded-full px-8 text-[15.5px] font-semibold text-white sm:w-auto"
               style={{ background: C.blueFill }}
             >
-              Start Your 5-Day Reset · {PRICE_LABEL}
+              {offer.closed
+                ? 'Join the next batch'
+                : `Start Your 5-Day Reset · ${offer.priceLabel}`}
               <ArrowRight
                 weight="bold"
                 className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5"
@@ -353,7 +455,7 @@ export function Hero() {
                   className="font-heading text-[42px] font-bold leading-none"
                   style={{ color: C.ink }}
                 >
-                  {PRICE_LABEL}
+                  {offer.priceLabel}
                 </span>
                 <span className="text-[13px]" style={{ color: C.inkMuted }}>
                   100% Money Back Guarantee
@@ -361,7 +463,8 @@ export function Hero() {
               </div>
 
               <Link
-                href={CHECKOUT_HREF}
+                href={offer.ctaHref}
+                data-cta="hero-card"
                 className="lego-press lego-pulse-glow group mt-5 inline-flex min-h-[54px] w-full items-center justify-center gap-2.5 rounded-2xl text-[15.5px] font-semibold text-white"
                 style={{ background: C.blueFill }}
               >
@@ -377,7 +480,7 @@ export function Hero() {
                 style={{ color: C.inkMuted }}
               >
                 <Lock weight="fill" className="h-3 w-3" />
-                100% secure · {PAYMENT_METHODS_LABEL}
+                100% Secure · UPI · Cards · NetBanking
               </p>
             </div>
           </div>
@@ -391,12 +494,23 @@ export function Hero() {
 
 /* ── 3. Stats bar ─────────────────────────────────────────────────────────
    Four items, each with a circular icon on its own pale pastel. The figures
-   stay navy, so the colour reads as accent rather than decoration. */
+   stay navy, so the colour reads as accent rather than decoration.
+
+   BACK IN THE HERO. These briefly lived under the price card, which was the
+   right place while that card existed. The card is gone from the landing page
+   — all pricing now happens on /checkout — and these are credentials, not
+   pricing, so they belong here rather than disappearing with it. */
 const STATS = [
   { icon: Student, big: '16+ Years', small: 'Teaching & practice', bed: C.mintBed, fg: C.mintInk },
-  { icon: Heart, big: '1,000+', small: 'Clients supported', bed: C.coralBed, fg: C.coralInk },
+  { icon: Heart, big: '1,000+', small: 'People supported', bed: C.coralBed, fg: C.coralInk },
   { icon: UsersThree, big: '500+', small: 'Teachers trained', bed: C.lightBlue, fg: C.skyInk },
-  { icon: ShieldCheck, big: 'E-RYT 500', small: 'Yoga Alliance certified', bed: C.lavenderBed, fg: C.lavenderInk },
+  {
+    icon: ShieldCheck,
+    big: 'E-RYT 500',
+    small: 'Kaivalyadhama diploma',
+    bed: C.lavenderBed,
+    fg: C.lavenderInk,
+  },
 ];
 
 function StatsBar() {

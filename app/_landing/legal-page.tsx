@@ -54,9 +54,15 @@ export default function LegalPage({
           <Link href="/" aria-label="SuperMe home" className="inline-flex items-center">
             <BrandMark height={34} />
           </Link>
+          {/* min-h-[44px] and the negative right margin are the tap target,
+              not decoration. At 13.5px this link was 52x22 — half the 44px
+              Apple's HIG and Android's accessibility guidance both ask for,
+              and on a legal page reached from a checkout it is the ONLY way
+              back. The padding grows the hit area; -mr-3 pulls the visible
+              text back to the edge it used to sit on, so nothing moves. */}
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-[13.5px] font-medium"
+            className="-mr-3 inline-flex min-h-[44px] items-center gap-1.5 rounded-full px-3 text-[13.5px] font-medium"
             style={{ color: C.inkSoft }}
           >
             <ArrowLeft weight="bold" className="h-3.5 w-3.5" />
@@ -173,7 +179,7 @@ export default function LegalPage({
           </p>
           <a
             href={`mailto:${CONTACT_EMAIL}`}
-            className="lego-press mt-5 inline-flex min-h-[48px] items-center justify-center rounded-full px-7 text-[15px] font-semibold text-white"
+            className="lego-press lego-pulse-glow mt-5 inline-flex min-h-[48px] items-center justify-center rounded-full px-7 text-[15px] font-semibold text-white"
             style={{ background: C.blueFill }}
           >
             {CONTACT_EMAIL}

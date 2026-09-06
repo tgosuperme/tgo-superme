@@ -63,7 +63,8 @@ const SECTIONS: LegalSection[] = [
   {
     heading: 'Payment',
     paragraphs: [
-      `The price is ${PRICE_LABEL} and is stated once, in full, with nothing added at checkout. Payment is taken by Stripe; your card details do not pass through our systems.`,
+      `The price is ${PRICE_LABEL} for the Standard Pass and is stated once, in full, with nothing added at checkout. A VIP Pass is offered at a higher price and includes everything in the Standard Pass plus session recordings, extended Q&A and the quick-reference guides.`,
+      'Payments in India are collected and processed by TrainerGoesOnline, SuperMe’s authorised India delivery partner. That is the name that appears on the payment page, on your receipt and on your bank or card statement. Your card details do not pass through our systems.',
       'Refunds are covered on their own page — see the Refund Policy link at the foot of this page.',
     ],
   },

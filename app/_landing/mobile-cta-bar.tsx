@@ -85,7 +85,7 @@ export default function MobileCtaBar({
   return (
     <div
       aria-hidden={hidden || undefined}
-      className={`fixed inset-x-0 bottom-0 z-50 lg:hidden ${
+      className={`bw-edge-safe fixed inset-x-0 bottom-0 z-50 lg:hidden ${
         hidden ? 'pointer-events-none' : ''
       }`}
       style={{

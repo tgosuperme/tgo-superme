@@ -24,7 +24,10 @@ export default function StickyCta({
   trailing,
   label,
   shortLabel = 'Reserve My Spot',
+  tinyLabel = 'Reserve Spot',
+  microLabel = 'Reserve',
   date,
+  dateShort,
   times,
 }: {
   href: string;
@@ -34,7 +37,13 @@ export default function StickyCta({
   trailing?: string;
   label: string;
   shortLabel?: string;
+  /** For phones under 380px, where the fuller label squeezes the diary line. */
+  tinyLabel?: string;
+  /** For 320px phones, where even "Reserve Spot" clips the times. */
+  microLabel?: string;
   date: string;
+  /** The same date with the month abbreviated — "23rd Sept". Phones only. */
+  dateShort: string;
   times: string;
 }) {
   return (
@@ -43,7 +52,7 @@ export default function StickyCta({
       <div aria-hidden className="h-[84px] sm:h-[78px]" />
 
       <div
-        className="sm-dock fixed inset-x-0 bottom-0 z-50"
+        className="sm-dock bw-edge-safe fixed inset-x-0 bottom-0 z-50"
         style={{
           background: 'rgba(255,255,255,0.92)',
           backdropFilter: 'blur(14px)',
@@ -69,18 +78,35 @@ export default function StickyCta({
                 </>
               )}
             </p>
-            {/* The two diary facts. Kept on one line and allowed to wrap out
-                of existence on the narrowest phones, where the button matters
-                more than the reminder. */}
+            {/* ── the two diary facts ────────────────────────────────────
+                TWO renderings, because the phone and the desktop have
+                genuinely different problems here.
+
+                On a PHONE the row is the text column plus a 48px-tall pill
+                that cannot shrink, and the icons plus "Starts 23rd September"
+                plus the times did not fit — the times were pushed under the
+                button and clipped. So the phone gets one plain line, no
+                icons, the month abbreviated and a bullet between the facts.
+                Dropping the icons is what buys the room: two 12px glyphs and
+                their gaps cost more width than the word "September" saves.
+
+                From sm up there is room for the icons, and they earn their
+                place by letting the eye find the date without reading. */}
             <p
-              className="mt-0.5 flex items-center gap-3 truncate text-[11.5px] sm:text-[12px]"
+              className="mt-0.5 truncate text-[11px] min-[400px]:text-[11.5px] sm:hidden"
+              style={{ color: C.inkMuted }}
+            >
+              {dateShort} <span aria-hidden>•</span> {times}
+            </p>
+            <p
+              className="mt-0.5 hidden items-center gap-3 truncate text-[12px] sm:flex"
               style={{ color: C.inkMuted }}
             >
               <span className="inline-flex shrink-0 items-center gap-1.5">
                 <CalendarBlank weight="bold" className="h-3 w-3" style={{ color: C.skyInk }} />
                 Starts {date}
               </span>
-              <span className="hidden shrink-0 items-center gap-1.5 min-[420px]:inline-flex">
+              <span className="inline-flex shrink-0 items-center gap-1.5">
                 <Clock weight="bold" className="h-3 w-3" style={{ color: C.peachInk }} />
                 {times}
               </span>
@@ -89,10 +115,22 @@ export default function StickyCta({
 
           <Link
             href={href}
-            className="lego-press lego-pulse-glow group inline-flex min-h-[48px] shrink-0 items-center justify-center gap-2 rounded-full px-5 text-[14px] font-semibold text-white sm:px-7 sm:text-[15px]"
+            /* The button cannot shrink, so on the narrowest phones it is what
+               makes the diary line clip. It steps down in three: the shortest
+               label and tightest padding under 380px, the normal short label
+               up to sm, the full sentence beyond. Measured at 320/360/375 —
+               below 380 the fuller label leaves the times clipped. */
+            className="lego-press lego-pulse-glow group inline-flex min-h-[48px] shrink-0 items-center justify-center gap-1.5 rounded-full px-4 text-[13.5px] font-semibold text-white min-[380px]:gap-2 min-[380px]:px-5 min-[380px]:text-[14px] sm:px-7 sm:text-[15px]"
             style={{ background: C.blueFill }}
           >
-            <span className="sm:hidden">{shortLabel}</span>
+            {/* Four rungs, each one measured rather than guessed. The
+                diary line under the title is the constraint: it must show
+                "23rd Sept • 7 AM & 7 PM IST" WHOLE, because a start time
+                truncated to "7 P…" is worse than no start time at all. At
+                320 that leaves room only for one word on the button. */}
+            <span className="min-[360px]:hidden">{microLabel}</span>
+            <span className="hidden min-[360px]:inline min-[380px]:hidden">{tinyLabel}</span>
+            <span className="hidden min-[380px]:inline sm:hidden">{shortLabel}</span>
             <span className="hidden sm:inline">{label}</span>
             <ArrowRight
               weight="bold"

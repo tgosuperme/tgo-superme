@@ -1,8 +1,9 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
 import { CHECKOUT_CONFIG } from '@/lib/checkout-config';
-import { capiConfigured, externalIdFor, sendCapiEvent } from '@/lib/meta-capi';
+import { externalIdFor } from '@/lib/meta-capi';
 import { pabblyConfigured, sendSaleToPabbly, type SalePayload } from '@/lib/pabbly';
+import { OFFER } from '@/lib/offer';
 import { decodeRefId, fbclidFrom, joinRefId, REF_ID_PREFIX } from '@/lib/refid';
 
 /**
@@ -87,6 +88,26 @@ export async function POST(req: Request) {
   const e = event.payload?.payment?.entity ?? {};
   const notes = e.notes ?? {};
 
+  /**
+   * Read a custom Payment Page field under any of the shapes its label might
+   * have taken.
+   *
+   * Razorpay returns custom fields keyed by the LABEL typed into the
+   * dashboard, normalised in ways that are not documented and have changed.
+   * TGO owns that dashboard and can rename a field without telling anyone, so
+   * matching one exact key would fail quietly — the sale still lands, the
+   * column is just empty for weeks. Comparison is case- and separator-
+   * insensitive, and the first hit wins.
+   */
+  function pickNote(source: Record<string, string>, candidates: string[]): string {
+    const norm = (k: string) => k.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const wanted = candidates.map(norm);
+    for (const [k, v] of Object.entries(source)) {
+      if (wanted.includes(norm(k)) && String(v ?? '').trim()) return String(v).trim();
+    }
+    return '';
+  }
+
   /* ── OWNERSHIP GATE ─────────────────────────────────────────────────────
      THIS RAZORPAY ACCOUNT IS SHARED. It carries payment pages for several
      unrelated products, and a webhook subscribed to `payment.captured` is
@@ -140,11 +161,40 @@ export async function POST(req: Request) {
   /* Not a gate, a canary. If our own page starts producing a different
      amount, the price and the config have drifted apart and somebody needs
      to know before the whole cohort is charged the wrong figure. */
-  if (typeof e.amount === 'number' && e.amount !== CHECKOUT_CONFIG.amountMinor) {
-    console.warn(
-      `[razorpay-webhook] ${e.id} amount ${e.amount} != configured ${CHECKOUT_CONFIG.amountMinor}`,
-    );
+  if (typeof e.amount === 'number') {
+    /* Checked against EVERY rung of the ladder, not one configured price.
+       There are three live amounts now and a buyer can legitimately pay any
+       of them — someone who opened the page at ₹497 and paid after the rise
+       has an amount that matches step 2 while the server is on step 2. A
+       single-price comparison would cry wolf on most of the cohort, and a
+       canary that always fires is a canary nobody reads. */
+    const known = [
+      ...OFFER.priceSteps.map((s) => Math.round(s.amount * 100)),
+      Math.round(OFFER.vipPrice * 100),
+    ];
+    if (!known.includes(e.amount)) {
+      console.warn(
+        `[razorpay-webhook] ${e.id} amount ${e.amount} matches no price step ` +
+          `(${known.join(', ')}) — the page and the Razorpay pages have drifted`,
+      );
+    }
   }
+
+  /**
+   * Which tier was bought.
+   *
+   * Read from the token /go stamped, NOT inferred from the amount. With no API
+   * keys there is no order of ours to look up, so the token is the only record
+   * of what the buyer actually chose — and amount-sniffing would break the
+   * first time either price changes, silently, by filing a VIP buyer as
+   * standard and quietly never sending them recordings.
+   *
+   * Defaults to 'base' when the token is unreadable: a VIP buyer filed as
+   * standard is a fixable support message, whereas a standard buyer filed as
+   * VIP is three things given away for free with nobody noticing.
+   */
+  const product: 'base' | 'vip' = attr?.k === 'vip' ? 'vip' : 'base';
+  const isVip = product === 'vip';
 
   const minor = typeof e.amount === 'number' ? e.amount : CHECKOUT_CONFIG.amountMinor;
   const email = notes.email || e.email || '';
@@ -196,6 +246,26 @@ export async function POST(req: Request) {
     paid_at: paidAt,
     live_mode: !process.env.RAZORPAY_KEY_ID?.includes('_test_'),
     gclid: '',
+
+    /* The two dropdowns on the Payment Page. Razorpay hands custom fields
+       back under the label TGO typed into the dashboard, and that label is
+       editable by someone who will not think to tell us — so each is read
+       through a list of the shapes it has plausibly been given rather than
+       one exact key. An unmatched field costs a column, not the sale. */
+    pain: pickNote(notes, ['pain', 'where_is_your_pain', 'where is your pain?']),
+    seat_for: pickNote(notes, [
+      'seat_for',
+      'is_this_seat_for_you_or_for_a_parent_or_loved_one',
+      'is this seat for you or for a parent or loved one?',
+    ]),
+
+    headline_variant: attr?.h ?? '',
+    ad_pain: attr?.w ?? '',
+    price_step: attr?.g ?? '',
+    /* 'base' | 'vip' — which tier this buyer chose in the selector. */
+    product,
+    vip: isVip ? 'yes' : '',
+
     utm_id: attr?.d ?? '',
     funnel: CHECKOUT_CONFIG.funnelSlug,
     offer: '5-Day Pain Reset Challenge',
@@ -207,40 +277,14 @@ export async function POST(req: Request) {
      even if both downstreams fail. */
   console.info('[razorpay-webhook] paid', JSON.stringify(sale));
 
-  /* ── `sales` to Meta ────────────────────────────────────────────────────
-     Sent BEFORE Pabbly so a sheet outage cannot cost an ad-platform
-     conversion. Logged, never thrown: a throw becomes a 500, Razorpay retries
-     the whole handler, and the sale is POSTed to Pabbly a second time. */
-  if (capiConfigured()) {
-    try {
-      await sendCapiEvent({
-        eventName: CHECKOUT_CONFIG.capi.events.sale,
-        eventId,
-        eventTime: e.created_at ?? Math.floor(Date.now() / 1000),
-        eventSourceUrl: attr?.l ?? '',
-        user: {
-          email,
-          phone,
-          firstName,
-          lastName,
-          city,
-          country: 'IN',
-          fbp: attr?.p,
-          fbc: attr?.c,
-          clientIp: attr?.a,
-          clientUserAgent: attr?.u,
-        },
-        value: minor / 100,
-        currency: sale.currency,
-      });
-    } catch (err) {
-      console.error(`[razorpay-webhook] CAPI sales failed for ${e.id}`, err);
-    }
-  }
-
+  /* ── one row, one feed, both tiers ────────────────────────────────────
+     `product` on the row says which pass was bought; Pabbly filters on it.
+     See lib/pabbly.ts for why that beats a second webhook URL. */
   if (!pabblyConfigured()) {
-    console.error(`[razorpay-webhook] PABBLY_WEBHOOK_URL unset, ${e.id} did not reach the sheet`);
-    return Response.json({ received: true });
+    console.error(
+      `[razorpay-webhook] PABBLY_WEBHOOK_URL unset, ${e.id} did not reach the sheet`,
+    );
+    return Response.json({ received: true, product });
   }
 
   try {
@@ -253,5 +297,5 @@ export async function POST(req: Request) {
     return new Response('Handler error', { status: 500 });
   }
 
-  return Response.json({ received: true });
+  return Response.json({ received: true, product });
 }

@@ -100,6 +100,40 @@ button {
   }
 }
 
+/* ── Ad message match · headline and pain variants ────────────────────────
+   Both headlines and all four eyebrows are in the HTML; these rules show one
+   of each. The `data-h` / `data-p` attributes are set on <html> before first
+   paint by VARIANT_SCRIPT (lib/variants.ts), so the reader never sees the
+   wrong one and the page keeps its static rendering.
+
+   DEFAULT-VISIBLE IS VARIANT A AND THE GENERAL EYEBROW, with the others
+   hidden. That ordering is not arbitrary: if the script fails, is blocked, or
+   the browser has JavaScript off, the page still shows one complete headline
+   and one eyebrow rather than none. The failure mode of the opposite ordering
+   is a hero with no headline at all. */
+[data-v-h='b'],
+[data-v-p]:not([data-v-p='all']) {
+  display: none;
+}
+
+html[data-h='b'] [data-v-h='a'] {
+  display: none;
+}
+html[data-h='b'] [data-v-h='b'] {
+  display: revert;
+}
+
+html[data-p='back'] [data-v-p='all'],
+html[data-p='neck'] [data-v-p='all'],
+html[data-p='knee'] [data-v-p='all'] {
+  display: none;
+}
+html[data-p='back'] [data-v-p='back'],
+html[data-p='neck'] [data-v-p='neck'],
+html[data-p='knee'] [data-v-p='knee'] {
+  display: revert;
+}
+
 /* ── Testimonial rail · phones only ───────────────────────────────────────
    Two identical copies of the five clips sit in one flex track, so shifting
    it -50% lands copy two exactly where copy one began and the loop is
@@ -429,12 +463,60 @@ button {
 }
 
 /* Glow flavour, for a filled CTA where a ring would be lost against the fill. */
+/* ── THE ONE CTA ANIMATION ────────────────────────────────────────────────
+   Every call to action on the site uses `lego-press lego-pulse-glow` and
+   nothing else. One motion, one rhythm, everywhere.
+
+   It used to be split: primary buttons pulsed with this glow, while the white
+   buttons on navy grounds used `.lego-pulse` instead. That was not arbitrary —
+   the glow below was a HARD-CODED BLUE, which is invisible against a navy
+   band, so those buttons had been given a different animation to compensate.
+   Two motions on one page reads as two different levels of importance when
+   the buttons are equally important.
+
+   Fixed by making the colours variables rather than by picking one. The glow
+   defaults to brand blue, and any button on a dark ground sets --glow-ring to
+   a white ring by carrying `lego-glow-light`. Same keyframes, same timing,
+   same feel — only the colour follows the ground it sits on. */
 @keyframes lego-pulse-glow {
-  0%, 100% { box-shadow: 0 12px 26px -12px rgba(16, 84, 194, 0.55), 0 0 0 0 rgba(42, 170, 239, 0); }
-  50% { box-shadow: 0 12px 26px -12px rgba(16, 84, 194, 0.55), 0 0 0 7px rgba(42, 170, 239, 0.14); }
+  0%,
+  100% {
+    box-shadow:
+      var(--glow-drop, 0 12px 26px -12px rgba(16, 84, 194, 0.55)),
+      0 0 0 0 rgba(0, 0, 0, 0);
+  }
+  50% {
+    box-shadow:
+      var(--glow-drop, 0 12px 26px -12px rgba(16, 84, 194, 0.55)),
+      0 0 0 7px var(--glow-ring, rgba(42, 170, 239, 0.14));
+  }
 }
-.lego-pulse-glow { animation: lego-pulse-glow 2.8s ease-in-out infinite; }
-.lego-pulse-glow:hover { animation-play-state: paused; }
+.lego-pulse-glow {
+  animation: lego-pulse-glow 2.8s ease-in-out infinite;
+}
+/* Pausing on hover is deliberate: once the cursor is on the button the
+   animation has done its job, and a target that keeps moving under a pointer
+   is harder to click, not easier. */
+.lego-pulse-glow:hover {
+  animation-play-state: paused;
+}
+
+/* For a light button on a dark ground — the sessions band, the closing navy
+   band, the docked WhatsApp bar. A blue ring is invisible there. */
+.lego-glow-light {
+  --glow-drop: 0 12px 26px -12px rgba(0, 0, 0, 0.45);
+  --glow-ring: rgba(255, 255, 255, 0.3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The global reduce block collapses animations to 0.01ms, which for this one
+     leaves the button frozen mid-pulse with a 7px ring stuck around it. An
+     explicit stop returns it to its resting shadow. */
+  .lego-pulse-glow {
+    animation: none !important;
+    box-shadow: var(--glow-drop, 0 12px 26px -12px rgba(16, 84, 194, 0.55)) !important;
+  }
+}
 
 /* ══════════════════════════════════════════════════════════════════════════
  *  THE 5-DAY TIMELINE
@@ -739,4 +821,76 @@ button {
     transform: none;
   }
   .tl-fill { transition: none !important; }
+}
+
+/* ── safe areas, and the two things Safari needs said twice ─────────────────
+   These exist because app/layout.tsx now sets viewport-fit=cover. That is
+   what makes env(safe-area-inset-*) return real numbers instead of 0 — three
+   fixed bars were already padding themselves with the bottom inset and it had
+   been doing nothing on every iPhone since the X — but it also lets full-bleed
+   content run under the notch in LANDSCAPE. Anything pinned edge to edge has
+   to pay the left and right insets back.
+
+   Applied to fixed bars via a class rather than per component so a new bar
+   cannot be added without it. Portrait insets are 0, so this costs nothing on
+   every other device. */
+.bw-edge-safe {
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* Safari needs the prefixed property. Autoprefixer now has a browserslist
+   that includes older iOS, but this is written out for the one element that
+   depends on it visually — an unblurred translucent header over scrolling
+   text is unreadable, not merely unpolished. */
+.bw-blur {
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
+  backdrop-filter: saturate(180%) blur(12px);
+}
+
+/* ── the offer strip, moving · phones only ──────────────────────────────────
+   The strip carries five facts (name, price, start date, session times,
+   guarantee). On a desktop they fit on one centred line. On a phone they
+   wrapped to three ragged lines and read as a paragraph that had lost its
+   layout, so below sm the same five facts run past once as a marquee instead.
+
+   Same mechanics as .sm-testi-track: the track holds TWO identical copies and
+   travels exactly -50%, so the moment it wraps, copy two is sitting where copy
+   one began and the seam is invisible. Any other distance shows a jump.
+
+   Slower than the testimonial rail (34s vs 46s over a much shorter run) because
+   this is text to be READ, not cards to be glanced at. */
+@keyframes sm-strip-rail {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.sm-strip-track {
+  display: flex;
+  width: max-content;
+  animation: sm-strip-rail 34s linear infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The global reduce block collapses every animation to 0.01ms, which for a
+     marquee is not a stop — it lands on -50% and sits there showing copy two.
+     So this is a real stop, and the strip becomes an ordinary scrollable row. */
+  .sm-strip-track {
+    animation: none !important;
+    transform: none !important;
+  }
+  .sm-strip-viewport {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* Copy two exists only for the seam. Stationary, it is the same sentence
+     printed twice. */
+  .sm-strip-dup {
+    display: none !important;
+  }
 }

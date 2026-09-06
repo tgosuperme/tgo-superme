@@ -90,12 +90,49 @@ export type SalePayload = {
   paid_at: string; // = created_at, kept for the existing sheet mapping
   live_mode: boolean; // inverse of is_test, as a real boolean
   gclid: string;
+
+  /* ── the buyer's own answers, from the Razorpay Payment Page fields ─────
+     Empty string when the field is absent, never undefined: these land in a
+     spreadsheet, and an undefined shifts every column after it. */
+  /** "Back" | "Neck" | "Knee" | "More than one" — the checkout dropdown. */
+  pain: string;
+  /** "Myself" | "A parent or loved one" — who the seat is for. */
+  seat_for: string;
+
+  /* ── which ad, and which rung ──────────────────────────────────────────── */
+  /** "a" | "b" — which headline sold the seat. */
+  headline_variant: string;
+  /** "back" | "neck" | "knee" — the pain the AD targeted, not the buyer's
+      answer. Kept separate from `pain` on purpose: comparing what the ad
+      promised against what the buyer actually has is the whole point of
+      running pain-specific creative. */
+  ad_pain: string;
+  /** 1 | 2 | 3 — the price step, recorded rather than inferred from amount. */
+  price_step: string;
+  /** "base" | "vip" — which tier the buyer chose in the selector. */
+  product: string;
+  /** "yes" | "" — set by the VIP webhook onto the challenge row. */
+  vip: string;
+
   funnel: string;
   offer: string;
   cohort_start_date: string;
   session_times: string;
 };
 
+/**
+ * ── ONE FEED FOR BOTH TIERS ─────────────────────────────────────────────────
+ * The Standard Pass and the VIP Pass POST to the SAME webhook, and the row's
+ * `product` field ("base" | "vip") is what tells them apart downstream.
+ *
+ * This was briefly two URLs. One is better, and not only simpler: the tier is
+ * decided at a hard gate — the buyer picks one of two passes and is sent to
+ * that pass's own Razorpay page — so `product` is already an exact, verified
+ * fact by the time the row is built. Routing on it in Pabbly is a filter on
+ * data that cannot be wrong. Routing on a second URL adds a way to be wrong:
+ * one env var set on the wrong environment and a whole tier's sales go
+ * missing, silently, with the payments still succeeding.
+ */
 export function pabblyConfigured(): boolean {
   return Boolean(process.env.PABBLY_WEBHOOK_URL);
 }

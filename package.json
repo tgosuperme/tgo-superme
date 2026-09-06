@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "prebuild": "node scripts/clear-prerender-cache.mjs"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
@@ -29,5 +30,14 @@
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.13",
     "typescript": "^5.6.2"
-  }
+  },
+  "browserslist": [
+    ">0.3% in IN",
+    "last 3 iOS major versions",
+    "last 3 Safari major versions",
+    "last 3 Chrome versions",
+    "last 3 ChromeAndroid versions",
+    "Firefox ESR",
+    "not dead"
+  ]
 }

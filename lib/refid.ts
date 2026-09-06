@@ -68,6 +68,17 @@ export type Attr = {
   d?: string; // utm_id
   r?: string; // referrer, first-touch
   l?: string; // landing_url, first-touch
+  /* ── ad message match, set from the variant cookie in /go ──────────────
+     Single letters like everything else here: this token has a 512-character
+     budget per Razorpay `notes` value, and the key names are paid for out of
+     the same budget as the values. */
+  h?: string; // headline_variant, "a" | "b"
+  w?: string; // pain the ad targeted, "back" | "neck" | "knee"
+  /** Price step, 1-3. Which rung of the ladder this buyer actually bought at. */
+  g?: string;
+  /** Product tier: "base" | "vip". The hosted Payment Page cannot report
+      which tier was chosen, so /go records it. */
+  k?: string;
 };
 
 const ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';

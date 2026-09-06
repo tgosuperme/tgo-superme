@@ -55,6 +55,21 @@ export type Bonus = {
 
 export const BONUSES: Bonus[] = [
   {
+    /* FIRST, and not a PDF like the other four. It is the Day 1 / Day 4 score
+       the hero promises, the schedule names twice and the thank-you page asks
+       about — so it belongs at the top of what a buyer receives rather than
+       buried under four guides. It is also the only item here whose value is
+       something the buyer produces themselves, which is the point. */
+    n: 'Included',
+    title: 'Your Day 1 & Day 4 Pain Score Report',
+    value: 500,
+    body: 'Score six everyday movements out of 10 before the first session, and the same six again on Day 4. Your own numbers, side by side, rather than a promise about how you should feel.',
+    src: '/bonuses/system-image-india.png',
+    alt: 'The Day 1 and Day 4 Pain Score Report',
+    bed: C.skyBed,
+    ink: C.skyInk,
+  },
+  {
     n: 'Bonus 1',
     title: 'The Back Pain Relief Guide',
     value: 900,

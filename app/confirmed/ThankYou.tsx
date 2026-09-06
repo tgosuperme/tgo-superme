@@ -1,5 +1,16 @@
 /**
- * /confirmed · the post-purchase page.
+ * The post-purchase page, rendered by BOTH confirmation routes.
+ *
+ *   /confirmed        the Standard Pass
+ *   /confirmed-plus   the VIP Pass
+ *
+ * ONE component, two routes, because everything a VIP buyer needs is identical
+ * — the dates, the WhatsApp step, the prep, the policy — and a duplicated page
+ * would drift apart the first time a session time changed. The `vip` prop
+ * changes exactly two things: the VIP block becomes "your pass is active" with
+ * what it includes, and THE ADD-VIP CARD DISAPPEARS. That second one is the
+ * reason /confirmed-plus exists as its own route: an upsell card on the page
+ * someone reaches by buying the upsell reads as the purchase having failed.
  *
  * Structure follows the bodyworx.in/thank-you reference the client supplied,
  * section for section: confirmation → the diary facts → the ONE required
@@ -25,8 +36,7 @@
  * NO PAYMENT GATE. Under Stripe this page re-checked the session server-side
  * and showed a pending panel when it could not confirm one. Razorpay's hosted
  * Payment Page redirects here with no session of ours to verify, so that gate
- * had nothing left to check and has been removed along with the /thank-you
- * route it lived on.
+ * had nothing left to check and has been removed.
  *
  * The consequence, stated plainly: anyone who types this URL sees the joining
  * instructions. What they do NOT get is the WhatsApp invite doing anything for
@@ -54,13 +64,13 @@ import Link from 'next/link';
 
 import BrandMark from '@/components/BrandMark';
 import ConfettiBurst from '@/components/ConfettiBurst';
+import TimingPick from './TimingPick';
 
 import { legoBrick, legoDelay } from '../_landing/lego-style';
 import MobileCtaBar, { MOBILE_CTA_BAR_SPACE } from '../_landing/mobile-cta-bar';
 import {
   C,
   LEGAL_LINKS,
-  PRICE_LABEL,
   SESSION_TIMES_TZ,
   SESSIONS_LABEL,
   START_DATE,
@@ -72,6 +82,17 @@ const HAS_INVITE = WHATSAPP_COMMUNITY_URL.length > 0;
 export type ThankYouProps = {
   firstName?: string;
   email?: string;
+  /** Razorpay's payment id for the challenge, off the redirect. */
+  pid?: string;
+  /** True when this buyer took the VIP pass. */
+  vip?: boolean;
+  /** What this buyer actually paid — the tier's price, not the base one. */
+  pricePaidLabel?: string;
+  /** Razorpay id of the VIP payment, shown as a reference on /confirmed-plus. */
+  vipPaymentId?: string;
+  /** The two session times, for the one-tap slot question. */
+  morningLabel?: string;
+  eveningLabel?: string;
 };
 
 /**
@@ -156,7 +177,7 @@ function JoinButton({
          for the GA join_whatsapp listener. Separate from data-join-cta, which
          only tags the two the mobile bar watches. */
       data-ga-join=""
-      className={`lego-press ${light ? 'lego-pulse' : 'lego-pulse-glow'} ${shape} ${className}`}
+      className={`lego-press lego-pulse-glow ${light ? 'lego-glow-light' : ''} ${shape} ${className}`}
       style={
         light
           ? {
@@ -182,10 +203,25 @@ const COMMUNITY = [
 ];
 
 /* Reference's shape, SuperMe's actual terms. */
+/* The third line CHANGED with the VIP pass. It used to promise a recording of
+   every session to everyone, which is now what VIP is sold on — leaving it
+   would have this page contradict the upsell the buyer saw ninety seconds
+   earlier, on the page that took their money. */
 const POLICY = [
   'No moving to a later cohort once this one starts',
-  'Live sessions are where the correction happens',
-  'A recording of each session is shared with you afterwards',
+  'No refunds for sessions you miss — the session ran',
+  'Recordings are part of the VIP pass',
+];
+
+/* What the VIP pass actually bought, listed on /confirmed-plus. Same four
+   promises the /vip page made, in the past tense — a buyer should be able to
+   check the page that sold it against the page that confirms it and find
+   them identical. */
+const VIP_INCLUDES = [
+  'Recordings of all five sessions, yours for 5 days after each one',
+  'The Desk Reset and Sleep Position guides',
+  "Priority correction — your camera is in Atul's first row",
+  'Your VIP amount credited to the programme if you continue after Day 5',
 ];
 
 const PREP = [
@@ -216,6 +252,12 @@ function PageHeader() {
 export default function ThankYou({
   firstName = '',
   email = '',
+  pid = '',
+  vip = false,
+  vipPaymentId = '',
+  pricePaidLabel = '',
+  morningLabel = '7 AM',
+  eveningLabel = '7 PM',
 }: ThankYouProps) {
   return (
     <main className="font-body" style={{ background: C.paleBlue, color: C.ink }}>
@@ -265,13 +307,86 @@ export default function ThankYou({
             className="mx-auto mt-4 max-w-[560px] text-[15.5px] leading-relaxed"
             style={{ ...legoDelay(3, 80), color: C.inkSoft }}
           >
-            That is {PRICE_LABEL} paid and your place held on the live 5-Day
+            That is {pricePaidLabel} paid and your place held on the live 5-Day
             Pain Reset Challenge with Atul. Your joining email is on its way
             {email ? ` to ${email}` : ''}. Please read this page before you
             close it — there is one step left, and your session links come
             through it.
           </p>
         </div>
+
+        {/* ── 1b · the VIP block · /confirmed-plus only ─────────────────
+            FIRST, deliberately. This buyer paid the higher price and the four
+            things it bought are all invisible until later in the week, so the
+            page confirms them before anything else. Buried further down — as
+            it was — a VIP buyer scrolls past the standard confirmation and
+            reasonably wonders whether the upgrade went through at all.
+
+            Weighted like the VIP card on /checkout so the two read as the
+            same product: a mint ground, a 2px ring, a cap rule and a ribbon
+            on the border. */}
+        {vip && (
+          <div
+            data-lego=""
+            className="relative mx-auto mt-9 max-w-[620px] rounded-2xl"
+            style={{
+              background: C.mintBed,
+              /* The accent cap is the card's OWN top border, thickened. It was
+                 an absolutely-positioned bar with its own radius, which cannot
+                 follow the card's rounded corners — a 4px strip given a 14px
+                 radius rendered as square ends poking past the curve. A border
+                 inherits the element's radius, so the corners are right by
+                 construction. Same fix as the VIP card on /checkout. */
+              border: `2px solid ${C.mintInk}`,
+              borderTopWidth: 6,
+              boxShadow: '0 18px 44px -24px rgba(30,131,121,0.5)',
+            }}
+          >
+            <span
+              className="absolute -top-[13px] left-5 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white"
+              style={{ background: C.mintInk }}
+            >
+              <ShieldCheck weight="fill" className="h-2.5 w-2.5" />
+              VIP Access
+            </span>
+
+            <div className="px-5 pb-5 pt-6 sm:px-6">
+              <p
+                className="font-heading text-[19px] font-bold leading-snug sm:text-[22px]"
+                style={{ color: '#0F5A2C' }}
+              >
+                Your VIP pass is active.
+              </p>
+
+              <ul className="mt-3.5 grid gap-2">
+                {VIP_INCLUDES.map((line) => (
+                  <li key={line} className="flex items-start gap-2.5">
+                    <CheckCircle
+                      weight="fill"
+                      className="mt-0.5 h-4 w-4 shrink-0"
+                      style={{ color: C.mintInk }}
+                    />
+                    <span
+                      className="text-[13.5px] leading-snug"
+                      style={{ color: '#1B6B3A' }}
+                    >
+                      {line}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+
+              <p
+                className="mt-4 rounded-xl px-3.5 py-2.5 text-[12.5px] leading-relaxed"
+                style={{ background: C.white, color: '#2C7A4B' }}
+              >
+                Recordings and the extra guides are sent inside the same WhatsApp
+                community below — nothing else to set up.
+                {vipPaymentId ? ` Payment reference ${vipPaymentId}.` : ''}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* ── 2 · the two diary facts ──────────────────────────────── */}
         <ul className="mx-auto mt-9 grid max-w-[560px] gap-3 sm:grid-cols-2">
@@ -467,6 +582,12 @@ export default function ThankYou({
           </span>
         </p>
 
+        {/* ── 5a · which slot ───────────────────────────────────────────
+            Asked here rather than at checkout: every field on the Razorpay
+            page is one more thing between a buyer and paying, and this answer
+            is worth nothing until they have. */}
+        <TimingPick pid={pid} morningLabel={morningLabel} eveningLabel={eveningLabel} />
+
         {/* ── 6 · policy ───────────────────────────────────────────── */}
         <section className="mt-14 text-center">
           <span
@@ -525,14 +646,16 @@ export default function ThankYou({
             here; ours cannot, because the Day-One refund is the offer. */}
         <p
           data-lego=""
-          className="mt-3 flex items-start gap-2.5 rounded-2xl px-5 py-4 text-[13.5px] leading-snug"
+          /* Centred, not left-aligned. It is a single short line sitting under
+             a centred three-card row on a full-width band — left-aligned it
+             read as a stray note pinned to the left edge rather than as the
+             promise closing that block. items-center rather than items-start
+             for the same reason: with one line there is nothing to align a
+             glyph to the top of. */
+          className="mt-3 flex items-center justify-center gap-2.5 rounded-2xl px-5 py-4 text-center text-[13.5px] leading-snug"
           style={{ background: C.mintBed, color: C.ink, border: `1px solid #BFE9E3` }}
         >
-          <ShieldCheck
-            weight="fill"
-            className="mt-0.5 h-4 w-4 shrink-0"
-            style={{ color: C.mintInk }}
-          />
+          <ShieldCheck weight="fill" className="h-4 w-4 shrink-0" style={{ color: C.mintInk }} />
           <span>
             <strong>100% Money Back Guarantee.</strong>
           </span>

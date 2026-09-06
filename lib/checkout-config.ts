@@ -6,7 +6,7 @@
  * so a cohort change is an env edit and a redeploy, never a code change:
  *
  *     NEXT_PUBLIC_OFFER_PRICE_INR=497                     # what the user pays
- *     NEXT_PUBLIC_START_DATE=18th August                  # cohort start
+ *     NEXT_PUBLIC_START_DATE=23rd September               # cohort start
  *     NEXT_PUBLIC_SESSION_TIMES=7 AM & 7 PM               # the two daily session times
  *     NEXT_PUBLIC_SESSIONS_LABEL=Live Sessions, Twice A Day
  *     NEXT_PUBLIC_SESSION_TIMEZONE=IST                    # appended where a zone reads naturally
@@ -86,7 +86,11 @@ export function formatInr(amount: number): string {
   }).format(amount);
 }
 
-const START_DATE = text(process.env.NEXT_PUBLIC_START_DATE, '18th August');
+/* Fallback matches lib/offer.ts. It was '18th August', a date in the past —
+   so an unset or misspelt env var did not fail loudly, it advertised a cohort
+   that had already run. Both files must default to the SAME date for exactly
+   that reason: the two are read by different parts of the page. */
+const START_DATE = text(process.env.NEXT_PUBLIC_START_DATE, '23rd September');
 const SESSION_TIMES = text(process.env.NEXT_PUBLIC_SESSION_TIMES, '7 AM & 7 PM');
 const SESSIONS_LABEL = text(
   process.env.NEXT_PUBLIC_SESSIONS_LABEL,
@@ -166,10 +170,14 @@ export const CHECKOUT_CONFIG = {
      lands on a server route that captures the browser-only Meta match keys,
      fires atc_event, and redirects to the hosted Razorpay page. Changing it
      here moves every CTA on the site, because they all read CHECKOUT_HREF. */
-  checkoutPath: '/go',
-  /* Razorpay redirects here. There is no /thank-you any more: its only job was
-     the Stripe session check, which Razorpay gives us nothing to perform. */
+  checkoutPath: '/checkout',
+  /* Razorpay's Standard Pass page redirects here. */
   thankYouPath: '/confirmed',
+  /* Razorpay's VIP Pass page redirects here. Same component as /confirmed
+     plus the VIP block — see app/confirmed/ThankYou.tsx. Set this as the
+     redirect on the VIP Payment Page, or a VIP buyer lands on the standard
+     confirmation and is never told their pass is active. */
+  vipThankYouPath: '/confirmed-plus',
   funnelSlug: 'superme-pain-reset',
   utmSessionKey: 'superme_utm',
 

@@ -1,16 +1,29 @@
 import { randomUUID } from 'node:crypto';
 
 import { CHECKOUT_CONFIG } from '@/lib/checkout-config';
-import { browserContext, capiConfigured, sendCapiEvent } from '@/lib/meta-capi';
+import { canonicalCheckoutUrl } from '@/lib/checkout-url';
+import { browserContext } from '@/lib/meta-capi';
+import { paymentPageFor, resolveOffer } from '@/lib/offer';
 import { chunkRefId, type Attr } from '@/lib/refid';
+import { parseVariantCookie, VARIANT_COOKIE } from '@/lib/variants';
 
 /**
  * /go — the CTA target, and the last moment we are the server answering the
  * buyer's own browser.
  *
  * Every CTA on the site points here rather than at the Razorpay page directly.
- * Nothing renders; it reads what only a first-party request can read, fires
- * atc_event, and redirects.
+ * Nothing renders; it reads what only a first-party request can read, stamps it
+ * into the payment, and redirects.
+ *
+ * ── IT NO LONGER FIRES ANY META EVENT ───────────────────────────────────────
+ * It used to send atc_event server-side. The client fires their own events
+ * from the Razorpay side and has not supplied a pixel id, so anything sent
+ * from here would be either a no-op or a duplicate counted twice.
+ *
+ * What this route still does, and why it still has to exist, is CAPTURE. The
+ * identifiers below live only in the buyer's browser and die the moment they
+ * leave for a payment page we do not host, so they are read here and carried
+ * through the payment in `ref_id` for the webhook to hand to the CRM.
  *
  * ── WHY THIS ROUTE HAS TO EXIST ─────────────────────────────────────────────
  * Four Meta match keys live ONLY in the buyer's browser, and all four die the
@@ -36,12 +49,27 @@ export const runtime = 'nodejs';
    buyer's ref_id — one attribution blob shared by the whole cohort. */
 export const dynamic = 'force-dynamic';
 
-/** Razorpay's own page. NOT the rzp.io shortlink: a redirect is not guaranteed
-    to preserve query parameters, and an attribution blob dropped by a redirect
-    is the kind of failure nobody notices for a month. */
-const PAGE_URL =
-  process.env.NEXT_PUBLIC_RAZORPAY_PAGE_URL?.trim() ||
-  'https://pages.razorpay.com/pl_TS7plD5cahZ5oX/view';
+/**
+ * Which Razorpay page this buyer opens.
+ *
+ * Razorpay's own page, NOT the rzp.io shortlink: a redirect is not guaranteed
+ * to preserve query parameters, and an attribution blob dropped by a redirect
+ * is the kind of failure nobody notices for a month.
+ *
+ * THE PAGE DEPENDS ON THE CLOCK. A Payment Page's amount is fixed in the
+ * Razorpay dashboard, so the ₹497 / ₹697 / ₹997 ladder is three separate
+ * pages and this route picks the one whose step is live. Resolved per request
+ * rather than at module load, for the same reason the price on the page is:
+ * a warm lambda would keep sending buyers to the ₹497 page for hours after
+ * the rise. See lib/offer.ts.
+ */
+async function pageUrlFor(product: 'base' | 'vip', now: Date): Promise<string> {
+  /* Resolved through canonicalCheckoutUrl because the link the Razorpay
+     dashboard offers is an rzp.io shortlink, and that shortlink DROPS THE
+     QUERY STRING on its 302 — which would throw away the ref_id this entire
+     route exists to attach. See lib/checkout-url.ts. */
+  return canonicalCheckoutUrl(paymentPageFor(product, now));
+}
 
 function cookie(header: string, name: string): string {
   const hit = header
@@ -94,6 +122,16 @@ export async function GET(req: Request) {
      on the sale. Minted here so every event about this buyer shares it. */
   const eventId = randomUUID();
 
+  /* Set before first paint by VARIANT_SCRIPT. A server route cannot read
+     localStorage, so the cookie is the only copy that survives the hop. */
+  const variant = parseVariantCookie(cookie(jar, VARIANT_COOKIE));
+  const offer = resolveOffer();
+
+  /* Which tier the buyer picked in the selector. Anything unrecognised is
+     treated as the base product: an unreadable parameter must land somebody on
+     the cheaper page, never the dearer one. */
+  const product: 'base' | 'vip' = q.get('product') === 'vip' ? 'vip' : 'base';
+
   const attr: Attr = {
     i: eventId,
     p: fbp || undefined,
@@ -108,31 +146,76 @@ export async function GET(req: Request) {
     d: pick('utm_id', 'utm_id') || undefined,
     r: clean(stored.referrer, 400) || undefined,
     l: clean(stored.landing_url, 400) || undefined,
+    /* Which ad copy sold this seat. The URL wins over the cookie for the same
+       reason the UTMs do — someone can land straight on a CTA with ?h= before
+       the pre-paint script has run for that page view. */
+    h: clean(q.get('h') || variant.headline, 1) || undefined,
+    w: clean(q.get('p') || variant.pain, 8) || undefined,
+    /* The rung this buyer bought at, recorded rather than inferred later from
+       the amount: the amounts are configurable and a step could be repriced,
+       at which point historic rows would be re-read as the wrong step. */
+    g: String(offer.stepIndex),
+    /* Which tier. Recorded here because the hosted Payment Page cannot tell
+       us — with no API keys there is no order to stamp, so the only place
+       this can be captured is the last request we serve. */
+    k: product,
   };
-
-  /* ── atc_event ──────────────────────────────────────────────────────────
-     AWAITED, not fire-and-forget: a serverless function can be frozen the
-     instant it returns a response, and a dangling promise is simply never
-     delivered. Wrapped, because a Meta outage must never stop someone paying. */
-  if (capiConfigured()) {
-    try {
-      await sendCapiEvent({
-        eventName: CHECKOUT_CONFIG.capi.events.addToCart,
-        eventId,
-        eventTime: Math.floor(Date.now() / 1000),
-        eventSourceUrl: req.headers.get('referer') ?? '',
-        user: { fbp, fbc, clientIp, clientUserAgent },
-      });
-    } catch (err) {
-      console.error('[go] atc_event failed', err);
-    }
-  }
 
   /* Razorpay rejects a `notes` value over 512 characters AT SUBMIT — the field
      happily prefills longer than that, so an over-long token looks fine on the
      page and then blocks the payment. Chunked across ref_id and ref_id2, both
      of which must exist as input fields on the Payment Page. */
-  const url = new URL(PAGE_URL);
+  /**
+   * An unset or malformed page URL must not become a 500.
+   *
+   * `new URL('')` throws, and an unconfigured tier is the likeliest state of
+   * this route on a fresh environment — so without this guard the very first
+   * thing anyone testing the funnel meets is a stack trace, with nothing on
+   * screen saying which variable is missing.
+   *
+   * The buyer goes back to /checkout with a flag the page can explain, and the
+   * log names the exact env var. Never falls through to the OTHER tier's page:
+   * sending a Standard buyer to the VIP page charges them ₹999.
+   */
+  const now = new Date();
+
+  /* The ₹997 rung is a SEPARATE Razorpay page — a hosted page's amount is
+     fixed in the dashboard — so if the ladder has stepped up and that page is
+     not configured, paymentPageFor falls back to the ₹497 page and the site
+     quietly sells at the old price. That fallback is the right call in the
+     moment (a live buyer beats a dead button) but it must not be silent. */
+  if (offer.stepIndex >= 2 && product === 'base') {
+    const step2 =
+      process.env.RAZORPAY_PAGE_BASE_STEP_2?.trim() ||
+      process.env.NEXT_PUBLIC_RAZORPAY_PAGE_BASE_STEP_2?.trim();
+    if (!step2) {
+      console.error(
+        `[go] price step ${offer.stepIndex} (${offer.priceLabel}) is live but ` +
+          'NEXT_PUBLIC_RAZORPAY_PAGE_BASE_STEP_2 is unset — this buyer is being ' +
+          'sent to the step-1 page and will be charged the OLD price',
+      );
+    }
+  }
+
+  const target = await pageUrlFor(product, now);
+  let url: URL;
+  try {
+    url = new URL(target);
+  } catch {
+    const envVar =
+      product === 'vip'
+        ? 'NEXT_PUBLIC_RAZORPAY_PAGE_VIP'
+        : 'NEXT_PUBLIC_RAZORPAY_PAGE_BASE';
+    console.error(
+      `[go] ${envVar} is not set or is not a valid URL (got ${JSON.stringify(target)}) — ` +
+        `cannot send this buyer to a ${product} checkout`,
+    );
+    return Response.redirect(
+      new URL(`${CHECKOUT_CONFIG.checkoutPath}?unavailable=${product}`, req.url).toString(),
+      302,
+    );
+  }
+
   chunkRefId(attr).forEach((chunk, i) => {
     url.searchParams.set(i === 0 ? 'ref_id' : `ref_id${i + 1}`, chunk);
   });

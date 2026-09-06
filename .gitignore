@@ -9,6 +9,9 @@ coverage
 
 # next.js
 .next/
+# Verification builds run with NEXT_DIST_DIR so they cannot clobber a running
+# dev server's .next — see next.config.js.
+.next-build/
 out/
 build
 dist
