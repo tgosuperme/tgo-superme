@@ -35,8 +35,15 @@ yarn-error.log*
 # rules listed .env and .env*.local by name, which meant a new variant like
 # .env.india was not covered — and that file carries a Meta CAPI token, a
 # Razorpay webhook secret and the Pabbly URL.
-.env
-.env.*
+#
+# `.env*` rather than `.env` + `.env.*`, because neither of those catches the
+# form a browser produces when the same file is downloaded twice:
+#
+#     .env (2).example        .env (8).local
+#
+# Both landed in this repo untracked and committable. The next one to arrive
+# that way will be somebody's live keys.
+.env*
 !.env.example
 # the dotless typo. Next.js does not load it, so it is easy to create by
 # mistake and not notice — and the patterns above do not catch it.

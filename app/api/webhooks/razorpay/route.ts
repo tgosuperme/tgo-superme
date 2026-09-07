@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
 import { CHECKOUT_CONFIG } from '@/lib/checkout-config';
-import { externalIdFor } from '@/lib/meta-capi';
+import { capiConfigured, externalIdFor, sendCapiEvent } from '@/lib/meta-capi';
 import { pabblyConfigured, sendSaleToPabbly, type SalePayload } from '@/lib/pabbly';
 import { OFFER } from '@/lib/offer';
 import { decodeRefId, fbclidFrom, joinRefId, REF_ID_PREFIX } from '@/lib/refid';
@@ -276,6 +276,84 @@ export async function POST(req: Request) {
   /* Logged before either hand-off, so the sale survives in the platform logs
      even if both downstreams fail. */
   console.info('[razorpay-webhook] paid', JSON.stringify(sale));
+
+  /* ── Meta Conversions API · `sales` ───────────────────────────────────
+     THE conversion. The one event the ad account optimises on, and the only
+     one in this funnel that carries money.
+
+     ── WHY IT IS FIRED HERE AND NOWHERE ELSE ──────────────────────────
+     This is the only thing that always runs. The confirmation page is a
+     redirect the buyer can close, refuse or never reach — routine on mobile —
+     so a conversion that depended on it would under-report by whatever share
+     of buyers close the tab on Razorpay's success screen.
+
+     ── WHY THE MATCH KEYS COME OUT OF THE TOKEN ───────────────────────
+     THIS REQUEST IS RAZORPAY'S, NOT THE BUYER'S. Its IP is a Razorpay
+     datacentre, its user agent is Razorpay's, and it carries none of our
+     cookies. Reading any of the four browser keys off this request would
+     report a datacentre as the buyer and quietly destroy the match quality.
+
+     So they come from `attr` — captured by /go at the last moment we were the
+     server answering the buyer's own browser, encoded into ref_id/ref_id2,
+     and handed back here by Razorpay. That relay is the entire reason /go and
+     lib/refid.ts exist, and this is the call that spends what they collected:
+     fbc, fbp, IP and user agent from the token; email, phone, name and city
+     from the Payment Page's own fields.
+
+     Expect EMQ in the 8.5-9.5 band — eleven match keys, all real.
+
+     ── FAILURES ARE LOGGED, NOT THROWN ────────────────────────────────
+     A throw here would become a 500, and a 500 makes Razorpay replay the whole
+     handler — which would re-POST the row to Pabbly. A missing conversion is
+     recoverable by hand from the log line above; a duplicated CRM row is
+     messier to unpick. Sent BEFORE Pabbly for the same reason it is in the UK
+     funnel: a sheet outage must not cost an ad-platform conversion. */
+  if (capiConfigured()) {
+    try {
+      await sendCapiEvent({
+        eventName: CHECKOUT_CONFIG.capi.events.sale,
+        /* The bare uuid /go minted — the SAME value written to the row as
+           purchase_event_id, read from `sale` so the two cannot disagree.
+           This is also what makes a replayed webhook land as one conversion
+           rather than several. */
+        eventId: sale.purchase_event_id,
+        /* Razorpay's own capture time, in seconds. Using the server clock
+           would date a retried event to whenever the retry happened. */
+        eventTime: e.created_at ?? Math.floor(Date.now() / 1000),
+        /* The buyer's first-touch landing URL, reduced to its origin inside
+           sendCapiEvent. Never the Razorpay page: event_source_url is meant
+           to describe our site, and a pages.razorpay.com origin would tell
+           Meta the conversion happened somewhere we do not own. */
+        eventSourceUrl: sale.landing_url,
+        user: {
+          email: sale.email,
+          phone: sale.phone,
+          firstName: sale.first_name,
+          lastName: sale.last_name,
+          city: sale.city,
+          country: sale.country_code,
+          /* The four that exist ONLY in the buyer's browser, relayed here
+             through the token. Empty when the token would not decode, in
+             which case they are stripped rather than sent blank. */
+          fbp: sale.fbp || undefined,
+          fbc: sale.fbc || undefined,
+          clientIp: sale.client_ip_address || undefined,
+          clientUserAgent: sale.client_user_agent || undefined,
+        },
+        /* Rupees, from what Razorpay actually captured rather than from
+           config — so a VIP sale reports 997 and a base sale 497 without this
+           code needing to know which page took the money. */
+        value: minor / 100,
+        currency: sale.currency,
+      });
+    } catch (err) {
+      console.error(`[razorpay-webhook] CAPI sales event failed for ${e.id}`, err);
+    }
+  } else {
+    console.warn(
+      `[razorpay-webhook] Meta CAPI not configured, ${e.id} was not reported to Meta`,
+    );
+  }
 
   /* ── one row, one feed, both tiers ────────────────────────────────────
      `product` on the row says which pass was bought; Pabbly filters on it.

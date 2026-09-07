@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import { CHECKOUT_CONFIG } from '@/lib/checkout-config';
 import { canonicalCheckoutUrl } from '@/lib/checkout-url';
-import { browserContext } from '@/lib/meta-capi';
+import { browserContext, capiConfigured, sendCapiEvent } from '@/lib/meta-capi';
 import { paymentPageFor, resolveOffer } from '@/lib/offer';
 import { chunkRefId, type Attr } from '@/lib/refid';
 import { parseVariantCookie, VARIANT_COOKIE } from '@/lib/variants';
@@ -15,12 +15,26 @@ import { parseVariantCookie, VARIANT_COOKIE } from '@/lib/variants';
  * Nothing renders; it reads what only a first-party request can read, stamps it
  * into the payment, and redirects.
  *
- * ── IT NO LONGER FIRES ANY META EVENT ───────────────────────────────────────
- * It used to send atc_event server-side. The client fires their own events
- * from the Razorpay side and has not supplied a pixel id, so anything sent
- * from here would be either a no-op or a duplicate counted twice.
+ * ── IT FIRES ic_event, SERVER-SIDE ──────────────────────────────────────────
+ * This is the "buyer tapped pay" moment: they have chosen a tier on /checkout
+ * and are being handed to Razorpay. Nothing later in the funnel is a request
+ * from their browser, so this is the LAST point an InitiateCheckout-shaped
+ * event can be reported with the buyer's real IP, user agent and cookies.
  *
- * What this route still does, and why it still has to exist, is CAPTURE. The
+ * There is deliberately no Facebook Pixel id configured on either Razorpay
+ * Payment Page. That is a Health & Wellness decision, not an oversight:
+ * Razorpay's integration fires Meta's STANDARD Purchase event, which is
+ * blocked by name for a restricted dataset, so it would report nothing while
+ * looking like it worked. Every event in this funnel is sent server-side from
+ * our own code — atc_event from /api/track, ic_event here, `sales` from the
+ * Razorpay webhook.
+ *
+ * AWAITED, not fired and forgotten. A serverless function can be frozen the
+ * instant it returns a response, and a dangling promise would simply never be
+ * delivered. The cost is one Graph API round trip in front of the redirect;
+ * failures are swallowed so a Meta outage can never block a payment.
+ *
+ * What this route also does, and why it still has to exist, is CAPTURE. The
  * identifiers below live only in the buyer's browser and die the moment they
  * leave for a payment page we do not host, so they are read here and carried
  * through the payment in `ref_id` for the webhook to hand to the CRM.
@@ -219,6 +233,46 @@ export async function GET(req: Request) {
   chunkRefId(attr).forEach((chunk, i) => {
     url.searchParams.set(i === 0 ? 'ref_id' : `ref_id${i + 1}`, chunk);
   });
+
+  /* ── Meta Conversions API · ic_event ──────────────────────────────────
+     Sent from here because this request is the buyer's own browser and the
+     next one will not be: everything after this belongs to Razorpay.
+
+     No PII yet — the name, email and phone are typed on Razorpay's page, not
+     ours — so this event carries the four browser keys and nothing else. That
+     is expected, and it is why `sales` is the event the ad account optimises
+     on rather than this one.
+
+     NO VALUE OR CURRENCY, matching the rule stated in lib/meta-capi.ts:
+     `sales` is the only event in this funnel that carries money. Nobody has
+     paid at this point, and reporting ₹497 of intent as though it were
+     revenue would train value-based bidding on money that does not exist.
+
+     The event id is derived from the same uuid the token carries, suffixed so
+     it is unmistakable in Events Manager and can never be confused with the
+     `sales` event that reuses the bare uuid as purchase_event_id. */
+  if (capiConfigured()) {
+    try {
+      await sendCapiEvent({
+        eventName: CHECKOUT_CONFIG.capi.events.initiateCheckout,
+        eventId: `${eventId}-ic`,
+        /* Seconds, not milliseconds. Meta rejects the latter. */
+        eventTime: Math.floor(Date.now() / 1000),
+        /* Reduced to the origin inside sendCapiEvent, per the H&W rules. */
+        eventSourceUrl: req.url,
+        user: {
+          fbp: fbp || undefined,
+          fbc: fbc || undefined,
+          clientIp: clientIp || undefined,
+          clientUserAgent: clientUserAgent || undefined,
+        },
+      });
+    } catch (err) {
+      /* Swallowed, never thrown. A reporting outage must not stand between a
+         buyer and a payment page; the redirect below happens regardless. */
+      console.error(`[go] ic_event failed for ${eventId}`, err);
+    }
+  }
 
   /* 302, not 307: this is a GET and a redirect endpoint is what browsers
      expect to be temporary. */
