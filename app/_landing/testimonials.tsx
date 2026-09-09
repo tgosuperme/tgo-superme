@@ -1,7 +1,11 @@
 'use client';
 
 /**
- * Section 6 · client testimonials (PDF p6).
+ * Section 2 · client testimonials (PDF p6).
+ *
+ * FIRST SECTION UNDER THE HERO. It was sixth, behind the schedule and the
+ * sessions band; the proof now runs before the explanation. See the note at
+ * the render site in below-fold.tsx.
  *
  * Lifted out of below-fold.tsx when it grew from three clips to five and from
  * one layout to two. Same reasoning as ./bonuses: this is a self-contained

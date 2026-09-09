@@ -872,7 +872,16 @@ html[data-p='knee'] [data-v-p='knee'] {
 .sm-strip-track {
   display: flex;
   width: max-content;
-  animation: sm-strip-rail 34s linear infinite;
+  /* 42s, up from 34s, because the strip gained a sixth fact ("Price increases
+     to ₹997 soon") and this duration is for a FIXED distance — the track always
+     travels -50%, so a longer run at the old timing simply moves faster and
+     reads worse. The run grew by roughly a quarter and so did the clock.
+
+     It slows by that same quarter on the final rung, where the rising-price
+     fact is correctly absent. That is the less-used state and a slightly
+     statelier strip is a fair price for one constant instead of a plumbed-in
+     custom property. */
+  animation: sm-strip-rail 42s linear infinite;
   will-change: transform;
 }
 

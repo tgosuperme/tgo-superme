@@ -1,14 +1,15 @@
 'use client';
 
 /**
- * Everything below the hero, in the order the signed-off PDF sets out:
+ * Everything below the hero. The PDF's page order is kept EXCEPT that the
+ * testimonials have been promoted to run first, directly under the hero:
  *
  *      (page 2's card and credentials both live in the hero now)
- *   2  What you'll experience ..... page 3
- *   3  Your 5-day schedule ........ page 4
- *   4  Live sessions band ......... page 5
- *   5  Does this sound like you? .. page 5
- *   6  Testimonials ............... page 6
+ *   2  Testimonials ............... page 6  ← MOVED UP from sixth
+ *   3  What you'll experience ..... page 3
+ *   4  Your 5-day schedule ........ page 4
+ *   5  Live sessions band ......... page 5
+ *   6  Does this sound like you? .. page 5
  *   7  Who is Atul ................ page 7
  *   8  Why this works ............. page 8
  *   9  What people notice ......... page 9
@@ -1230,14 +1231,25 @@ export default function BelowFold({ offer }: { offer: ResolvedOffer }) {
      stays at opacity 0 once .bw-js is on the document. */
   return (
     <LazyMotion features={domAnimation}>
+      {/* PROOF FIRST. Testimonials used to sit sixth, after the schedule and
+          the sessions band; they now open the page directly under the hero.
+
+          The reader arrives from a cold ad with one question — does this work
+          for someone like me — and five people answering it in their own words
+          settles that before any explanation is attempted. Everything below is
+          more persuasive once it has been asked for.
+
+          Nothing about the section changed to move it. It is self-contained,
+          carries its own white background, and the sections it jumped are all
+          on white too, so the page reads the same top to bottom. */}
+      <Testimonials />
       <Experience />
       <Schedule />
       <SessionsBand offer={offer} />
       <Recognition />
-      <Testimonials />
       {/* The bonuses sit here, immediately above Meet Your Guide, so the
-          reader has seen the proof and knows what lands in their inbox before
-          they are introduced to the person delivering it. */}
+          reader knows what lands in their inbox before they are introduced to
+          the person delivering it. */}
       <Bonuses />
       <Guide />
       <Notice />

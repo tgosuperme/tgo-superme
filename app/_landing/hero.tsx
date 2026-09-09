@@ -115,6 +115,12 @@ function StripRun({ offer }: { offer: ResolvedOffer }) {
       <span className="font-semibold">5-Day Pain Reset Challenge</span>
       {dot}
       {offer.priceLabel}
+      {offer.nextPriceLabel ? (
+        <>
+          {dot}
+          Price increases to {offer.nextPriceLabel} soon
+        </>
+      ) : null}
       {dot}
       Starts {offer.startsLabel}
       {dot}
@@ -156,6 +162,14 @@ export function OfferStrip({ offer }: { offer: ResolvedOffer }) {
       <div className="hidden px-4 py-2.5 text-center sm:block">
         <span className="font-semibold">5-Day Pain Reset Challenge</span> ·{' '}
         {offer.priceLabel}
+        {offer.nextPriceLabel ? (
+          <>
+            <span className="mx-2" style={{ color: C.blue }}>
+              ·
+            </span>
+            Price increases to {offer.nextPriceLabel} soon
+          </>
+        ) : null}
         <span className="mx-2" style={{ color: C.blue }}>
           ·
         </span>

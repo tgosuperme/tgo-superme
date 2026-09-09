@@ -265,6 +265,14 @@ export type ResolvedOffer = {
   closed: boolean;
   /** The urgency line under the price. Empty on the final step. */
   urgencyLine: string;
+  /**
+   * "₹997" — what the NEXT rung costs, for the offer strip's rising-price
+   * fact. EMPTY STRING ON THE FINAL STEP, and callers must render nothing when
+   * it is empty rather than substituting the current price: once the ladder is
+   * at its top there is no rise left, and "price increases to ₹997 soon" on a
+   * page already charging ₹997 is a false urgency claim, not a stale string.
+   */
+  nextPriceLabel: string;
   /** Which step is live, 1-based, for reporting and for the CTA's page. */
   stepIndex: number;
   vipPrice: number;
@@ -361,6 +369,11 @@ export function resolveOffer(now: Date = new Date()): ResolvedOffer {
       ? `${inr(step.amount)} until ${formatDeadline(step.until)} · then ${inr(next.amount)}`
       : '';
 
+  /* Deliberately NOT gated on `step.until` the way urgencyLine is. That line
+     names a specific deadline and so needs a parseable one; the strip says
+     only "soon", which stays true whenever a higher rung exists at all. */
+  const nextPriceLabel = next ? inr(next.amount) : '';
+
   return {
     price: step.amount,
     priceLabel: inr(step.amount),
@@ -383,6 +396,7 @@ export function resolveOffer(now: Date = new Date()): ResolvedOffer {
     ctaHref: closed ? OFFER.waitingListUrl || '#waiting-list' : '/checkout',
     closed,
     urgencyLine,
+    nextPriceLabel,
     stepIndex: index + 1,
     vipPrice: OFFER.vipPrice,
     vipPriceLabel: inr(OFFER.vipPrice),
