@@ -1,26 +1,30 @@
 import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
 
-import JoinTracker from '@/components/JoinTracker';
-import { getStripe, stripeConfigured } from '@/lib/stripe';
+import { loadConfirmation } from '@/lib/confirmation';
 
 import ThankYou from './ThankYou';
 
 /**
- * Post-payment page, and the Stripe success_url.
+ * Stripe's success_url, and now a JUNCTION rather than a destination.
  *
- * The session id in the query string is NOT trusted as proof of payment: it is
- * retrieved from Stripe on the server and the payment_status is read from the
- * response. Someone who types the URL by hand gets the pending state, not a
- * confirmation.
+ * The funnel sells two products and each has its own confirmation page, but
+ * Stripe takes a single success_url per session. So the session lands here, is
+ * verified server-side, and the buyer is forwarded to the page for what they
+ * actually bought:
+ *
+ *     seat → /confirmed
+ *     vip  → /confirmed-plus
+ *
+ * The session id rides along so the destination can verify for itself; it does
+ * not trust this redirect. See lib/confirmation.ts for why.
+ *
+ * A session that is NOT paid is not forwarded anywhere — it renders the pending
+ * panel right here. Someone who types this URL, whose session expired, or who
+ * abandoned Stripe gets "we are confirming your payment", never joining detail.
  *
  * Nothing is fulfilled here and nothing is tracked here. Both live in the
  * webhook, because a buyer who pays and closes the tab never loads this page.
- *
- * This file is the GATE; ./ThankYou is what the confirmed buyer actually sees.
- * They were written separately — the Stripe check on one branch, the designed
- * page on another — and are merged here rather than one replacing the other:
- * the verification is the part that must not be lost, and the page is the part
- * the client signed off.
  */
 
 export const metadata: Metadata = {
@@ -37,35 +41,14 @@ type Search = { searchParams: { session_id?: string } };
 
 export default async function ThankYouPage({ searchParams }: Search) {
   const sessionId = searchParams.session_id;
+  const { paid, plan, email } = await loadConfirmation(sessionId);
 
-  let paid = false;
-  let firstName = '';
-  let email = '';
-
-  if (sessionId && stripeConfigured()) {
-    try {
-      const session = await getStripe().checkout.sessions.retrieve(sessionId);
-      paid = session.payment_status === 'paid';
-      firstName = session.metadata?.firstName ?? '';
-      email = session.customer_details?.email ?? session.customer_email ?? '';
-    } catch (err) {
-      /* A bad or expired id lands in the pending state below rather than a
-         crash: the payment may well have gone through, and telling a paying
-         customer that something broke is worse than telling them to watch
-         their inbox. */
-      console.error('[thank-you] could not retrieve session', err);
-    }
+  if (paid) {
+    /* encodeURIComponent because the id goes back into a query string. Stripe's
+       own ids are URL-safe, but this value arrived from the address bar and is
+       not ours to assume anything about. */
+    redirect(`${plan.confirmPath}?session_id=${encodeURIComponent(sessionId ?? '')}`);
   }
 
-  return (
-    <>
-      {/* No `sales` event fires here. It is sent server-side from the Stripe
-          webhook, which is the only place that always runs — a buyer who pays
-          and closes the tab never loads this page at all. The browser Pixel
-          fires PageView and nothing else. */}
-      {/* GA join_whatsapp, on all three WhatsApp buttons. */}
-      <JoinTracker />
-      <ThankYou paid={paid} firstName={firstName} email={email} />
-    </>
-  );
+  return <ThankYou paid={false} email={email} />;
 }

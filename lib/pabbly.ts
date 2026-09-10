@@ -88,7 +88,19 @@ export type SalePayload = {
   gclid: string;
   funnel: string;
   offer: string;
+  /* ── which of the two products was bought ──────────────────────────
+     `plan` is the machine value ("seat" | "vip"), so the sheet can be filtered
+     and the WhatsApp automation can branch on it without string-matching a
+     display name. `plan_name` and `content_name` are the human and the Meta
+     labels for the same thing. All three are always present.
+
+     A VIP buyer must be sent the recordings and the two extra guides; a seat
+     buyer must not. This field is the only record of which. */
+  plan: string;
+  plan_name: string;
+  content_name: string;
   cohort_start_date: string;
+  cohort_end_date: string;
   session_times: string;
 };
 

@@ -33,12 +33,16 @@ import { C } from './shared';
 /** Bar height + breathing room, for the spacer each page reserves in flow. */
 export const MOBILE_CTA_BAR_SPACE = 84;
 
+/** The same, for a bar carrying an `above` row. */
+export const MOBILE_CTA_BAR_SPACE_TALL = 140;
+
 export default function MobileCtaBar({
   watch,
   children,
   label,
   trailing,
   note,
+  above,
 }: {
   /**
    * Selector for the page's own in-flow CTA(s). While any of them is on screen
@@ -54,6 +58,18 @@ export default function MobileCtaBar({
   trailing?: string;
   /** The reassurance under it. Drops out below 380px, where the button wins. */
   note?: React.ReactNode;
+  /**
+   * A full-width row ABOVE the label-and-button row.
+   *
+   * Exists for the OTO, where the bar has to carry a control rather than only
+   * repeat one: on a phone the VIP checkbox sits a long way up the page, and a
+   * docked bar that quotes a total the reader cannot change from where they are
+   * standing is a bar that makes them scroll back to find out how.
+   *
+   * Note the bar's height is fixed for the spacer each page reserves, so a page
+   * using this must reserve the taller value — see MOBILE_CTA_BAR_SPACE_TALL.
+   */
+  above?: React.ReactNode;
 }) {
   const [hidden, setHidden] = useState(false);
   /* Which watched elements are currently on screen. A Set rather than a
@@ -104,10 +120,26 @@ export default function MobileCtaBar({
           paddingBottom: 'env(safe-area-inset-bottom)',
         }}
       >
+        {above && (
+          <div
+            className="mx-auto max-w-[560px] px-4 pt-2.5"
+            style={{ borderBottom: `1px solid ${C.line}` }}
+          >
+            <div className="pb-2.5">{above}</div>
+          </div>
+        )}
+
         <div className="mx-auto flex max-w-[560px] items-center justify-between gap-3 px-4 py-3">
           <div className="min-w-0">
+            {/* WRAPS below 380px, truncates at or above it.
+                Under 380px the note beneath is hidden, so the label has the
+                vertical room to take a second line — and a label that wraps
+                reads as a tight fit, where the same label clipped to
+                "Join the commu…" reads as a broken bar. Above 380px there is
+                room for one line plus the note, so truncation is the right
+                fallback again. */}
             <p
-              className="truncate font-heading text-[14px] font-bold leading-tight"
+              className="font-heading text-[14px] font-bold leading-tight min-[380px]:truncate"
               style={{ color: C.ink }}
             >
               {label}

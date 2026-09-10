@@ -736,3 +736,23 @@ button {
   }
   .tl-fill { transition: none !important; }
 }
+
+/* ── headline A/B ───────────────────────────────────────────────────────────
+   Both hero headlines ship in the HTML and this picks one, using the data-h
+   attribute the pre-paint script in app/layout.tsx sets from ?h=b.
+
+   Chosen over reading the query in the page (which makes the whole landing
+   page dynamically rendered) and over a client hook (which would put the
+   largest paint on the page behind hydration). Neither cost is worth paying
+   for a headline test.
+
+   display:none, not visibility or a class swap: it takes the hidden variant
+   out of the accessibility tree as well as the layout, so a screen reader
+   never announces two competing headlines. */
+.hv {
+  display: none;
+}
+:root:not([data-h='b']) .hv[data-hv='a'],
+:root[data-h='b'] .hv[data-hv='b'] {
+  display: inline;
+}

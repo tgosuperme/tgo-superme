@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { CHECKOUT_CONFIG } from '@/lib/checkout-config';
+import { CHECKOUT_CONFIG, resolvePlan } from '@/lib/checkout-config';
 import { browserContext, capiConfigured, sendCapiEvent } from '@/lib/meta-capi';
 import { getStripe, siteOrigin, stripeConfigured } from '@/lib/stripe';
 
@@ -16,8 +16,10 @@ import { getStripe, siteOrigin, stripeConfigured } from '@/lib/stripe';
  *     the single source of truth for the amount and it drives every price on
  *     the page; a dashboard Price would be a second source that can silently
  *     disagree with what the buyer just read.
- *   · The amount is read from config ON THE SERVER and never from the request
- *     body, so a crafted POST cannot open checkout at a lower price.
+ *   · The request names a PLAN, never an amount. Which plan is narrowed through
+ *     resolvePlan and priced from PLANS on the server, so the worst a crafted
+ *     POST can do is buy the seat — there is no field here that can lower a
+ *     price, because no price arrives in the body at all.
  *   · The buyer's details are collected on our form and passed through as
  *     metadata, so the webhook can fulfil without a database.
  *   · No trial, no subscription: mode is a one-off payment.
@@ -30,6 +32,8 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 type Body = {
+  /** "seat" | "vip". Anything else is narrowed to the seat, never trusted. */
+  plan?: string;
   firstName?: string;
   lastName?: string;
   email?: string;
@@ -72,6 +76,11 @@ export async function POST(req: Request) {
   } catch {
     /* an empty body is still a bad request below */
   }
+
+  /* THE ONLY THING THE BODY GETS TO SAY ABOUT MONEY. It names a plan; the
+     amount, the product name and the Meta content_name all come from the
+     server's own PLANS entry. An unknown value buys the seat. */
+  const plan = resolvePlan(body.plan);
 
   const firstName = (body.firstName ?? '').trim();
   const lastName = (body.lastName ?? '').trim();
@@ -170,7 +179,7 @@ export async function POST(req: Request) {
   }
 
   const origin = siteOrigin(req);
-  const price = `${CHECKOUT_CONFIG.currencySymbol}${CHECKOUT_CONFIG.amountGbpString}`;
+  const price = plan.priceLabel;
 
   try {
     const session = await getStripe().checkout.sessions.create({
@@ -184,10 +193,10 @@ export async function POST(req: Request) {
           quantity: 1,
           price_data: {
             currency: CHECKOUT_CONFIG.currency.toLowerCase(),
-            unit_amount: CHECKOUT_CONFIG.amountPence,
+            unit_amount: plan.pricePence,
             product_data: {
-              name: '5-Day Pain Reset Challenge',
-              description: `Live, coach-led on Zoom. Starts ${CHECKOUT_CONFIG.startDate}. Sessions at ${CHECKOUT_CONFIG.sessionTimes}.`,
+              name: plan.productName,
+              description: plan.productDescription,
             },
           },
         },
@@ -196,6 +205,13 @@ export async function POST(req: Request) {
          each value at 500 characters, which none of these approach. */
       metadata: {
         funnel: CHECKOUT_CONFIG.funnelSlug,
+        /* WHICH PRODUCT WAS BOUGHT. Read back in three places: the success
+           route, to send the buyer to the right confirmation page; the webhook,
+           to label the CRM row and pick the Meta content_name; and a refund, to
+           know what is being taken away. */
+        plan: plan.id,
+        planName: plan.productName,
+        contentName: plan.contentName,
         firstName,
         lastName,
         phone,
@@ -225,15 +241,24 @@ export async function POST(req: Request) {
         landingUrl,
       },
       payment_intent_data: {
-        description: `5-Day Pain Reset (${price}): ${firstName} ${lastName}`.trim(),
+        description: `${plan.productName} (${price}): ${firstName} ${lastName}`.trim(),
         /* Copied onto the PaymentIntent as well, so a refund actioned from the
-           payments screen still shows who it belongs to. */
-        metadata: { funnel: CHECKOUT_CONFIG.funnelSlug, firstName, lastName, phone },
+           payments screen still shows who it belongs to and which product. */
+        metadata: {
+          funnel: CHECKOUT_CONFIG.funnelSlug,
+          plan: plan.id,
+          firstName,
+          lastName,
+          phone,
+        },
       },
       /* session_id lets the thank-you page confirm the payment server-side
          instead of trusting the redirect. */
       success_url: `${origin}${CHECKOUT_CONFIG.thankYouPath}?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}${CHECKOUT_CONFIG.checkoutPath}?cancelled=1`,
+      /* Carries the plan back, so someone who abandons Stripe returns to the
+         checkout still holding the upgrade they chose rather than silently
+         dropping to the seat. */
+      cancel_url: `${origin}${CHECKOUT_CONFIG.checkoutPath}?cancelled=1&plan=${plan.id}`,
       /* A buyer who wanders off should not come back to a dead session. */
       expires_at: Math.floor(Date.now() / 1000) + 60 * 60,
     });
@@ -274,8 +299,12 @@ export async function POST(req: Request) {
             clientIp,
             clientUserAgent,
           },
-          value: CHECKOUT_CONFIG.capi.value,
+          /* The plan's own price and content_name, not the seat's defaults —
+             an ic_event for a VIP checkout that reports the seat's value
+             teaches the ad account to bid for the wrong thing. */
+          value: plan.priceGbp,
           currency: CHECKOUT_CONFIG.capi.currency,
+          contentName: plan.contentName,
         });
       } catch (err) {
         /* Logged, never thrown: the session is already open and the buyer is

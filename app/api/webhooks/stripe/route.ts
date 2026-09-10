@@ -1,6 +1,6 @@
 import type Stripe from 'stripe';
 
-import { CHECKOUT_CONFIG } from '@/lib/checkout-config';
+import { CHECKOUT_CONFIG, resolvePlan } from '@/lib/checkout-config';
 import { capiConfigured, externalIdFor, sendCapiEvent } from '@/lib/meta-capi';
 import { pabblyConfigured, sendSaleToPabbly, type SalePayload } from '@/lib/pabbly';
 import { getStripe, stripeConfigured } from '@/lib/stripe';
@@ -101,7 +101,11 @@ async function onPaid(session: Stripe.Checkout.Session) {
   const m = session.metadata ?? {};
   const firstName = m.firstName ?? '';
   const lastName = m.lastName ?? '';
-  const minor = session.amount_total ?? CHECKOUT_CONFIG.amountPence;
+  /* Which of the two products this was. Written by /api/checkout; an older
+     session from before the VIP existed has no `plan` key and resolves to the
+     seat, which is what it was. */
+  const plan = resolvePlan(m.plan);
+  const minor = session.amount_total ?? plan.pricePence;
 
   const email = session.customer_details?.email ?? session.customer_email ?? '';
   /* Stripe's own timestamp rather than the server clock, so a retried event
@@ -174,8 +178,12 @@ async function onPaid(session: Stripe.Checkout.Session) {
     gclid: m.gclid ?? '',
 
     funnel: m.funnel ?? CHECKOUT_CONFIG.funnelSlug,
-    offer: '5-Day Pain Reset Challenge',
+    offer: plan.productName,
+    plan: plan.id,
+    plan_name: plan.productName,
+    content_name: plan.contentName,
     cohort_start_date: m.startDate ?? CHECKOUT_CONFIG.startDate,
+    cohort_end_date: CHECKOUT_CONFIG.endDate,
     session_times: m.sessionTimes ?? CHECKOUT_CONFIG.sessionTimes,
   };
 
@@ -224,6 +232,10 @@ async function onPaid(session: Stripe.Checkout.Session) {
         },
         value: minor / 100,
         currency: sale.currency,
+        /* pain_reset_uk or vip_uk. The two products are reported under the
+           same `sales` event name, so this is what separates them in Events
+           Manager and lets the ad account value them differently. */
+        contentName: plan.contentName,
       });
     } catch (err) {
       /* Logged, not thrown. A CAPI outage must not force Stripe to retry the

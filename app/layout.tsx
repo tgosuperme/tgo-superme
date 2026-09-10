@@ -71,9 +71,22 @@ export default function RootLayout({
             scroll reveals (.bw-js .bw-reveal-*) only hide content when JS is
             there to reveal it. No-JS users and crawlers see everything, and
             there is no reveal flash. */}
+        {/* Also picks the headline variant, BEFORE first paint.
+            ?h=b selects variant B and is remembered for the session, so an
+            internal link that drops the query does not silently flip the reader
+            back to A mid-visit. Both headlines are in the HTML and CSS shows
+            one, which is what keeps this page statically rendered: reading the
+            query in the server component would make the whole landing page
+            dynamic, and reading it in a client hook would move the largest
+            paint on the page behind hydration.
+
+            Wrapped in try/catch because sessionStorage throws outright in some
+            privacy modes, and a headline test must never be the reason a page
+            fails to render. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: "document.documentElement.classList.add('bw-js')",
+            __html:
+              "document.documentElement.classList.add('bw-js');try{var q=new URLSearchParams(location.search).get('h');var v=q==='b'||q==='a'?q:sessionStorage.getItem('sm_h');if(q)sessionStorage.setItem('sm_h',q);if(v==='b')document.documentElement.setAttribute('data-h','b')}catch(e){}",
           }}
         />
         {/* One pair of observers for the whole document, mounted here rather

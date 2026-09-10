@@ -87,7 +87,23 @@ export const BONUSES: Bonus[] = [
 /** Summed, never typed in, so it cannot disagree with the list above. */
 export const BONUS_TOTAL = BONUSES.reduce((sum, b) => sum + b.value, 0);
 
+/**
+ * The fifth included item, added when the challenge gained its own scoring.
+ *
+ * It has no cover artwork, which is why it is not a BONUSES entry: that list
+ * drives an image grid and a member without a `src` would render an empty
+ * panel. It appears as a line in the value block instead, and counts toward
+ * INCLUDED_TOTAL.
+ */
+export const SCORE_REPORT = {
+  title: 'Your Day 1 and Day 4 Pain Score Report',
+  value: 5,
+};
+
+/** Everything included with a seat, guides plus the score report. */
+export const INCLUDED_TOTAL = BONUS_TOTAL + SCORE_REPORT.value;
+
 /** Derived from the live offer price, so the headline saving cannot go stale. */
 export function savingPercent(price: number): number {
-  return Math.round(((BONUS_TOTAL - price) / BONUS_TOTAL) * 100);
+  return Math.round(((INCLUDED_TOTAL - price) / INCLUDED_TOTAL) * 100);
 }

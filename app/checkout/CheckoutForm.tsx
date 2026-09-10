@@ -9,6 +9,7 @@ import {
   CaretDown,
   CheckCircle,
   Clock,
+  Crown,
   Lock,
   ShieldCheck,
   VideoCamera,
@@ -19,7 +20,8 @@ import { useEffect, useRef, useState } from 'react';
 
 import BrandMark from '@/components/BrandMark';
 import { getFbc, newEventId, readCookie } from '@/components/MetaPixel';
-import { GA_EVENTS, GA_VALUE, gaEvent } from '@/lib/ga';
+import { type PlanId, PLANS, VIP_BENEFITS } from '@/lib/checkout-config';
+import { GA_EVENTS, gaEvent } from '@/lib/ga';
 import { restoreParams } from '@/lib/track';
 import PaymentLogos from '@/components/PaymentLogos';
 
@@ -32,29 +34,34 @@ import {
   toE164,
 } from './countries';
 
-import { BONUS_TOTAL, BONUSES } from '../_landing/bonus-data';
+import { BONUSES, INCLUDED_TOTAL, SCORE_REPORT } from '../_landing/bonus-data';
 import { legoBrick, legoDelay } from '../_landing/lego-style';
 import MobileCtaBar, { MOBILE_CTA_BAR_SPACE } from '../_landing/mobile-cta-bar';
 import {
+  ANCHOR_LABEL,
   C,
   CURRENCY_SYMBOL,
-  PRICE,
-  PRICE_LABEL,
-  SESSION_TIMES,
+  OTO_HREF,
+  SESSION_TIMES_TZ,
   START_DATE,
 } from '../_landing/shared';
+import { CHECKOUT_CONFIG } from '@/lib/checkout-config';
 
 /**
  * Checkout for the 5-Day Pain Reset.
  *
- * Same anatomy as the postpartum checkout it is modelled on: brand header with
- * a back link, then a two-column body with the details form on the left and a
- * sticky order summary on the right, which stacks summary-first on mobile so
- * the buyer sees what they are paying for before the fields.
+ * Brand header with a back link, then a two-column body: the details form on
+ * the left and the order summary on the right, stacking summary-first on mobile
+ * so the buyer sees what they are paying for before the fields.
  *
- * Two things from that page are deliberately absent, both because the UK rules
- * this funnel was reviewed against forbid them: a coupon field and any struck
- * "was" price with a savings line. There is one price and it is stated once.
+ * THE FORM IS THE STICKY COLUMN, not the summary — the reverse of the page this
+ * was modelled on. The summary grew past it (VIP extras, five bonus lines, the
+ * totals), so whichever column is shorter has to be the one that follows the
+ * scroll; sticking the taller one does nothing at all.
+ *
+ * A coupon field is deliberately absent. The struck figure IS present and is a
+ * comparison rather than a former price of this offer — see the note on
+ * FULL_VALUE below.
  *
  * Submitting posts the buyer's details to /api/checkout, which opens a Stripe
  * Checkout Session and returns its URL; the browser is then handed to Stripe,
@@ -72,19 +79,22 @@ type Fields = {
 };
 type FieldKey = keyof Fields;
 
-/* Challenge + bonuses, summed rather than written down, so the struck figure
-   on the order summary can never drift from the two lines it is made of.
+/* The comparison figure, summed rather than written down, so it can never
+   drift from the two lines it is made of: the challenge's own anchor (five live
+   group sessions at the SuperMe app's per-session rate) plus everything
+   included with a seat.
 
-   ROUNDED, and not for tidiness. 4.99 + 27 is 31.990000000000002 in binary
-   floating point, and that is exactly what rendered on the page. This is a
-   decorative "what it is worth" figure rather than anything anyone is charged
-   — the charged amount is amountPence, an integer, computed separately — so
-   rounding it to a whole pound is safe as well as correct to look at. */
-const FULL_VALUE = Math.round(PRICE + BONUS_TOTAL);
+   ROUNDED, and not for tidiness. Sums like 4.99 + 27 come out as
+   31.990000000000002 in binary floating point, and that is exactly what
+   rendered on the page once. This is a comparison figure rather than anything
+   anyone is charged — the charged amount is an integer of pence, computed
+   separately — so rounding it to a whole pound is safe as well as correct to
+   look at. */
+const FULL_VALUE = Math.round(CHECKOUT_CONFIG.anchorGbpNumeric + INCLUDED_TOTAL);
 
 const INCLUDED = [
   { icon: VideoCamera, text: 'Five live, coach-led sessions on Zoom' },
-  { icon: Clock, text: `Both daily timings, ${SESSION_TIMES}` },
+  { icon: Clock, text: `Both daily timings, ${SESSION_TIMES_TZ}` },
   { icon: CheckCircle, text: 'Real-time form correction from Atul' },
   { icon: ShieldCheck, text: 'Your own Day 1 to Day 4 progress score' },
 ];
@@ -137,7 +147,21 @@ function cityError(value: string): string | null {
   return null;
 }
 
-export default function CheckoutForm({ cancelled = false }: { cancelled?: boolean }) {
+export default function CheckoutForm({
+  planId = 'seat',
+  cancelled = false,
+}: {
+  /** Chosen on the OTO page and resolved server-side — see ./page.tsx. */
+  planId?: PlanId;
+  cancelled?: boolean;
+}) {
+  /* Fixed for the life of the page. The choice is made on the OTO and changed
+     by going back to it, not re-litigated here: a form that lets the reader
+     change what they are buying while they are half-way through typing their
+     details is a form they abandon. */
+  const plan = PLANS[planId];
+  const isVip = plan.id === 'vip';
+
   const [f, setF] = useState<Fields>({
     firstName: '',
     lastName: '',
@@ -196,7 +220,11 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
        /api/checkout; the browser Pixel fires nothing but PageView. Minted here
        so a double-submit collapses into one conversion at Meta's end. */
     const icEventId = newEventId();
-    gaEvent(GA_EVENTS.initiateCheckout, GA_VALUE);
+    gaEvent(GA_EVENTS.initiateCheckout, {
+      value: plan.priceGbp,
+      currency: 'GBP',
+      items: [{ item_id: plan.id, item_name: plan.productName, price: plan.priceGbp }],
+    });
 
     /* Last-touch UTM + first-touch entry point, captured on whatever page the
        buyer actually arrived on. Read at the last possible moment, and read
@@ -208,6 +236,9 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          /* Names the product; the server prices it. Nothing here can set an
+             amount — see the note in /api/checkout. */
+          plan: plan.id,
           firstName: f.firstName.trim(),
           lastName: f.lastName.trim(),
           email: f.email.trim(),
@@ -291,14 +322,15 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
             className="mt-4 font-heading text-[30px] font-bold leading-[1.12] sm:text-[38px]"
             style={{ color: C.ink }}
           >
-            Hold your place on the{' '}
+            Hold your seat on the{' '}
             <br className="sm:hidden" />
             <span style={{ color: C.goldDeep }}>5-Day Pain Reset</span>
           </h1>
           <p className="mt-3 text-[15.5px]" style={{ color: C.inkSoft }}>
             Two minutes to book.{' '}
             <br className="sm:hidden" />
-            100% Money Back Guarantee.
+            Come to Day 1, and if it&apos;s not for you, your {plan.priceLabel} is
+            refunded the same day.
           </p>
         </div>
 
@@ -306,9 +338,19 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
         <div className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-[1.3fr_1fr] lg:gap-10">
           {/* summary renders first on mobile so the buyer sees the offer
               before the fields */}
+          {/* STICKY FROM lg, and it is the FORM that sticks, not the summary.
+              The summary is now the taller column — it carries the VIP extras,
+              five bonus lines and the totals — so the form used to run out
+              half way down and leave a tall panel of white beside a reader who
+              was still scrolling. Sticking the shorter column keeps the fields
+              and the pay button beside the summary the whole way down.
+
+              `self-start` is required: a grid item stretches to the row height
+              by default, which makes it exactly as tall as the summary and
+              gives sticky nothing to travel through. */}
           <section
             data-lego=""
-            className="order-2 rounded-3xl p-6 sm:p-8 lg:order-1"
+            className="order-2 rounded-3xl p-6 sm:p-8 lg:order-1 lg:sticky lg:top-6 lg:self-start"
             style={{ background: C.white, border: `1px solid ${C.line}` }}
           >
             <h2 className="font-heading text-[20px] font-bold" style={{ color: C.ink }}>
@@ -394,7 +436,7 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
                 className="lego-press lego-pulse-glow group mt-2 inline-flex min-h-[56px] w-full items-center justify-center gap-2.5 rounded-full text-[15.5px] font-semibold text-white disabled:cursor-progress disabled:opacity-70"
                 style={{ background: C.blueFill }}
               >
-                {busy ? 'Opening secure checkout…' : `Pay ${PRICE_LABEL} & Reserve My Place`}
+                {busy ? 'Opening secure checkout…' : `Hold My Seat · ${plan.priceLabel}`}
                 {!busy && (
                   <ArrowRight
                     weight="bold"
@@ -419,7 +461,9 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
           {/* ── order summary ──────────────────────────────────────── */}
           <aside
             data-lego=""
-            className="order-1 self-start rounded-3xl p-6 sm:p-7 lg:order-2 lg:sticky lg:top-6"
+            /* Not sticky. It is the taller column now, so it scrolls normally
+               and the form beside it is the one that follows. */
+            className="order-1 self-start rounded-3xl p-6 sm:p-7 lg:order-2"
             style={{
               ...legoDelay(1, 110),
               background: C.paleBlue,
@@ -454,7 +498,7 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
                   className="font-heading text-[15px] font-bold"
                   style={{ color: C.ink }}
                 >
-                  {PRICE_LABEL}
+                  {plan.priceLabel}
                 </span>
                 <CaretDown
                   weight="bold"
@@ -491,7 +535,7 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
                   className="block text-[14px] font-semibold leading-snug"
                   style={{ color: C.ink }}
                 >
-                  5-Day Pain Reset Challenge
+                  {plan.productName}
                 </span>
                 <span className="mt-0.5 block text-[11.5px]" style={{ color: C.inkMuted }}>
                   Live · Coach-led · Zoom
@@ -501,9 +545,21 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
                 className="shrink-0 font-heading text-[15px] font-bold"
                 style={{ color: C.ink }}
               >
-                {PRICE_LABEL}
+                {plan.priceLabel}
               </span>
             </div>
+
+            {/* Change of mind, without losing the typed fields — this is a
+                link back to the choice, not a control that re-prices the page
+                underneath a half-filled form. */}
+            <Link
+              href={OTO_HREF}
+              className="mt-2 inline-flex items-center gap-1.5 text-[12px] font-medium underline-offset-2 hover:underline"
+              style={{ color: C.blueFill }}
+            >
+              <ArrowLeft weight="bold" className="h-3 w-3" />
+              {isVip ? 'Remove the VIP pass' : 'Add the VIP pass'}
+            </Link>
 
             <p
               className="mt-5 text-[10.5px] font-bold uppercase tracking-[0.16em]"
@@ -531,6 +587,43 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
                 </li>
               ))}
             </ul>
+
+            {/* ── the VIP extras, only when they were chosen ──────────── */}
+            {isVip && (
+              <>
+                <p
+                  className="mt-5 inline-flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[0.16em]"
+                  style={{ color: C.goldDeep }}
+                >
+                  <Crown weight="fill" className="h-3 w-3" />
+                  Your VIP pass adds
+                </p>
+                <ul className="mt-2.5 grid gap-2">
+                  {VIP_BENEFITS.map((line, idx) => (
+                    <li
+                      key={line}
+                      data-lego=""
+                      className="flex items-start gap-2.5"
+                      style={legoBrick(idx, 60)}
+                    >
+                      <span
+                        className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full"
+                        style={{ background: C.goldSoft }}
+                      >
+                        <CheckCircle
+                          weight="fill"
+                          className="h-3 w-3"
+                          style={{ color: C.goldDeep }}
+                        />
+                      </span>
+                      <span className="text-[13px] leading-snug" style={{ color: C.inkSoft }}>
+                        {line}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
 
             {/* ── the four bonuses, priced and struck ─────────────────── */}
             <p
@@ -573,6 +666,34 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
                   </span>
                 </li>
               ))}
+              {/* The fifth included item. No cover art, so it is not in the
+                  BONUSES list, but it is part of the figure below and has to
+                  be visible where that figure is made up. */}
+              <li
+                data-lego=""
+                className="flex items-center gap-2.5"
+                style={legoBrick(BONUSES.length, 60)}
+              >
+                <span
+                  className="grid h-5 w-5 shrink-0 place-items-center rounded-full"
+                  style={{ background: C.lightBlue }}
+                >
+                  <CheckCircle weight="fill" className="h-3 w-3" style={{ color: C.skyInk }} />
+                </span>
+                <span
+                  className="min-w-0 flex-1 text-[13px] leading-snug"
+                  style={{ color: C.inkSoft }}
+                >
+                  {SCORE_REPORT.title}
+                </span>
+                <span
+                  className="shrink-0 text-[13px] font-semibold"
+                  style={{ color: C.inkSoft }}
+                >
+                  {CURRENCY_SYMBOL}
+                  {SCORE_REPORT.value}
+                </span>
+              </li>
             </ul>
 
             <div className="my-5 h-px" style={{ background: C.lineStrong }} />
@@ -584,19 +705,19 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
             <div className="grid gap-2">
               <div className="flex items-baseline justify-between">
                 <span className="text-[13.5px]" style={{ color: C.inkSoft }}>
-                  Challenge value
+                  Five live sessions
                 </span>
                 <span className="text-[13.5px] font-semibold" style={{ color: C.ink }}>
-                  {PRICE_LABEL}
+                  {ANCHOR_LABEL}
                 </span>
               </div>
               <div className="flex items-baseline justify-between">
                 <span className="text-[13.5px]" style={{ color: C.inkSoft }}>
-                  Total bonus value
+                  Guides and score report
                 </span>
                 <span className="text-[13.5px] font-semibold" style={{ color: C.ink }}>
                   {CURRENCY_SYMBOL}
-                  {BONUS_TOTAL}
+                  {INCLUDED_TOTAL}
                 </span>
               </div>
             </div>
@@ -627,7 +748,7 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
                   className="font-heading text-[36px] font-bold leading-none"
                   style={{ color: C.goldDeep }}
                 >
-                  {PRICE_LABEL}
+                  {plan.priceLabel}
                 </span>
               </span>
             </div>
@@ -641,7 +762,10 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
                 className="mt-0.5 h-4 w-4 shrink-0"
                 style={{ color: C.mintInk }}
               />
-              100% Money Back Guarantee.
+              <span>
+                Come to Day 1. If it&apos;s not for you, message us by the end of
+                that day and your {plan.priceLabel} is refunded within 24 hours.
+              </span>
             </p>
               </div>
             </div>
@@ -660,12 +784,12 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
       {/* ── docked CTA · mobile and tablet ─────────────────────────── */}
       <MobileCtaBar
         watch="[data-checkout-cta]"
-        label="5-Day Pain Reset"
-        trailing={PRICE_LABEL}
+        label={plan.shortName}
+        trailing={plan.priceLabel}
         note={
           <>
             <ShieldCheck weight="fill" className="h-3 w-3 shrink-0" style={{ color: C.mintInk }} />
-            100% Money Back Guarantee
+            Refunded after Day 1
           </>
         }
       >
@@ -684,9 +808,9 @@ export default function CheckoutForm({ cancelled = false }: { cancelled?: boolea
           ) : (
             <>
               {/* The full label needs room the narrowest phones do not have. */}
-              <span className="min-[400px]:hidden">Pay {PRICE_LABEL}</span>
+              <span className="min-[400px]:hidden">{plan.priceLabel}</span>
               <span className="hidden min-[400px]:inline">
-                Pay {PRICE_LABEL} &amp; Reserve
+                Hold My Seat · {plan.priceLabel}
               </span>
               <ArrowRight
                 weight="bold"

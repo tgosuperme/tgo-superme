@@ -113,13 +113,26 @@ export const PRICE_LABEL = `${CHECKOUT_CONFIG.currencySymbol}${CHECKOUT_CONFIG.a
 export const CURRENCY_SYMBOL = CHECKOUT_CONFIG.currencySymbol;
 /* ISO code, not the symbol. Meta's events want "GBP", never "£". */
 export const CURRENCY_CODE = CHECKOUT_CONFIG.currency;
+/* The struck comparison on the price card, and the VIP figure the OTO quotes. */
+export const ANCHOR_LABEL = CHECKOUT_CONFIG.anchorLabel;
+export const VIP_PRICE_LABEL = CHECKOUT_CONFIG.vipLabel;
+
+/* THE LANDING PAGE'S CTA TARGET IS THE OTO, NOT THE CHECKOUT.
+   Every "hold my seat" on the landing page comes through OTO_HREF. Pointing one
+   at the checkout instead would skip the upgrade choice entirely, which is not
+   a cosmetic difference — it silently sells the cheaper product. */
+export const OTO_HREF = CHECKOUT_CONFIG.otoPath;
 export const CHECKOUT_HREF = CHECKOUT_CONFIG.checkoutPath;
 export const THANK_YOU_HREF = CHECKOUT_CONFIG.thankYouPath;
+export const IMPORTANT_INFO_HREF = CHECKOUT_CONFIG.importantInfoPath;
 
-/* Every date and time string on the site comes through these four, and each
-   one is an env variable — see .env.example. Nothing below should ever hard-
-   code a date, a session time or the "twice a day" label again. */
+/* Every date and time string on the site comes through these, and each one is
+   an env variable — see .env.example. Nothing below should ever hard-code a
+   date, a session time or the "twice a day" label again. */
 export const START_DATE = CHECKOUT_CONFIG.startDate;
+export const END_DATE = CHECKOUT_CONFIG.endDate;
+export const DATE_RANGE = CHECKOUT_CONFIG.dateRange;
+export const REGISTRATIONS_CLOSE = CHECKOUT_CONFIG.registrationsClose;
 export const SESSION_TIMES = CHECKOUT_CONFIG.sessionTimes;
 export const SESSIONS_LABEL = CHECKOUT_CONFIG.sessionsLabel;
 export const SESSION_TIMES_TZ = CHECKOUT_CONFIG.sessionTimesWithZone;
@@ -154,7 +167,7 @@ export function SectionEyebrow({ text }: { text: string }) {
 }
 
 export function PrimaryCTA({
-  href = CHECKOUT_HREF,
+  href = OTO_HREF,
   label,
 }: {
   href?: string;

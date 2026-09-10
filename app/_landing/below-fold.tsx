@@ -27,18 +27,22 @@
 import {
   ArrowRight,
   Barbell,
+  Briefcase,
   CalendarBlank,
   CaretDown,
   CheckCircle,
   Clock,
+  Desktop,
   Eye,
   FirstAidKit,
   Function as FunctionIcon,
   Lightning,
   Minus,
+  PersonSimpleWalk,
   Plus,
   Ruler,
   ShieldCheck,
+  UsersThree,
   VideoCamera,
   Wind,
   X,
@@ -55,12 +59,16 @@ import { domAnimation, LazyMotion, m, type Variants } from './motion-lite';
 import {
   C,
   CtaNote,
+  DATE_RANGE,
+  IMPORTANT_INFO_HREF,
   LEGAL_LINKS,
+  OTO_HREF,
   PRICE_LABEL,
   PrimaryCTA,
+  REGISTRATIONS_CLOSE,
   SectionEyebrow,
   SectionHeading,
-  SESSION_TIMES,
+  SESSION_TIMES_TZ,
   SESSIONS_LABEL,
   START_DATE,
 } from './shared';
@@ -115,12 +123,12 @@ const EXPERIENCE: { icon: typeof Wind; title: string; body: string }[] = [
   {
     icon: Wind,
     title: 'Unload Before You Strengthen',
-    body: 'Learn how to take the load off first, using breath work and supported movement before asking your body to do more.',
-  },
-  {
-    icon: Lightning,
-    title: 'Wake Up Your Inner Support',
-    body: 'Activate the deeper muscles around your core, spine, hips and joints that are meant to help carry the load.',
+    /* "Wake Up Your Inner Support" was a seventh card and is folded in here:
+       the two described one movement, in order, and splitting them across two
+       tiles made the sequence read as two unrelated ideas. Six cards also
+       divides cleanly by both 2 and 3, so the last-row orphan the grid used to
+       hand-place no longer exists. */
+    body: 'Learn how to take the load off first, using breath work and supported movement — then wake up the deeper muscles around your core, spine, hips and joints that are meant to help carry it.',
   },
   {
     icon: Barbell,
@@ -168,6 +176,19 @@ function Experience() {
           >
             Don&apos;t take our word for it. Experience the approach live and see
             your own progress across 5 days.
+          </m.p>
+          {/* The five principles of the method, as one line. They used to be a
+              five-card grid of their own further down the page; on a phone that
+              was a screen and a half of scrolling to deliver five short titles,
+              which is what they are. The detail lives in the sessions. */}
+          <m.p
+            variants={fadeUp}
+            className="mx-auto mt-4 max-w-[640px] text-balance text-[14px] leading-relaxed"
+            style={{ color: C.inkMuted }}
+          >
+            The method runs in five stages: unload before you stretch, brace
+            before you strengthen, move without forcing, strengthen what
+            supports you, then retrain everyday movement.
           </m.p>
         </m.div>
 
@@ -243,8 +264,8 @@ function Experience() {
 const DAYS = [
   {
     n: 'Day 1',
-    title: 'Unload & Release',
-    body: 'Start by taking pressure off the areas doing too much. Guided breathing, supported movement, gentle spinal mobility and prop-assisted positions help you move without forcing the painful area.',
+    title: 'Score, Unload & Release',
+    body: 'You score your pain out of 10 on six everyday movements before we begin. Then start taking pressure off the areas doing too much. Guided breathing, supported movement, gentle spinal mobility and prop-assisted positions help you move without forcing the painful area.',
   },
   {
     n: 'Day 2',
@@ -258,8 +279,8 @@ const DAYS = [
   },
   {
     n: 'Day 4',
-    title: 'Stand Tall & Measure',
-    body: "Bring everything together through standing movements, hip opening, leg strengthening and better alignment. Then measure your progress and see what's changed since Day 1.",
+    title: 'Stand Tall & Score Again',
+    body: 'Bring everything together through standing movements, hip opening, leg strengthening and better alignment. Then you score the same six movements and see what has changed since Day 1.',
   },
   {
     n: 'Day 5',
@@ -442,14 +463,21 @@ function SessionsBand() {
           {/* Bright sky, not goldDeep: this h2 sits on the navy band, where
               primary blue is 2.22:1 and bright sky is 5.85:1. The one place the
               highlight flips colour, because the ground flipped. */}
-          {SESSION_TIMES}, <span style={{ color: C.sky }}>live on Zoom</span>.
+          {SESSION_TIMES_TZ}, <span style={{ color: C.sky }}>live on Zoom</span>.
         </h2>
         <p className="mt-3 text-[15px]" style={{ color: 'rgba(250,245,234,0.75)' }}>
           Pick whichever time fits your day.
         </p>
+        {/* Recordings used to be described here as included for everyone. They
+            are the VIP pass's main reason to exist now, so this says what is
+            actually true rather than promising a replay the seat does not
+            come with. */}
+        <p className="mt-2 text-[14px]" style={{ color: 'rgba(250,245,234,0.62)' }}>
+          Cannot make one live? Recordings are included in the VIP pass.
+        </p>
         <div className="mx-auto mt-7 flex max-w-[400px] flex-col items-center">
           <a
-            href="/checkout"
+            href={OTO_HREF}
             className="lego-press lego-pulse group inline-flex min-h-[56px] w-full items-center justify-center gap-2 rounded-full px-7 py-4 font-heading text-[15px] font-bold"
             style={{
               background: C.white,
@@ -457,7 +485,7 @@ function SessionsBand() {
               ['--pulse-color' as string]: 'rgba(255,255,255,0.5)',
             }}
           >
-            Start Your 5-Day Reset · {PRICE_LABEL}
+            Hold My Seat · {PRICE_LABEL}
             <ArrowRight
               weight="bold"
               className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5"
@@ -467,7 +495,7 @@ function SessionsBand() {
             className="mt-3 text-[13px] font-medium"
             style={{ color: 'rgba(250,245,234,0.7)' }}
           >
-            100% Money Back Guarantee
+            Refunded after Day 1 if it&apos;s not for you
           </p>
         </div>
       </div>
@@ -481,6 +509,7 @@ function SessionsBand() {
    as their own. Split into three parts rather than marked up inline so the
    sentences stay exactly as signed off, just wrapped. */
 const RECOGNITION: [string, string, string][] = [
+  ['You have spent money on physio, painkillers or a chiropractor, or ', 'waited months for an NHS appointment', ', and you are still stiff every morning.'],
   ['Your back, neck or knee pain ', 'keeps coming back', ', even after trying exercises and stretches.'],
   ['You wake up ', 'feeling stiff', ', or find yourself avoiding certain movements because they hurt.'],
   ["You're ", 'afraid of making things worse', ", so you've stopped doing the activities you actually enjoy."],
@@ -521,7 +550,91 @@ function Recognition() {
           </li>
         ))}
       </ul>
+
+      <WhoFor />
     </section>
+  );
+}
+
+/* ── who this is for · four tiles, directly under the recognition list ───
+   Placed inside Recognition rather than as a section of its own: it answers
+   the question that list raises ("is that me?") and a section break between
+   the two would put a full rhythm of white space in the middle of one thought. */
+const WHO_FOR = [
+  {
+    icon: Desktop,
+    title: 'Desk workers',
+    body: 'Nine hours in a chair and a back that tightens when you stand',
+    bed: C.lightBlue,
+    ink: C.skyInk,
+  },
+  {
+    icon: Briefcase,
+    title: 'Business owners',
+    body: 'No time to be laid up, and no patience for a plan that takes six months to start',
+    bed: C.peachBed,
+    ink: C.peachInk,
+  },
+  {
+    icon: PersonSimpleWalk,
+    title: '55 and over',
+    body: 'Stairs, floor and long walks have quietly become something to think about',
+    bed: C.mintBed,
+    ink: C.mintInk,
+  },
+  {
+    icon: UsersThree,
+    title: 'Booking for a parent',
+    body: 'Book this for your mother or father; the WhatsApp group and the Zoom link go to them',
+    bed: C.lavenderBed,
+    ink: C.lavenderInk,
+  },
+];
+
+function WhoFor() {
+  return (
+    <div className="mx-auto mt-12 max-w-[960px]">
+      <h3
+        data-lego=""
+        className="text-center font-heading text-[clamp(20px,3vw,28px)] font-bold leading-tight"
+        style={{ color: C.ink }}
+      >
+        Who this is <span style={{ color: C.goldDeep }}>for</span>.
+      </h3>
+
+      {/* Two up from sm, four across from lg. Never three: the odd column
+          would strand one tile on a row of its own at the exact width where
+          the row is widest and the gap most obvious. */}
+      <ul className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {WHO_FOR.map(({ icon: Icon, title, body, bed, ink }, idx) => (
+          <li
+            key={title}
+            data-lego=""
+            className="lego-hover-sm flex flex-col rounded-2xl border px-5 py-6"
+            style={{ ...legoBrick(idx, 85), borderColor: C.line, background: C.white }}
+          >
+            <span
+              className="lego-stud grid h-11 w-11 place-items-center rounded-full"
+              style={{ background: bed }}
+            >
+              <Icon weight="bold" className="h-5 w-5" style={{ color: ink }} />
+            </span>
+            <h4
+              className="mt-4 font-heading text-[16px] font-bold leading-snug"
+              style={{ color: C.ink }}
+            >
+              {title}
+            </h4>
+            <p
+              className="mt-2 text-[13.5px] leading-relaxed"
+              style={{ color: C.inkSoft, textWrap: 'pretty' } as React.CSSProperties}
+            >
+              {body}
+            </p>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -978,8 +1091,9 @@ function Promise() {
           className="mx-auto mt-6 max-w-[560px] text-[17px] leading-[1.65]"
           style={{ color: C.inkSoft }}
         >
-          Join Day 1 of the 5-Day Pain Reset Challenge and experience the Inner
-          Brace Method for yourself. 100% Money Back Guarantee.
+          Hold your seat for {PRICE_LABEL}. Come to Day 1, and if it&apos;s not
+          for you, message us by the end of the day and the {PRICE_LABEL} is
+          back on your card.
         </p>
 
         <p className="sm-promise-closer">
@@ -1065,7 +1179,7 @@ function TwoOptions() {
             strength, stability and ease.
           </p>
           <a
-            href="/checkout"
+            href={OTO_HREF}
             className="lego-press lego-pulse group mt-6 inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full px-6 py-3.5 font-heading text-[14.5px] font-bold"
             style={{
               background: C.white,
@@ -1073,7 +1187,7 @@ function TwoOptions() {
               ['--pulse-color' as string]: 'rgba(255,255,255,0.45)',
             }}
           >
-            Start Your 5-Day Reset · {PRICE_LABEL}
+            Hold My Seat · {PRICE_LABEL}
             <ArrowRight
               weight="bold"
               className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5"
@@ -1083,7 +1197,7 @@ function TwoOptions() {
             className="mt-3 text-center text-[12.5px]"
             style={{ color: 'rgba(250,245,234,0.7)' }}
           >
-            100% Money Back Guarantee
+            Refunded after Day 1 if it&apos;s not for you
           </p>
         </div>
       </div>
@@ -1103,16 +1217,16 @@ const FAQS = [
     a: "A generic routine isn't sequenced for a back, neck or knee that's already guarding and the wrong movement on an irritated area can make things worse. That's exactly why the Inner Brace Method starts by taking the load off before asking anything to stretch or strengthen. Nothing is forced, and every movement is adapted live by your coach.",
   },
   {
-    q: 'My employer already gives me a free app for this. Why would I pay for a challenge?',
-    a: "Those apps are useful, but they're self-guided — nobody is watching how you move or correcting you in real time. This challenge is live, with a coach adjusting what you're doing as you're doing it. It's a different kind of support, not a replacement.",
+    q: 'There are free videos on YouTube. Why pay for this?',
+    a: "Because a video cannot see you. Nobody on YouTube knows that your left hip drops when you stand, or that the movement you have been repeating every morning is the one making it worse. This is live, with a coach adjusting what you are doing while you do it, and a sequence built for a back, neck or knee that is already guarding rather than for a general audience.",
+  },
+  {
+    q: `Why only ${PRICE_LABEL}? What is the catch?`,
+    a: `There is no catch, and there is no upsell you have to take to attend. ${PRICE_LABEL} is a seat hold, not the value of the five days — it exists because a free sign-up fills a room with people who never turn up, and a live coaching session needs people in it. Come to Day 1, and if it is not for you, message us by the end of that day and it goes back on your card.`,
   },
   {
     q: "Isn't physiotherapy enough?",
     a: "Physiotherapy is a great first step, and this isn't a replacement for medical care. What we often hear is that the exercises help while the sessions are happening, and things drift back afterwards. This challenge focuses on the ongoing part, learning to move differently day to day, for longer than a six-week course.",
-  },
-  {
-    q: "I've already spent money on this problem. Why would this be different?",
-    a: "Because most approaches focus on where it hurts, not on why the load keeps landing there in the first place. This method starts by unloading the area, then rebuilding the support around it, the sequence itself is what's different, not just another set of exercises.",
   },
   {
     q: 'Will this fix my pain in 5 days?',
@@ -1120,11 +1234,7 @@ const FAQS = [
   },
   {
     q: "What if I can't make the live session time?",
-    a: `Every session runs twice a day, ${SESSION_TIMES}, so you can pick whichever fits. Live sessions are how the coaching and real-time correction work, so we don't offer indefinite replays.`,
-  },
-  {
-    q: 'What happens after the 5 days?',
-    a: "Day 5 is where we talk about what your 5 days actually showed you, and how to keep building on it if you'd like to continue. There's no obligation, it's entirely your decision.",
+    a: `Every session runs twice a day, ${SESSION_TIMES_TZ}, so you can pick whichever fits. Live sessions are how the coaching and real-time correction work, so we don't offer indefinite replays — recordings are part of the VIP pass.`,
   },
   {
     q: 'Is this safe if I have a diagnosed condition?',
@@ -1533,14 +1643,35 @@ function Footer() {
           each one wraps as its own unit rather than reflowing into the other. */}
       <p className="mx-auto max-w-[640px]">
         <span className="inline-block">
-          Starts {START_DATE} · Live on Zoom
+          {DATE_RANGE} · Live on Zoom
         </span>
         <span aria-hidden className="hidden sm:inline">
           {' · '}
         </span>
         <span className="block sm:inline">
-          {PRICE_LABEL}, 100% Money Back Guarantee
+          {PRICE_LABEL}, refunded after Day 1 if it&apos;s not for you
         </span>
+      </p>
+
+      <p className="mx-auto mt-3 max-w-[640px] text-[11.5px] leading-relaxed">
+        Registrations close {REGISTRATIONS_CLOSE}.
+      </p>
+
+      {/* The medical notice, condensed. The full text moved to its own page —
+          on a phone it was several screens of legal type sitting between the
+          FAQ and the footer, exactly where a reader is deciding. The link is
+          not decorative: it is how this line stays sufficient. */}
+      <p className="mx-auto mt-4 max-w-[720px] text-[11.5px] leading-relaxed">
+        SuperMe is a yoga and movement education service, not medical care. Not
+        a substitute for medical advice; see your GP for persistent or severe
+        pain. Results vary from person to person.{' '}
+        <Link
+          href={IMPORTANT_INFO_HREF}
+          className="underline underline-offset-2 transition-colors duration-200 hover:text-white"
+        >
+          Read the full note
+        </Link>
+        .
       </p>
 
       <ul className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
@@ -1566,24 +1697,36 @@ export default function BelowFold() {
      that adds `bw-in` to revealed elements. Without it every .bw-reveal-*
      stays at opacity 0 once .bw-js is on the document. */
   return (
+    /* THREE SECTIONS WERE CUT for the UK build, all on phone-length grounds:
+       the mechanism grid ("why this works"), the values block and the founder
+       cards. The mechanism's five principle titles were not lost with it — they
+       run as a single line in the Experience intro, which is where a reader
+       actually wants them. The founder and values copy has no replacement here
+       by design; it belongs on an about page, not in the middle of a purchase.
+
+       Their code is still in this file, unreferenced, so restoring any of them
+       is a one-line change rather than an archaeology exercise. */
     <LazyMotion features={domAnimation}>
+      {/* Proof FIRST, directly under the hero. A reader arriving from an ad has
+          been told a number and has no reason yet to believe it, so the five
+          client clips answer "is any of this real?" before the page starts
+          explaining what the five days contain. It used to sit after the
+          recognition list, six sections down, which is past the point where a
+          sceptical reader has already left. */}
+      <Testimonials />
       <Experience />
       <Schedule />
       <SessionsBand />
       <Recognition />
-      <Testimonials />
       {/* The bonuses sit here, immediately above Meet Your Guide, so the
           reader has seen the proof and knows what lands in their inbox before
           they are introduced to the person delivering it. */}
       <Bonuses />
       <Guide />
-      <Mechanism />
       <Notice />
       <Promise />
       <TwoOptions />
-      <Initiative />
       <Faq />
-      <LegalNotice />
       <Footer />
     </LazyMotion>
   );

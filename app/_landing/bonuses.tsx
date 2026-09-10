@@ -28,7 +28,7 @@
 import { CheckCircle, Lightning } from '@phosphor-icons/react/dist/ssr';
 import Image from 'next/image';
 
-import { BONUS_TOTAL, BONUSES, savingPercent } from './bonus-data';
+import { BONUSES, INCLUDED_TOTAL, SCORE_REPORT, savingPercent } from './bonus-data';
 import { legoBrick, legoDelay } from './lego-style';
 import {
   C,
@@ -39,7 +39,7 @@ import {
   SectionHeading,
 } from './shared';
 
-const TOTAL = BONUS_TOTAL;
+const TOTAL = INCLUDED_TOTAL;
 const SAVING_PCT = savingPercent(PRICE);
 
 /* Inverted from the rest of the page: the copy sits on the page's pale blue,
@@ -181,11 +181,31 @@ export default function Bonuses() {
             border: `1px solid ${C.line}`,
           }}
         >
+          {/* The fifth included item. It has no cover of its own, so it is a
+              line here rather than a card above — and it is stated BEFORE the
+              total, because the total now includes it and a reader who meets
+              the figure first has to work out what changed. */}
           <p
-            className="text-[11px] font-bold uppercase tracking-[0.18em]"
+            className="mx-auto flex max-w-[420px] items-start justify-center gap-2 rounded-2xl px-3.5 py-2.5 text-[12.5px] leading-snug"
+            style={{ background: C.white, border: `1px solid ${C.line}`, color: C.inkSoft }}
+          >
+            <CheckCircle
+              weight="fill"
+              className="mt-0.5 h-3.5 w-3.5 shrink-0"
+              style={{ color: C.greenInk }}
+            />
+            <span>
+              Plus <strong style={{ color: C.ink }}>{SCORE_REPORT.title}</strong>{' '}
+              ({CURRENCY_SYMBOL}
+              {SCORE_REPORT.value} value) · Included
+            </span>
+          </p>
+
+          <p
+            className="mt-5 text-[11px] font-bold uppercase tracking-[0.18em]"
             style={{ color: C.inkMuted }}
           >
-            Total value of the four guides
+            Total value included with your place
           </p>
 
           <p className="mt-3 flex flex-wrap items-baseline justify-center gap-x-3 gap-y-1">
@@ -216,7 +236,7 @@ export default function Bonuses() {
           </p>
 
           <p className="mt-3 text-[12.5px]" style={{ color: C.inkMuted }}>
-            All four are included with your place on the challenge.
+            All of it is included with your place on the challenge.
           </p>
         </div>
       </div>

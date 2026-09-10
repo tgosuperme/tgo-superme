@@ -24,14 +24,14 @@ const SECTIONS: LegalSection[] = [
   {
     heading: 'How to ask',
     paragraphs: [
-      'Email us using the address at the foot of this page, from the address you booked with, and say that Day One was not for you.',
-      'That is the whole process. We will confirm by reply and send the money back the same way you paid.',
+      'Message us on WhatsApp, in the community group or directly, with the word REFUND, by the end of Day One. You can also email the address at the foot of this page from the address you booked with.',
+      'That is the whole process. You do not need to explain yourself. We will confirm and send the money back the same way you paid.',
     ],
   },
   {
     heading: 'How long it takes',
     paragraphs: [
-      'We process refunds within two working days of your message. Once processed, your bank or card provider usually takes a further five to ten working days to show it — that part is out of our hands.',
+      'Refunds are processed by hand rather than automatically, and we action them within 24 hours of your message. Once processed, your bank or card provider usually takes a further five to ten working days to show it — that part is out of our hands.',
       'The refund goes back to the card or account you paid from. We cannot send it somewhere else.',
     ],
   },
@@ -52,7 +52,7 @@ const SECTIONS: LegalSection[] = [
     heading: 'Missed sessions',
     paragraphs: [
       'Every day runs twice, so there are two chances to attend each session. If you miss one entirely, we cannot refund that day on its own — the session ran and the coach was there.',
-      'Replays are not guaranteed. The value of the challenge is being seen and corrected live, which is the one thing a recording cannot do.',
+      'Recordings are part of the VIP pass and are not included with a standard seat. The value of the challenge is being seen and corrected live, which is the one thing a recording cannot do.',
     ],
   },
   {

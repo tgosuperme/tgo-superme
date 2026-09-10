@@ -144,6 +144,15 @@ export type CapiEvent = {
   /** Only `sales` carries money; the other two are intent. */
   value?: number;
   currency?: string;
+  /**
+   * Which product this event is about — `pain_reset_uk` or `vip_uk`.
+   *
+   * The funnel sells two things at two prices under the same three event names,
+   * so content_name is what tells them apart in Events Manager. Omitted falls
+   * back to the seat, which is the right default for the landing-page events
+   * that happen before a plan has been chosen.
+   */
+  contentName?: string;
 };
 
 /**
@@ -184,7 +193,7 @@ export async function sendCapiEvent(e: CapiEvent): Promise<void> {
   }
 
   const customData: Record<string, unknown> = {
-    content_name: CHECKOUT_CONFIG.capi.contentName,
+    content_name: e.contentName || CHECKOUT_CONFIG.capi.contentName,
   };
   if (typeof e.value === 'number') customData.value = e.value;
   if (e.currency) customData.currency = e.currency;

@@ -1,44 +1,63 @@
 import type { Metadata } from 'next';
 
+import JoinTracker from '@/components/JoinTracker';
+import { loadConfirmation } from '@/lib/confirmation';
+
 import ThankYou from '../thank-you/ThankYou';
 
 /**
- * /confirmed · the designed confirmation page with NO payment gate.
+ * /confirmed · where a SEAT buyer lands once Stripe has confirmed the payment.
  *
- * This exists so the page can be looked at, reviewed and signed off without a
- * live Stripe session. /thank-you is the real post-payment URL and it verifies
- * the session server-side, which means it shows the "checking payment" state
- * to anyone who simply types the address — correct behaviour, but useless for
- * reviewing the design.
+ * Reached by forward from /thank-you, which is Stripe's success_url. It does
+ * not take that forward on trust: the session id is re-verified here, so typing
+ * this address shows the pending panel rather than the joining instructions.
  *
- * It renders the SAME component as /thank-you, not a copy, so the two can
- * never drift apart. Only `paid` is different: hard-coded true here.
+ * The VIP equivalent is /confirmed-plus. Both render the same component with
+ * the same content; only the top block differs.
  *
- * ── BEFORE LAUNCH ────────────────────────────────────────────────────────
- * This route shows the full joining instructions to anyone who visits, with
- * no proof of purchase. It is noindex/nofollow, but that is a crawler hint,
- * not access control. Delete this directory once the page is approved, or
- * gate it behind an env flag if it needs to stay.
+ * ── PREVIEWING THE DESIGN ─────────────────────────────────────────────────
+ * `?preview=1` renders the confirmed state without a payment, so the page can
+ * be reviewed and signed off. It only works while
+ * NEXT_PUBLIC_PREVIEW_CONFIRMATION=1 is set, and it is OFF unless that variable
+ * is present.
+ *
+ * TURN IT OFF BEFORE LAUNCH. While it is on, anyone who guesses the query
+ * string sees the full joining instructions — the WhatsApp step, the community
+ * detail, the prep — with no proof of purchase. noindex is a crawler hint, not
+ * access control. It is an env variable rather than a code change precisely so
+ * switching it off is a redeploy and not a pull request.
  */
 
 export const metadata: Metadata = {
-  title: 'Confirmation preview | 5-Day Pain Reset',
+  title: "You're in | 5-Day Pain Reset",
+  description:
+    'Your place on the 5-Day Pain Reset Challenge is confirmed. One step left: join the WhatsApp community for your session links.',
   robots: { index: false, follow: false },
 };
 
-/* Query params are read below, so this cannot be static. */
 export const dynamic = 'force-dynamic';
 
-export default function ConfirmedPreviewPage({
-  searchParams,
-}: {
-  searchParams: { name?: string; email?: string };
-}) {
+type Search = {
+  searchParams: { session_id?: string; preview?: string; name?: string };
+};
+
+export default async function ConfirmedPage({ searchParams }: Search) {
+  const { paid, firstName, email } = await loadConfirmation(searchParams.session_id);
+
+  /* Off unless the env flag is explicitly set — see the note above. */
+  const preview =
+    process.env.NEXT_PUBLIC_PREVIEW_CONFIRMATION === '1' &&
+    searchParams.preview === '1';
+
   return (
-    <ThankYou
-      paid
-      firstName={searchParams.name ?? ''}
-      email={searchParams.email ?? ''}
-    />
+    <>
+      {/* GA join_whatsapp, on all three WhatsApp buttons. */}
+      <JoinTracker />
+      <ThankYou
+        paid={paid || preview}
+        firstName={firstName || (preview ? (searchParams.name ?? '') : '')}
+        email={email}
+      />
+    </>
   );
 }

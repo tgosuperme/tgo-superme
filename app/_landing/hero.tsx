@@ -7,10 +7,22 @@
  * play button, stat glyphs). No large colour areas, no gradient surfaces, no
  * decorative shapes. The page background stays white.
  *
- * Copy is verbatim from the signed-off PDF. Three devices from the reference
- * page are deliberately absent and must stay absent, because the UK rules this
- * page was reviewed against forbid all three: a rising-price line, a struck
- * list price with a savings badge, and a percentage outcome claim.
+ * ── COPY AND COMPLIANCE, UPDATED FOR THE SEAT-HOLD OFFER ──────────────────
+ * This page previously carried a note that a struck list price and a percentage
+ * outcome claim were both forbidden. The UK brief that replaced it asks for
+ * both, deliberately and with the reasoning stated:
+ *
+ *   · The struck figure is a REAL comparison — five live group sessions at the
+ *     app's own per-session rate — not a former price of this offer, and it is
+ *     labelled as such. It is never presented as "was £23, now £1.99".
+ *   · The 10–80% range is the headline the brief specifies, and it is qualified
+ *     in the line directly beneath it: "Results vary from person to person."
+ *     That qualifier is not decoration and must not be dropped.
+ *
+ * A rising-price line remains absent: the UK offer is one price, one page.
+ *
+ * TWO HEADLINES ARE RENDERED. Variant A is the default; ?h=b selects B. Both
+ * sit in the HTML and CSS picks one — see the pre-paint script in app/layout.
  */
 import {
   ArrowRight,
@@ -30,10 +42,11 @@ import BrandMark from '@/components/BrandMark';
 
 import { legoBrick, legoDelay } from './lego-style';
 import {
+  ANCHOR_LABEL,
   C,
-  CHECKOUT_HREF,
+  OTO_HREF,
   PRICE_LABEL,
-  SESSION_TIMES,
+  SESSION_TIMES_TZ,
   START_DATE,
 } from './shared';
 
@@ -97,13 +110,13 @@ export function OfferStrip() {
     >
       {/* Two centred lines on a phone, split between WHAT the offer is and
           WHEN it runs. One line from sm up, where it fits. */}
-      <span className="font-semibold">Special offer:</span> 5-Day Pain Reset
-      Challenge for {PRICE_LABEL}
+      <span className="font-semibold">5-Day Pain Reset Challenge</span> ·{' '}
+      {PRICE_LABEL}, refunded after Day 1 if it&apos;s not for you
       <br className="sm:hidden" />
       <span className="mx-2" style={{ color: C.blue }}>
         ·
       </span>
-      Live, starts {START_DATE}, {SESSION_TIMES}
+      Starts {START_DATE} · {SESSION_TIMES_TZ}
     </div>
   );
 }
@@ -124,7 +137,7 @@ export function SiteHeader() {
 /* ── the three information pills under the CTA ────────────────────────── */
 const PILLS = [
   { icon: CalendarBlank, text: `Starts ${START_DATE}`, bed: C.lightBlue, fg: C.skyInk },
-  { icon: Clock, text: SESSION_TIMES, bed: C.peachBed, fg: C.peachInk },
+  { icon: Clock, text: SESSION_TIMES_TZ, bed: C.peachBed, fg: C.peachInk },
   { icon: VideoCamera, text: 'Live on Zoom', bed: C.mintBed, fg: C.mintInk },
 ];
 
@@ -156,8 +169,8 @@ export function Hero() {
             {/* Wrapped so the two mobile lines centre against each other
                 rather than ragging off the dot. */}
             <span className="text-center">
-              For Adults 35+ With Persistent Back,
-              <br className="sm:hidden" /> Neck or Knee Pain
+              For Adults 35+ With Back, Neck Or Knee
+              <br className="sm:hidden" /> Pain That Keeps Coming Back
             </span>
           </span>
 
@@ -187,39 +200,70 @@ export function Hero() {
               The same measure as the standfirst below (`max-w-[560px]
               mx-auto`), so the headline, the paragraph and the CTA all share
               one set of left and right edges instead of each finding its own. */}
+          {/* ── the two headlines ──────────────────────────────────────
+              Both render; `.hv` in globals.css shows exactly one, chosen
+              before paint. The <h1> wraps both, so the document keeps a single
+              top-level heading whichever variant is live. */}
           <h1
             className="mx-auto mt-6 max-w-[560px] text-balance font-heading text-[30px] font-bold leading-[1.14] tracking-[-0.02em] sm:text-[38px] lg:mx-0 lg:max-w-none lg:text-[46px]"
             style={{ color: C.ink }}
           >
-            {/* A plain full stop, tight against the mark and outside it so the
-                wash does not cover the punctuation. It ends the sentence and
-                lets the next one run straight on, which is what keeps the
-                block filling every line. */}
-            
-            Ease <span style={{ color: C.hlCoral }}>Back</span>,{' '}
-            <span style={{ color: C.hlMint }}>Neck</span> &amp;{' '}
-            <span style={{ color: C.hlYellow }}>Knee</span> Pain With Just{' '}
-            <Mark>1 Hour</Mark> A Day,{' '}
-            <span style={{ color: C.hlBlue }}>LIVE</span> With An Expert Coach
+            <span className="hv" data-hv="a">
+              Feel <Mark>10–80%</Mark> Less{' '}
+              <span style={{ color: C.hlCoral }}>Back</span>,{' '}
+              <span style={{ color: C.hlMint }}>Neck</span> or{' '}
+              <span style={{ color: C.hlYellow }}>Knee</span> Pain in{' '}
+              <Mark>5 Live Days</Mark>
+            </span>
+            {/* B is appreciably longer, so it steps down a size of its own
+                rather than pushing the CTA off a laptop's first screen. */}
+            <span
+              className="hv text-[26px] leading-[1.16] sm:text-[33px] lg:text-[40px]"
+              data-hv="b"
+            >
+              Ease <span style={{ color: C.hlCoral }}>Back</span>,{' '}
+              <span style={{ color: C.hlMint }}>Neck</span> &amp;{' '}
+              <span style={{ color: C.hlYellow }}>Knee</span> Pain in{' '}
+              <Mark>5 Live Days</Mark>, Without Painkillers, a Physio Waiting
+              List or Another YouTube Routine
+            </span>
           </h1>
 
+          {/* Line 2 pairs with the headline, so it varies with it. */}
           <p
             className="mx-auto mt-5 max-w-[560px] text-[16px] leading-relaxed lg:mx-0"
             style={{ color: C.inkSoft }}
           >
-            A live, coach-led pain reset challenge that combines guided
-            movement, breath work, strengthening and real-time correction to
-            ease stiffness, improve mobility, and make everyday movement feel
-            easier again. Starts {START_DATE}, live on Zoom.
+            <span className="hv" data-hv="a">
+              Without painkillers, a 12-week physio waiting list or another
+              YouTube routine.
+            </span>
+            <span className="hv" data-hv="b">
+              Most people see their own pain score drop by Day 4.
+            </span>
+          </p>
+
+          {/* Line 3, common to both. The last sentence is the qualifier the
+              10–80% claim depends on and must not be dropped. */}
+          <p
+            className="mx-auto mt-3 max-w-[560px] text-[15px] leading-relaxed lg:mx-0"
+            style={{ color: C.inkSoft }}
+          >
+            Score your pain on Day 1. Score it again on Day 4. See your own
+            number drop.{' '}
+            <span style={{ color: C.inkMuted }}>
+              Results vary from person to person.
+            </span>
           </p>
 
           <div className="mt-8 flex justify-center lg:justify-start">
             <Link
-              href={CHECKOUT_HREF}
+              href={OTO_HREF}
+              data-cta-primary=""
               className="lego-press lego-pulse-glow group inline-flex min-h-[56px] w-full items-center justify-center gap-2.5 rounded-full px-8 text-[15.5px] font-semibold text-white sm:w-auto"
               style={{ background: C.blueFill }}
             >
-              Start Your 5-Day Reset · {PRICE_LABEL}
+              Hold My Seat · {PRICE_LABEL}
               <ArrowRight
                 weight="bold"
                 className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5"
@@ -228,11 +272,16 @@ export function Hero() {
           </div>
 
           <p
-            className="mt-3.5 flex items-center justify-center gap-2 text-[13.5px] lg:justify-start"
+            className="mx-auto mt-3.5 flex max-w-[560px] items-start justify-center gap-2 text-[13.5px] leading-snug lg:mx-0 lg:justify-start"
             style={{ color: C.inkMuted }}
           >
-            <ShieldCheck weight="fill" className="h-4 w-4" style={{ color: C.green }} />
-            100% Money Back Guarantee
+            <ShieldCheck
+              weight="fill"
+              className="mt-0.5 h-4 w-4 shrink-0"
+              style={{ color: C.green }}
+            />
+            Come to Day 1. If it&apos;s not for you, your {PRICE_LABEL} is
+            refunded the same day.
           </p>
 
           <ul className="mt-7 flex flex-wrap justify-center gap-2.5 lg:justify-start">
@@ -302,40 +351,57 @@ export function Hero() {
             <div className="px-6 pb-6 pt-3">
               <span
                 className="inline-flex items-center rounded-full px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-[0.14em]"
-                style={{ background: C.lightBlue, color: C.skyInk }}
+                style={{ background: C.goldSoft, color: C.goldDeep }}
               >
-                The Inner Brace Method™
+                Seat hold · {PRICE_LABEL}
               </span>
 
               <h2
                 className="mt-3 font-heading text-[23px] font-bold leading-tight"
                 style={{ color: C.ink }}
               >
-                5-Day Pain Reset Challenge
+                The Inner Brace Method™ · 5-Day Pain Reset Challenge
               </h2>
               <p className="mt-1.5 text-[13.5px]" style={{ color: C.inkMuted }}>
                 Live coach-led · Back, Neck &amp; Knee · Zoom · 2 session timings
               </p>
 
-              {/* One price, stated once. No "was", no savings badge. */}
-              <div className="mt-5 flex items-baseline gap-2.5">
+              {/* The struck figure is a COMPARISON, not a former price of this
+                  offer: five live group sessions at the app's own per-session
+                  rate, said in the line underneath. aria-hidden because a
+                  screen reader announcing two prices back to back reads as a
+                  genuine price change rather than a comparison. */}
+              <div className="mt-5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
                 <span
                   className="font-heading text-[42px] font-bold leading-none"
                   style={{ color: C.ink }}
                 >
                   {PRICE_LABEL}
                 </span>
-                <span className="text-[13px]" style={{ color: C.inkMuted }}>
-                  100% Money Back Guarantee
+                <span
+                  aria-hidden
+                  className="font-heading text-[22px] font-semibold leading-none line-through"
+                  style={{ color: C.inkMuted, textDecorationThickness: '2px' }}
+                >
+                  {ANCHOR_LABEL}
                 </span>
               </div>
+              <p className="mt-2 text-[12.5px] leading-snug" style={{ color: C.inkMuted }}>
+                {ANCHOR_LABEL} is five live group sessions at our own
+                per-session rate.
+              </p>
+
+              <p className="mt-3 text-[13px] leading-snug" style={{ color: C.inkSoft }}>
+                {PRICE_LABEL} holds your seat, so the room is people who turn
+                up. Refunded after Day 1 if it&apos;s not for you.
+              </p>
 
               <Link
-                href={CHECKOUT_HREF}
+                href={OTO_HREF}
                 className="lego-press lego-pulse-glow group mt-5 inline-flex min-h-[54px] w-full items-center justify-center gap-2.5 rounded-2xl text-[15.5px] font-semibold text-white"
                 style={{ background: C.blueFill }}
               >
-                Reserve My Spot
+                Hold My Seat · {PRICE_LABEL}
                 <ArrowRight
                   weight="bold"
                   className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5"
@@ -347,7 +413,7 @@ export function Hero() {
                 style={{ color: C.inkMuted }}
               >
                 <Lock weight="fill" className="h-3 w-3" />
-                100% secure · Card / Apple Pay / Google Pay
+                Stripe Secured · Visa · Mastercard · AmEx
               </p>
             </div>
           </div>

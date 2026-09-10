@@ -37,6 +37,7 @@ import {
   CheckCircle,
   Clock,
   Confetti,
+  Crown,
   EnvelopeSimple,
   Heart,
   Note,
@@ -50,16 +51,21 @@ import Link from 'next/link';
 
 import BrandMark from '@/components/BrandMark';
 import ConfettiBurst from '@/components/ConfettiBurst';
+import { VIP_BENEFITS } from '@/lib/checkout-config';
 
 import { legoBrick, legoDelay } from '../_landing/lego-style';
 import MobileCtaBar, { MOBILE_CTA_BAR_SPACE } from '../_landing/mobile-cta-bar';
 import {
   C,
+  DATE_RANGE,
+  IMPORTANT_INFO_HREF,
   LEGAL_LINKS,
+  OTO_HREF,
   PRICE_LABEL,
   SESSION_TIMES_TZ,
   SESSIONS_LABEL,
   START_DATE,
+  VIP_PRICE_LABEL,
   WHATSAPP_COMMUNITY_URL,
 } from '../_landing/shared';
 
@@ -70,6 +76,12 @@ export type ThankYouProps = {
   paid?: boolean;
   firstName?: string;
   email?: string;
+  /**
+   * Rendered for /confirmed-plus. Adds the VIP panel above the diary facts and
+   * swaps the price in the opening paragraph. Everything else is unchanged,
+   * because everything else IS the same challenge.
+   */
+  vip?: boolean;
 };
 
 /**
@@ -179,11 +191,14 @@ const COMMUNITY = [
   { icon: ShieldCheck, text: 'Updates directly from Atul' },
 ];
 
-/* Reference's shape, SuperMe's actual terms. */
+/* Reference's shape, SuperMe's actual terms. The third line changed when the
+   VIP pass launched: recordings used to be included for everyone, and saying
+   so here while the OTO sells them as the upgrade is the kind of contradiction
+   that arrives as a refund request. */
 const POLICY = [
-  'No moving to a later cohort once this one starts',
-  'Live sessions are where the correction happens',
-  'Replays are not guaranteed for a session you miss',
+  'No rescheduling to a future cohort',
+  'No refunds for missed sessions',
+  'Recordings are part of the VIP pass only',
 ];
 
 const PREP = [
@@ -279,13 +294,16 @@ function PendingState({ email }: { email: string }) {
             did not do.
           </p>
 
+          {/* Back to the OTO, not straight to the form: whatever they chose is
+              not recoverable from here, so sending them to the checkout would
+              silently reopen it as a seat regardless of what they were buying. */}
           <Link
-            href="/checkout"
+            href={OTO_HREF}
             className="lego-press mt-7 inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full px-7 text-[15px] font-semibold text-white"
             style={{ background: C.blueFill }}
           >
             <ArrowLeft weight="bold" className="h-4 w-4" />
-            Back to checkout
+            Start again
           </Link>
         </div>
       </div>
@@ -297,8 +315,11 @@ export default function ThankYou({
   paid = false,
   firstName = '',
   email = '',
+  vip = false,
 }: ThankYouProps) {
   if (!paid) return <PendingState email={email} />;
+
+  const paidLabel = vip ? VIP_PRICE_LABEL : PRICE_LABEL;
 
   return (
     <main className="font-body" style={{ background: C.paleBlue, color: C.ink }}>
@@ -340,7 +361,8 @@ export default function ThankYou({
           >
             {/* Stripe gives us the first name from the checkout metadata when
                 it has one; the headline reads correctly either way. */}
-            {firstName ? `${firstName}, your` : 'Your'} 5-Day Pain Reset is{' '}
+            {firstName ? `${firstName}, your` : 'Your'}{' '}
+            {vip ? 'VIP place is' : '5-Day Pain Reset is'}{' '}
             <span style={{ color: C.goldDeep }}>Confirmed.</span>
           </h1>
 
@@ -349,7 +371,7 @@ export default function ThankYou({
             className="mx-auto mt-4 max-w-[560px] text-[15.5px] leading-relaxed"
             style={{ ...legoDelay(3, 80), color: C.inkSoft }}
           >
-            That is {PRICE_LABEL} paid and your place held on the live 5-Day
+            That is {paidLabel} paid and your place held on the live 5-Day
             Pain Reset Challenge with Atul. Your joining email is on its way
             {email ? ` to ${email}` : ''}. Please read this page before you
             close it — there is one step left, and your session links come
@@ -357,13 +379,80 @@ export default function ThankYou({
           </p>
         </div>
 
+        {/* ── 1b · VIP · only on /confirmed-plus ───────────────────────
+            Sits ABOVE the diary facts, because it is the one thing on this
+            page a VIP buyer does not already know from the seat confirmation.
+            The list is imported rather than retyped: the OTO page sold these
+            four lines, and a confirmation that promises a fifth thing, or drops
+            one, is how a refund request starts. */}
+        {vip && (
+          <section
+            data-lego=""
+            className="mt-9 overflow-hidden rounded-3xl px-6 py-8 sm:px-9"
+            style={{
+              ...legoDelay(4, 80),
+              background: C.white,
+              border: `1px solid ${C.gold}`,
+              boxShadow: '0 24px 50px -30px rgba(191,148,42,0.55)',
+            }}
+          >
+            <div className="flex flex-col items-center gap-3 text-center sm:flex-row sm:items-center sm:gap-4 sm:text-left">
+              <span
+                className="lego-stud grid h-12 w-12 shrink-0 place-items-center rounded-2xl"
+                style={{ background: C.goldSoft }}
+              >
+                <Crown weight="fill" className="h-6 w-6" style={{ color: C.goldDeep }} />
+              </span>
+              <span className="min-w-0">
+                <span
+                  className="block text-[10.5px] font-bold uppercase tracking-[0.2em]"
+                  style={{ color: C.goldDeep }}
+                >
+                  VIP pass active
+                </span>
+                <span
+                  className="mt-1 block font-heading text-[19px] font-bold leading-snug"
+                  style={{ color: C.ink }}
+                >
+                  Your recordings, extra guides and priority correction are on.
+                </span>
+              </span>
+            </div>
+
+            <ul className="mt-6 grid gap-2.5">
+              {VIP_BENEFITS.map((line, i) => (
+                <li
+                  key={line}
+                  data-lego=""
+                  className="flex items-start gap-3 rounded-2xl px-4 py-3"
+                  style={{ ...legoBrick(i, 70), background: C.goldSoft }}
+                >
+                  <CheckCircle
+                    weight="fill"
+                    className="mt-0.5 h-4 w-4 shrink-0"
+                    style={{ color: C.goldDeep }}
+                  />
+                  <span className="text-[13.5px] leading-snug" style={{ color: C.ink }}>
+                    {line}
+                  </span>
+                </li>
+              ))}
+            </ul>
+
+            <p className="mt-4 text-[12.5px] leading-snug" style={{ color: C.inkMuted }}>
+              Recordings are posted in the same WhatsApp community as everything
+              else, so the step below still applies to you.
+            </p>
+          </section>
+        )}
+
         {/* ── 2 · the two diary facts ──────────────────────────────── */}
         <ul className="mx-auto mt-9 grid max-w-[560px] gap-3 sm:grid-cols-2">
           {[
             {
               icon: CalendarBlank,
-              label: 'Challenge starts',
-              value: START_DATE,
+              label: 'Challenge runs',
+              value: DATE_RANGE,
               bed: C.lightBlue,
               ink: C.skyInk,
             },
@@ -427,7 +516,10 @@ export default function ThankYou({
             style={{ background: 'rgba(255,255,255,0.22)', color: '#FFFFFF' }}
           >
             <WarningCircle weight="fill" className="h-3 w-3" />
-            Important · step 1 of 1
+            {/* No "step 1 of 1". A counter that never counts past one is not
+                telling the reader where they are, it is just noise around the
+                only instruction on the page. */}
+            Important
           </span>
 
           <h2
@@ -618,7 +710,9 @@ export default function ThankYou({
             style={{ color: C.mintInk }}
           />
           <span>
-            <strong>100% Money Back Guarantee.</strong>
+            <strong>Your guarantee.</strong> Attend Day 1, message us in the
+            community or on WhatsApp by the end of that day, and your{' '}
+            {paidLabel} is refunded within 24 hours.
           </span>
         </p>
 
@@ -715,13 +809,16 @@ export default function ThankYou({
           SuperMe · The Inner Brace Method™
         </p>
         <p className="mx-auto mt-4 max-w-[680px] text-[11.5px] leading-relaxed">
-          SuperMe is a yoga and movement education service. It is not a medical
-          service and is not a substitute for medical care. Nothing here is
-          medical advice, a diagnosis or a treatment plan. Atul Mishra is a yoga
-          teacher, not a doctor, physiotherapist or registered clinician. Please
-          speak with your GP or clinician before starting if you have not been
-          cleared to exercise. Do not push through pain during any session.
-          Results vary from person to person.
+          SuperMe is a yoga and movement education service, not medical care.
+          Not a substitute for medical advice; see your GP for persistent or
+          severe pain. Results vary from person to person.{' '}
+          <Link
+            href={IMPORTANT_INFO_HREF}
+            className="underline underline-offset-2 transition-colors duration-200 hover:text-white"
+          >
+            Read the full note
+          </Link>
+          .
         </p>
         <ul className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[12px]">
           {LEGAL_LINKS.map(({ href, label }) => (
@@ -753,11 +850,17 @@ export default function ThankYou({
           Not gated on HAS_INVITE. A missing invite makes the button flat and
           non-clickable, the same as the two in-flow ones — the page keeps
           saying there is one step left either way. */}
+      {/* Label and note both sized to FIT at 390px rather than to be truncated
+          there. The old pair — "Step 1 of 1 · Join WhatsApp" over "Your Zoom
+          links come through it" — clipped to "Join What…" and "…come through
+          i", which reads as a broken bar rather than a tight one.
+
+          No `trailing` either. That slot is for a fact the button does not
+          already carry, and here it repeated the button's own instruction. */}
       <MobileCtaBar
         watch="[data-join-cta]"
-        label="Step 1 of 1"
-        trailing="Join WhatsApp"
-        note="Your Zoom links come through it"
+        label="Join the community"
+        note="Your Zoom links are inside"
       >
         <JoinButton compact tone="solid" label="Join Now" />
       </MobileCtaBar>
