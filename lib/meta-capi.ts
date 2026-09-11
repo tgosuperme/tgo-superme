@@ -18,6 +18,23 @@ import { CHECKOUT_CONFIG } from '@/lib/checkout-config';
  * one Meta reserves, so it arrives as a custom conversion and gets used from
  * Events Manager.
  *
+ * ── THIS DATASET IS HEALTH & WELLNESS RESTRICTED ────────────────────────────
+ * That is not a style preference, it decides what may be sent, and it is why
+ * three things in this file look the way they do:
+ *
+ *   1. CUSTOM NAMES, NOT STANDARD ONES. A restricted dataset has Meta's
+ *      standard events blocked BY NAME — AddToCart, InitiateCheckout and
+ *      Purchase would be dropped. Custom names keep flowing and keep
+ *      optimising, which is the only reason this funnel reports at all.
+ *   2. custom_data CARRIES MONEY AND NOTHING ELSE. No content_name, no
+ *      content_category. A price is not health data; "pain_reset" is.
+ *   3. event_source_url IS THE ORIGIN ONLY. The path names the funnel step and
+ *      the query carries every UTM and the fbclid.
+ *
+ * MATCH KEYS ARE UNAFFECTED — email, phone, name, city, country, fbc, fbp, IP
+ * and user agent all still go, so EMQ does not move. The restriction is about
+ * describing the CONDITION, never about identifying the person.
+ *
  * ── SERVER ONLY. THE BROWSER FIRES NOTHING BUT PageView ─────────────────────
  * All three events are sent from here and ONLY from here. There is no browser
  * half to deduplicate against.
@@ -144,16 +161,31 @@ export type CapiEvent = {
   /** Only `sales` carries money; the other two are intent. */
   value?: number;
   currency?: string;
-  /**
-   * Which product this event is about — `pain_reset_uk` or `vip_uk`.
-   *
-   * The funnel sells two things at two prices under the same three event names,
-   * so content_name is what tells them apart in Events Manager. Omitted falls
-   * back to the seat, which is the right default for the landing-page events
-   * that happen before a plan has been chosen.
-   */
-  contentName?: string;
+  /* THERE IS NO `contentName` HERE ANY MORE, and it must not come back.
+     It carried `pain_reset_uk` / `vip_uk` into custom_data.content_name on
+     every event; "pain_reset" is a condition string and this dataset is
+     Health & Wellness restricted. The two products are separated by `value`
+     instead — see the note in sendCapiEvent. The field is REMOVED rather than
+     ignored so a caller cannot pass one believing it still does something. */
 };
+
+/**
+ * "https://5day.mysuperme.com/checkout?plan=vip&utm_campaign=…"
+ *   → "https://5day.mysuperme.com"
+ *
+ * Returns undefined for a blank or unparseable value, so a malformed URL is
+ * simply omitted rather than becoming a rejected event. The host itself is the
+ * last residual signal and this one is clean: `5day.mysuperme.com` carries no
+ * condition word. A subdomain that did would need renaming, not stripping.
+ */
+function hostOnly(url: string | undefined): string | undefined {
+  if (!url) return undefined;
+  try {
+    return new URL(url).origin;
+  } catch {
+    return undefined;
+  }
+}
 
 /**
  * Sends one event to the Conversions API.
@@ -192,9 +224,26 @@ export async function sendCapiEvent(e: CapiEvent): Promise<void> {
     if (userData[k] === undefined) delete userData[k];
   }
 
-  const customData: Record<string, unknown> = {
-    content_name: e.contentName || CHECKOUT_CONFIG.capi.contentName,
-  };
+  /* ── HEALTH & WELLNESS · custom_data CARRIES MONEY AND NOTHING ELSE ───
+     This dataset is categorised "Health and wellness condition" in Events
+     Manager. Under that restriction nothing sent to Meta may describe a
+     health condition, symptom or treatment.
+
+     content_name IS GONE. It carried `pain_reset_uk` / `vip_uk` on every
+     event, and "pain_reset" is a condition string — exactly what gets a
+     custom event reclassified as sensitive and filtered, which would take
+     the whole funnel's reporting down rather than just that one field.
+
+     ── HOW THE TWO PRODUCTS ARE STILL TOLD APART ───────────────────────
+     By `value`. The seat reports 1.99 and VIP reports 9.99 under the same
+     `sales` name, which is the separation the ad account actually bids on,
+     and a price is not health data. The human-readable split lives on the
+     Pabbly row, where `plan`, `plan_name` and `content_name` all survive —
+     that sheet is ours and is not subject to this restriction.
+
+     DO NOT reintroduce a product, category or content string here. A
+     "neutral" code word is not worth the re-review it risks. */
+  const customData: Record<string, unknown> = {};
   if (typeof e.value === 'number') customData.value = e.value;
   if (e.currency) customData.currency = e.currency;
 
@@ -203,7 +252,17 @@ export async function sendCapiEvent(e: CapiEvent): Promise<void> {
     event_time: e.eventTime,
     event_id: e.eventId,
     action_source: 'website',
-    event_source_url: e.eventSourceUrl || undefined,
+    /* ── HEALTH & WELLNESS · ORIGIN ONLY, NEVER THE FULL URL ─────────
+       The full URL leaked two things a restricted dataset must not receive:
+       the PATH, which names the funnel step, and the QUERY STRING, which
+       carries every UTM and the fbclid. A campaign name written by someone
+       not thinking about compliance is the likeliest way a condition string
+       ever reaches Meta from this funnel.
+
+       Attribution is untouched — Meta attributes on fbc/fbp, never on this
+       field — and the full URL with its UTMs still reaches the CRM row,
+       which is where anything actually reads it. */
+    event_source_url: hostOnly(e.eventSourceUrl),
     user_data: userData,
     custom_data: customData,
   };

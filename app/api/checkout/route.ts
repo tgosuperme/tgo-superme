@@ -302,9 +302,13 @@ export async function POST(req: Request) {
           /* The plan's own price and content_name, not the seat's defaults —
              an ic_event for a VIP checkout that reports the seat's value
              teaches the ad account to bid for the wrong thing. */
+          /* The plan's OWN price, not the seat's default — an ic_event for a
+             VIP checkout that reports the seat's value teaches the ad account
+             to bid for the wrong thing. With content_name gone for H&W, this
+             number is also the only thing separating the two products in
+             Events Manager, so it has to be the real one. */
           value: plan.priceGbp,
           currency: CHECKOUT_CONFIG.capi.currency,
-          contentName: plan.contentName,
         });
       } catch (err) {
         /* Logged, never thrown: the session is already open and the buyer is

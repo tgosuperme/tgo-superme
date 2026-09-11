@@ -225,7 +225,10 @@ export const CHECKOUT_CONFIG = {
       initiateCheckout: 'ic_event',
       sale: 'sales',
     },
-    contentName: PLANS.seat.contentName,
+    /* `contentName` was here and is deliberately gone: nothing sends a
+       content_name to Meta any more, because this dataset is Health & Wellness
+       restricted. PLANS[].contentName survives — it still labels the Pabbly
+       row and the Stripe metadata, neither of which is Meta. */
     value: PRICE_GBP,
     currency: 'GBP',
   } as const,

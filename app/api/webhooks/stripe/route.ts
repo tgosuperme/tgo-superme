@@ -230,12 +230,16 @@ async function onPaid(session: Stripe.Checkout.Session) {
           clientIp: m.clientIp,
           clientUserAgent: m.clientUserAgent,
         },
+        /* WHAT STRIPE ACTUALLY CHARGED, in major units — not a figure from
+           config. A seat reports 1.99 and a VIP 9.99 without this code knowing
+           which page took the money, and it keeps reporting the truth if a
+           price changes, a coupon lands or a new tier is added.
+
+           With content_name removed for H&W, this is also the only thing
+           separating the two products under the shared `sales` name — which is
+           fine, because value is what the ad account bids on anyway. */
         value: minor / 100,
         currency: sale.currency,
-        /* pain_reset_uk or vip_uk. The two products are reported under the
-           same `sales` event name, so this is what separates them in Events
-           Manager and lets the ad account value them differently. */
-        contentName: plan.contentName,
       });
     } catch (err) {
       /* Logged, not thrown. A CAPI outage must not force Stripe to retry the

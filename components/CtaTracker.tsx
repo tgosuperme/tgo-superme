@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 
+import { CHECKOUT_CONFIG } from '@/lib/checkout-config';
 import { GA_EVENTS, GA_VALUE, gaEvent } from '@/lib/ga';
 
 import { getFbc, newEventId, readCookie } from './MetaPixel';
@@ -31,7 +32,26 @@ import { getFbc, newEventId, readCookie } from './MetaPixel';
  * makes a retry or a double-click collapse into one conversion at Meta's end.
  */
 
-const CHECKOUT_PATH = '/checkout';
+/**
+ * The paths a landing-page CTA is allowed to point at, READ FROM THE CONFIG
+ * rather than typed here.
+ *
+ * ── THE BUG THIS REPLACES ───────────────────────────────────────────────────
+ * This was the single literal '/checkout'. Then the OTO shipped and every
+ * landing CTA was repointed at '/oto' — correctly, since a buyer who reaches
+ * the form without passing the upgrade choice has silently been sold the
+ * cheaper thing. This filter was not updated with them, so from that commit
+ * onward NOTHING matched: no atc_event reached Meta and no add_to_cart reached
+ * GA, from any button on the page, and nothing errored to say so.
+ *
+ * Deriving both paths from CHECKOUT_CONFIG is what stops it happening again.
+ * The funnel can gain or rename a step and this follows it.
+ *
+ * Both are watched rather than just the OTO: a CTA pointing straight at the
+ * checkout is still a CTA, and an atc_event is worth more than the tidiness of
+ * insisting there is only one door.
+ */
+const CTA_PATHS = [CHECKOUT_CONFIG.otoPath, CHECKOUT_CONFIG.checkoutPath];
 
 export default function CtaTracker({ eventName }: { eventName: string }) {
   useEffect(() => {
@@ -43,7 +63,7 @@ export default function CtaTracker({ eventName }: { eventName: string }) {
       /* getAttribute, not link.href: the latter is resolved to an absolute URL
          and would need parsing to compare. */
       const href = link.getAttribute('href') ?? '';
-      if (!href.startsWith(CHECKOUT_PATH)) return;
+      if (!CTA_PATHS.some((p) => href.startsWith(p))) return;
 
       const eventId = newEventId();
       /* GA4 only. Meta's atc_event is sent by /api/track below — the browser
