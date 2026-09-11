@@ -9,13 +9,19 @@
  * seat is booked". It says "here is what you are about to buy, and here is the
  * one decision left".
  *
- * TWO PACKAGES, NOT A BASKET
- * The seat is always in and cannot be removed — that is the product. The VIP
- * pass is an UPGRADE of it, not a second line item, so £9.99 is the whole
- * price and not £1.99 plus £9.99. That distinction is the one thing this page
- * has to get across without being read twice, which is why the VIP price
- * carries "total, including your seat" directly under it and the total row
- * restates the single figure that will be charged.
+ * TWO PACKAGES, PICK ONE — NOT A BASKET
+ * The cards are a RADIO PAIR, defaulting to the seat. They are alternatives:
+ * £9.99 is a total that already contains the seat, not an amount added to it,
+ * so £1.99 + £9.99 is never a thing anyone pays. That is the one point this
+ * page has to land without being read twice, which is why the VIP price carries
+ * "total, seat included" directly under it and the total row restates the single
+ * figure that will be charged.
+ *
+ * It was a checkbox on the VIP card before. A checkbox says the other card is a
+ * fixed baseline with something bolted on top — exactly the misreading above.
+ * A radio pair cannot say that, and it also removes the empty state: one option
+ * is always chosen, so the continue button never needs guarding against nothing
+ * being selected.
  *
  * The choice travels to the checkout as ?plan=, and the checkout sends it to
  * /api/checkout, which prices it from the server's own table. Nothing here can
@@ -28,17 +34,16 @@ import {
   CheckCircle,
   Clock,
   Crown,
-  Lock,
   ShieldCheck,
   VideoCamera,
 } from '@phosphor-icons/react/dist/ssr';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import BrandMark from '@/components/BrandMark';
 import PaymentLogos from '@/components/PaymentLogos';
-import { PLANS, VIP_BENEFITS } from '@/lib/checkout-config';
+import { DEFAULT_PLAN, type PlanId, PLANS, VIP_BENEFITS } from '@/lib/checkout-config';
 import { GA_EVENTS, gaEvent } from '@/lib/ga';
 
 import { legoBrick, legoDelay } from '../_landing/lego-style';
@@ -60,23 +65,153 @@ const SEAT_INCLUDES = [
   { icon: ShieldCheck, text: 'Your own Day 1 to Day 4 progress score, see your own change' },
 ];
 
+/**
+ * One of the two plan cards.
+ *
+ * A RADIO, not a checkbox. The two cards are alternatives — £9.99 is a total
+ * that already contains the seat, not an amount added to it — and a radio pair
+ * is the control that says so. A checkbox on one card implies the other is a
+ * fixed baseline with something bolted on, which is the misreading this page
+ * exists to prevent.
+ *
+ * THE WHOLE CARD IS THE CONTROL. A card this size that only responds on one
+ * small row reads as broken: people tap the price, the title, or the benefit
+ * they actually care about, and nothing happens. So the <section> carries the
+ * role, the checked state, focus and the keys, and the pill inside is an
+ * aria-hidden span that shows state without owning it. Nesting a real input in
+ * a clickable card would double-fire and is invalid markup besides.
+ */
+function PlanRadio({
+  selected,
+  onSelect,
+  onArrow,
+  label,
+  delay,
+  innerRef,
+  children,
+}: {
+  selected: boolean;
+  onSelect: () => void;
+  /** Arrow keys move within a radiogroup, and moving also selects. */
+  onArrow: () => void;
+  label: string;
+  delay: number;
+  innerRef: React.RefObject<HTMLElement>;
+  children: React.ReactNode;
+}) {
+  return (
+    <section
+      ref={innerRef}
+      role="radio"
+      aria-checked={selected}
+      aria-label={label}
+      /* Roving tabindex: one stop for the whole group, on the chosen option,
+         which is how a radiogroup is meant to behave. Two tab stops would make
+         the pair feel like two unrelated controls. */
+      tabIndex={selected ? 0 : -1}
+      onClick={onSelect}
+      onKeyDown={(e) => {
+        if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          onSelect();
+        } else if (
+          e.key === 'ArrowRight' ||
+          e.key === 'ArrowDown' ||
+          e.key === 'ArrowLeft' ||
+          e.key === 'ArrowUp'
+        ) {
+          /* With exactly two options every arrow lands on the other one, so
+             there is no wrap-around logic to get wrong. */
+          e.preventDefault();
+          onArrow();
+        }
+      }}
+      data-lego=""
+      className="relative flex cursor-pointer flex-col rounded-3xl p-6 transition-shadow duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:p-7"
+      style={{
+        ...legoDelay(delay, 90),
+        background: C.white,
+        /* Selection is carried by the border and the shadow, not by a
+           background change: the card holds a list the reader is still reading,
+           and re-tinting the bed underneath moves the contrast of every line at
+           the moment they are deciding. */
+        border: `2px solid ${selected ? C.gold : C.line}`,
+        boxShadow: selected ? '0 26px 54px -30px rgba(16,84,194,0.45)' : 'none',
+        ['--tw-ring-color' as string]: C.goldDeep,
+      }}
+    >
+      {children}
+    </section>
+  );
+}
+
+/** The state indicator inside a plan card. Shows; does not own. */
+function RadioPill({
+  selected,
+  children,
+}: {
+  selected: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <span
+      aria-hidden
+      className="mt-5 flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-left transition-colors duration-200"
+      style={{
+        background: selected ? C.goldSoft : C.paleBlue,
+        border: `1px solid ${selected ? C.gold : C.lineStrong}`,
+      }}
+    >
+      {/* Round, with a dot. A square with a tick would say checkbox, and the
+          whole point of this pass is that these two are alternatives. */}
+      <span
+        className="grid h-5 w-5 shrink-0 place-items-center rounded-full transition-colors duration-200"
+        style={{
+          background: C.white,
+          border: `1.5px solid ${selected ? C.goldDeep : C.lineStrong}`,
+        }}
+      >
+        {selected && (
+          <span
+            className="h-2.5 w-2.5 rounded-full"
+            style={{ background: C.goldDeep }}
+          />
+        )}
+      </span>
+      <span className="text-[14px] font-semibold leading-snug" style={{ color: C.ink }}>
+        {children}
+      </span>
+    </span>
+  );
+}
+
 export default function OtoChoice() {
   const router = useRouter();
-  const [vip, setVip] = useState(false);
+  /* One of the two is ALWAYS chosen, starting on the seat. There is no empty
+     state to guard the continue button against — which is the point of a radio
+     pair rather than a checkbox that can be left off. */
+  const [planId, setPlanId] = useState<PlanId>(DEFAULT_PLAN);
   const [busy, setBusy] = useState(false);
 
-  const plan = vip ? PLANS.vip : PLANS.seat;
+  const plan = PLANS[planId];
+  const vip = planId === 'vip';
 
-  /* Shared by the whole VIP card and by the docked bar's checkbox, so the two
-     can never disagree about what is selected.
+  const seatRef = useRef<HTMLElement>(null);
+  const vipRef = useRef<HTMLElement>(null);
 
-     The selection guard is not fussiness: the card is mostly text, and without
-     it a reader who drags across a benefit line to read it more carefully
-     silently buys the upgrade when they let go. A click that ends a text
-     selection is not a click on the card. */
-  const toggleVip = () => {
+  /* The selection guard is not fussiness: the cards are mostly prose, and
+     without it a reader who drags across a benefit line to read it more
+     carefully changes their plan the moment they let go. A click that ends a
+     text selection is not a click on the card. */
+  const select = (id: PlanId) => {
     if (typeof window !== 'undefined' && window.getSelection()?.toString()) return;
-    setVip((v) => !v);
+    setPlanId(id);
+  };
+
+  /* Arrow keys select AND move focus, which is what a radiogroup does. */
+  const moveTo = (id: PlanId) => {
+    setPlanId(id);
+    (id === 'vip' ? vipRef : seatRef).current?.focus();
   };
 
   const go = () => {
@@ -147,12 +282,19 @@ export default function OtoChoice() {
             Equal columns from lg. Below that they stack, seat first, because
             the seat is what they already agreed to on the landing page and the
             upgrade only makes sense once it has been read. */}
-        <div className="mt-10 grid gap-4 lg:grid-cols-2 lg:gap-5">
-          {/* ── the seat · locked in ─────────────────────────────── */}
-          <section
-            data-lego=""
-            className="relative flex flex-col rounded-3xl p-6 sm:p-7"
-            style={{ background: C.white, border: `1px solid ${C.line}` }}
+        <div
+          role="radiogroup"
+          aria-label="Choose your place on the 5-Day Pain Reset"
+          className="mt-10 grid gap-4 lg:grid-cols-2 lg:gap-5"
+        >
+          {/* ── the seat · selected by default ───────────────────── */}
+          <PlanRadio
+            selected={!vip}
+            onSelect={() => select('seat')}
+            onArrow={() => moveTo('vip')}
+            label={`${PLANS.seat.productName} for ${PLANS.seat.priceLabel}`}
+            delay={0}
+            innerRef={seatRef}
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
@@ -180,17 +322,9 @@ export default function OtoChoice() {
               </span>
             </div>
 
-            {/* Not a control. It states that the seat is in and cannot be taken
-                out, which is why it is a <span> with a lock rather than a
-                checkbox rendered permanently checked — a checkbox that refuses
-                to toggle reads as a broken one. */}
-            <span
-              className="mt-5 inline-flex items-center gap-2 self-start rounded-full px-3 py-1.5 text-[11.5px] font-semibold"
-              style={{ background: C.mintBed, color: C.mintInk }}
-            >
-              <Lock weight="fill" className="h-3 w-3" />
-              Always included
-            </span>
+            <RadioPill selected={!vip}>
+              Just the seat — {PLANS.seat.priceLabel}
+            </RadioPill>
 
             <ul className="mt-5 grid flex-1 gap-2.5">
               {SEAT_INCLUDES.map(({ icon: Icon, text }, i) => (
@@ -212,46 +346,16 @@ export default function OtoChoice() {
                 </li>
               ))}
             </ul>
-          </section>
+          </PlanRadio>
 
-          {/* ── the VIP upgrade · the only control on the page ─────
-              THE WHOLE CARD IS THE CHECKBOX, not the pill inside it. A card
-              this size that only responds on one small row reads as broken:
-              people tap the price, the title, the benefit they care about, and
-              nothing happens.
-
-              So there is exactly ONE control here rather than a control nested
-              inside a clickable parent — the pill below is a <span> that shows
-              state, and the <section> itself carries role, checked state, focus
-              and the keyboard handler. Nesting a real button inside a clickable
-              card would double-fire and is invalid besides. */}
-          <section
-            role="checkbox"
-            aria-checked={vip}
-            aria-label={`Add the VIP Pass for ${PLANS.vip.priceLabel} total, including your seat`}
-            tabIndex={0}
-            onClick={toggleVip}
-            onKeyDown={(e) => {
-              /* Space is what a checkbox answers to; Enter is included because
-                 people reach for it and its absence reads as a dead card. */
-              if (e.key === ' ' || e.key === 'Enter') {
-                e.preventDefault();
-                toggleVip();
-              }
-            }}
-            data-lego=""
-            className="relative flex cursor-pointer flex-col rounded-3xl p-6 transition-shadow duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:p-7"
-            style={{
-              ...legoDelay(1, 90),
-              background: C.white,
-              /* The selected state is carried by the border and the shadow, not
-                 by a background change: the card holds a list the reader is
-                 still reading, and re-tinting the bed underneath it moves the
-                 contrast of every line at the moment they are deciding. */
-              border: `2px solid ${vip ? C.gold : C.line}`,
-              boxShadow: vip ? '0 26px 54px -30px rgba(191,148,42,0.6)' : 'none',
-              ['--tw-ring-color' as string]: C.goldDeep,
-            }}
+          {/* ── the VIP seat ─────────────────────────────────────── */}
+          <PlanRadio
+            selected={vip}
+            onSelect={() => select('vip')}
+            onArrow={() => moveTo('seat')}
+            label={`${PLANS.vip.productName} for ${PLANS.vip.priceLabel} total, seat included`}
+            delay={1}
+            innerRef={vipRef}
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
@@ -266,10 +370,12 @@ export default function OtoChoice() {
                   className="mt-1.5 font-heading text-[19px] font-bold leading-snug"
                   style={{ color: C.ink }}
                 >
-                  Add the VIP Pass
+                  Seat + VIP Pass
                 </h2>
+                {/* "Everything in the seat", not "everything on the left" —
+                    the cards stack on a phone, where the other one is above. */}
                 <p className="mt-1 text-[12.5px]" style={{ color: C.inkMuted }}>
-                  Everything above, plus four things you keep
+                  Everything in the seat, plus four things you keep
                 </p>
               </div>
               <span className="shrink-0 text-right">
@@ -291,33 +397,9 @@ export default function OtoChoice() {
               </span>
             </div>
 
-            {/* Shows the state; does not own it. The card above is the control,
-                so this is aria-hidden — otherwise a screen reader meets a second
-                "checkbox" that is really the same one. */}
-            <span
-              aria-hidden
-              className="mt-5 flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-left transition-colors duration-200"
-              style={{
-                background: vip ? C.goldSoft : C.paleBlue,
-                border: `1px solid ${vip ? C.gold : C.lineStrong}`,
-              }}
-            >
-              <span
-                className="grid h-5 w-5 shrink-0 place-items-center rounded-md transition-colors duration-200"
-                style={{
-                  background: vip ? C.goldDeep : C.white,
-                  border: `1.5px solid ${vip ? C.goldDeep : C.lineStrong}`,
-                }}
-              >
-                {vip && <CheckCircle weight="fill" className="h-3.5 w-3.5 text-white" />}
-              </span>
-              <span
-                className="text-[14px] font-semibold leading-snug"
-                style={{ color: C.ink }}
-              >
-                Yes, add the VIP Pass — {PLANS.vip.priceLabel} total
-              </span>
-            </span>
+            <RadioPill selected={vip}>
+              Seat + VIP Pass — {PLANS.vip.priceLabel} total
+            </RadioPill>
 
             <ul className="mt-5 grid flex-1 gap-2.5">
               {VIP_BENEFITS.map((line, i) => (
@@ -341,10 +423,10 @@ export default function OtoChoice() {
             </ul>
 
             <p className="mt-5 text-[12px] leading-snug" style={{ color: C.inkMuted }}>
-              The challenge is the same either way. This is only if you want the
-              recordings and the guides to keep.
+              The challenge is the same either way. Choose this one only if you
+              want the recordings and the guides to keep.
             </p>
-          </section>
+          </PlanRadio>
         </div>
 
         {/* ── total and continue ─────────────────────────────────── */}
@@ -371,7 +453,7 @@ export default function OtoChoice() {
           <p className="mt-2 text-[12.5px]" style={{ color: C.inkMuted }}>
             {vip
               ? 'One payment. Your seat and the VIP pass together.'
-              : 'One payment. Adding the VIP pass makes this £9.99.'}
+              : `One payment. The VIP option above is ${PLANS.vip.priceLabel} in total.`}
           </p>
 
           <button
@@ -419,12 +501,16 @@ export default function OtoChoice() {
       <div aria-hidden className="lg:hidden" style={{ height: MOBILE_CTA_BAR_SPACE_TALL }} />
 
       {/* ── docked CTA · mobile and tablet ───────────────────────────
-          Carries the VIP checkbox as well as the button. On a phone the two
-          package cards are a long scroll and the checkbox sits near the top of
-          the second one, so a reader who has reached the bottom and sees a
-          total they want to change would otherwise have to scroll back up to
-          find the control. This is the same state, not a second copy of it:
-          both toggles call the same setVip. */}
+          Carries the choice as well as the button. On a phone the two package
+          cards are a long scroll, so a reader who has reached the bottom and
+          sees a total they want to change would otherwise have to scroll back
+          up to find the control. It is the same state, not a second copy of
+          it — both write the same planId.
+
+          A SEGMENTED PAIR, matching the cards. It used to be a single "Add the
+          VIP Pass" checkbox, which said the seat was a baseline and VIP was an
+          extra on top; the cards now say the opposite, and a bar that disagreed
+          with the page it is docked to is worse than no bar. */}
       <MobileCtaBar
         watch="[data-oto-cta]"
         /* Short labels, because this bar is the tightest row on the site: two
@@ -440,40 +526,61 @@ export default function OtoChoice() {
           </>
         }
         above={
-          <button
-            type="button"
-            role="checkbox"
-            aria-checked={vip}
-            onClick={toggleVip}
-            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left transition-colors duration-200"
-            style={{
-              background: vip ? C.goldSoft : C.paleBlue,
-              border: `1px solid ${vip ? C.gold : C.line}`,
-            }}
+          <div
+            role="radiogroup"
+            aria-label="Choose your place"
+            className="flex w-full gap-2"
           >
-            <span
-              aria-hidden
-              className="grid h-[18px] w-[18px] shrink-0 place-items-center rounded transition-colors duration-200"
-              style={{
-                background: vip ? C.goldDeep : C.white,
-                border: `1.5px solid ${vip ? C.goldDeep : C.lineStrong}`,
-              }}
-            >
-              {vip && <CheckCircle weight="fill" className="h-3 w-3 text-white" />}
-            </span>
-            <span
-              className="min-w-0 flex-1 truncate text-[12.5px] font-semibold"
-              style={{ color: C.ink }}
-            >
-              Add the VIP Pass
-            </span>
-            <span
-              className="shrink-0 font-heading text-[12.5px] font-bold"
-              style={{ color: C.goldDeep }}
-            >
-              {PLANS.vip.priceLabel} total
-            </span>
-          </button>
+            {([
+              { id: 'seat' as PlanId, text: 'Seat', price: PLANS.seat.priceLabel },
+              { id: 'vip' as PlanId, text: 'Seat + VIP', price: PLANS.vip.priceLabel },
+            ]).map((opt) => {
+              const on = planId === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  aria-label={`${opt.text}, ${opt.price}`}
+                  onClick={() => setPlanId(opt.id)}
+                  className="flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl px-2 py-2 transition-colors duration-200"
+                  style={{
+                    background: on ? C.goldSoft : C.paleBlue,
+                    border: `1px solid ${on ? C.gold : C.line}`,
+                  }}
+                >
+                  <span
+                    aria-hidden
+                    className="grid h-[15px] w-[15px] shrink-0 place-items-center rounded-full transition-colors duration-200"
+                    style={{
+                      background: C.white,
+                      border: `1.5px solid ${on ? C.goldDeep : C.lineStrong}`,
+                    }}
+                  >
+                    {on && (
+                      <span
+                        className="h-[7px] w-[7px] rounded-full"
+                        style={{ background: C.goldDeep }}
+                      />
+                    )}
+                  </span>
+                  <span
+                    className="truncate text-[12px] font-semibold"
+                    style={{ color: C.ink }}
+                  >
+                    {opt.text}
+                  </span>
+                  <span
+                    className="shrink-0 font-heading text-[12px] font-bold"
+                    style={{ color: on ? C.goldDeep : C.inkMuted }}
+                  >
+                    {opt.price}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         }
       >
         <button
