@@ -23,7 +23,11 @@ export default function StickyCta({
   title,
   trailing,
   label,
-  shortLabel = 'Reserve My Spot',
+  /* The narrow-screen label. "Hold My Seat" rather than the old "Reserve My
+     Spot": the seat-hold rewrite made every other CTA on the site say hold, and
+     this default was the one place still saying reserve — visible only on a
+     phone, which is where most of the traffic is. */
+  shortLabel = 'Hold My Seat',
   date,
   times,
 }: {

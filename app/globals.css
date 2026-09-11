@@ -541,6 +541,19 @@ button {
   will-change: transform;
 }
 
+/* The second rail runs the other way.
+
+   animation-direction rather than a second @keyframes block: the two rails then
+   share one set of timings, one easing and one travel distance, and can only
+   differ in the thing that is meant to differ. A mirrored keyframe set would be
+   two definitions to keep in step, and they would silently fall out of step the
+   first time one was edited.
+
+   Opposed directions are not decoration either. Two rails sliding the same way
+   read as one tall block drifting sideways and the eye stops separating them;
+   countermotion keeps them legible as two rows. */
+.tst-marq[data-dir='reverse'] { animation-direction: reverse; }
+
 /* Paused while a clip is open full screen — the rail is what the reader comes
    back to, and animating it behind an opaque overlay is wasted work. */
 .tst-marq[data-paused='true'] { animation-play-state: paused; }
