@@ -184,7 +184,21 @@ export const OFFER_CONFIG = {
   upgradePath: '/upgrade',
   thankYouPath: '/thank-you',
   thankYouVipPath: '/thank-you-vip',
-  funnelSlug: 'superme-pain-reset',
+  /* Stamped into every Stripe session's metadata by /api/checkout, and checked
+     by the webhook's ownership gate — a payment without this exact string is
+     somebody else's and is dropped before it can reach Meta or the CRM.
+     Renaming it without renaming it there silently drops every VIP upgrade.
+
+     ⚠️ THE dev-abhi BRANCH USES THIS SAME SLUG. The two are different UK
+     funnels — that one is paid (£1.99 / £9.99), this one is free with a £4.99
+     VIP upgrade — and while they share a slug, neither webhook's gate can tell
+     their payments apart. That is safe ONLY because this funnel is not
+     deployed. A Stripe endpoint is subscribed at the ACCOUNT level, so the
+     moment both run on one Stripe account each endpoint receives the other's
+     payments and accepts them as its own, which is precisely the failure the
+     gate exists to prevent. Before this funnel ships, either give it its own
+     slug (`superme-pain-reset-uk-free`) or put it on its own Stripe account. */
+  funnelSlug: 'superme-pain-reset-uk',
   utmSessionKey: 'superme_utm',
 
   /* Set by /api/register on the response that records a registration. Read by
