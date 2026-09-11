@@ -70,6 +70,29 @@ type Clip = {
 };
 
 /**
+ * The September batch — EIGHT clips, and the first thing in the section.
+ *
+ * Placed above the original five because they are the newer and larger set,
+ * and because a reader who watches one clip and scrolls on should have watched
+ * one of these.
+ *
+ * ORDER IS THE UPLOADER'S, NOT THE ORDER THEY WERE HANDED OVER IN. The eight
+ * are titled "1" to "8" on Vimeo and arrived in roughly reverse; they are
+ * sequenced here by those titles, on the assumption that somebody numbered
+ * them for a reason. Change the array if the intended running order differs.
+ */
+const NEW_TESTIMONIALS: Clip[] = [
+  { videoId: '1225866642', name: 'Client testimonial 6', poster: '/testimonials/vimeo-1225866642.jpg' },
+  { videoId: '1225866643', name: 'Client testimonial 7', poster: '/testimonials/vimeo-1225866643.jpg' },
+  { videoId: '1225866645', name: 'Client testimonial 8', poster: '/testimonials/vimeo-1225866645.jpg' },
+  { videoId: '1225866644', name: 'Client testimonial 9', poster: '/testimonials/vimeo-1225866644.jpg' },
+  { videoId: '1225866709', name: 'Client testimonial 10', poster: '/testimonials/vimeo-1225866709.jpg' },
+  { videoId: '1225866708', name: 'Client testimonial 11', poster: '/testimonials/vimeo-1225866708.jpg' },
+  { videoId: '1225866710', name: 'Client testimonial 12', poster: '/testimonials/vimeo-1225866710.jpg' },
+  { videoId: '1225866815', name: 'Client testimonial 13', poster: '/testimonials/vimeo-1225866815.jpg' },
+];
+
+/**
  * Order is the running order on the page: three across, then two centred.
  *
  * The first three are the clips the page was signed off with, so a reader who
@@ -82,6 +105,44 @@ const TESTIMONIALS: Clip[] = [
   { videoId: '1220752306', name: 'Client testimonial 4', poster: '/testimonials/vimeo-1220752306.jpg' },
   { videoId: '1220752305', name: 'Client testimonial 5', poster: '/testimonials/vimeo-1220752305.jpg' },
 ];
+
+/**
+ * Seconds of travel per card, so every rail moves at the same speed.
+ *
+ * The original rail was 46s for five cards. That ratio is now the constant and
+ * each rail multiplies it by its own length — see .sm-testi-track in
+ * globals.css for why two rails at different speeds is the thing to avoid.
+ */
+const RAIL_SECONDS_PER_CARD = 46 / 5;
+
+function railDuration(cards: number): string {
+  return `${Math.round(cards * RAIL_SECONDS_PER_CARD)}s`;
+}
+
+/** Desktop running order: the newer eight, then the original five. */
+const DESKTOP_WALL: Clip[] = [...NEW_TESTIMONIALS, ...TESTIMONIALS];
+
+/** Cards per row in the desktop grid. */
+const PER_ROW = 4;
+
+/**
+ * Where the last row starts so that it centres.
+ *
+ * The grid is EIGHT columns with every card spanning two, which is what makes
+ * a short final row centrable at all — a 4-column grid cannot centre three
+ * items without either this arithmetic or a flex wrapper that then loses
+ * alignment with the rows above.
+ *
+ * Written out per remainder rather than computed, because Tailwind's JIT only
+ * sees literal class strings and would emit none of these if they were built
+ * from a number at runtime.
+ */
+const LAST_ROW_START: Record<number, string> = {
+  0: '',
+  1: 'col-start-4',
+  2: 'col-start-3',
+  3: 'col-start-2',
+};
 
 /**
  * Vimeo embed URL.
@@ -329,31 +390,69 @@ export default function Testimonials() {
         <span style={{ color: C.goldDeep }}>Could &amp; Couldn&apos;t Do</span>
       </SectionHeading>
 
-      {/* ══ desktop · 3 over 2, centred ══════════════════════════════════
-          SIX columns, not three, and every card spans two of them. That is
-          what makes the second row centre: three cards fill 6 columns, and
-          the fourth card starting at column 2 leaves exactly one spare column
-          at each end.
+      {/* ══ desktop · one wall, four across ══════════════════════════════
+          ALL THIRTEEN IN ONE GRID, newer eight first. The eight were first
+          built as their own 4-across block above the original 3-across five,
+          and the two card sizes sat badly together: the older five read as
+          featured and the newer eight as an afterthought, which is the
+          opposite of the running order. One density, one card size, one wall
+          — and it is about 800px shorter than the two-block version, which on
+          a section of thirteen portrait clips is the difference between a
+          proof wall and a scroll.
 
-              1 1 | 2 2 | 3 3
-              . 4 | 4 5 | 5 .
-
-          The obvious alternative — a 3-column grid with the last row centred
-          — cannot be done, because a grid row cannot centre its own items
-          without either this arithmetic or a flex wrapper that then loses
-          alignment with the row above. */}
-      <ul className="mx-auto mt-11 hidden max-w-[1080px] grid-cols-6 gap-5 sm:grid">
-        {TESTIMONIALS.map((clip, idx) => (
-          <li
-            key={clip.videoId}
-            className={idx === 3 ? 'col-span-2 col-start-2' : 'col-span-2'}
-          >
-            <DesktopCard clip={clip} idx={idx} />
-          </li>
-        ))}
+          EIGHT columns with every card spanning two. That is what lets a
+          short last row centre; see LAST_ROW_START. */}
+      <ul className="mx-auto mt-11 hidden max-w-[1080px] grid-cols-8 gap-5 sm:grid">
+        {DESKTOP_WALL.map((clip, idx) => {
+          const remainder = DESKTOP_WALL.length % PER_ROW;
+          const firstOfLastRow =
+            remainder === 0 ? -1 : DESKTOP_WALL.length - remainder;
+          return (
+            <li
+              key={clip.videoId}
+              className={`col-span-2 ${idx === firstOfLastRow ? LAST_ROW_START[remainder] : ''}`}
+            >
+              <DesktopCard clip={clip} idx={idx} />
+            </li>
+          );
+        })}
       </ul>
 
-      {/* ══ phone · auto-scrolling rail ══════════════════════════════════
+      {/* ══ phone · the September eight, own rail ═════════════════════════
+          A SECOND rail above the original, not eight cards appended to it.
+          One rail of thirteen takes over two minutes to come back round, so a
+          reader who glances at it twice sees the same card and concludes it
+          is not moving. Two rails also let the newer set lead on a phone the
+          same way it leads on a desktop.
+
+          Identical card, identical gap, identical speed — only the duration
+          differs, and it differs precisely so that the speed does not.
+
+          This one runs right-to-left; the rail below runs left-to-right. Two
+          strips travelling the same way at the same speed read as one sheet
+          sliding behind a mask, which hides that there are two sets to look
+          at. Opposing directions make each rail its own object. */}
+      <div
+        className="sm-testi-viewport -mx-4 mt-10 sm:hidden"
+        style={{ ['--rail-duration' as string]: railDuration(NEW_TESTIMONIALS.length) }}
+      >
+        <div
+          className="sm-testi-track gap-4 px-4"
+          data-paused={open !== null || held ? 'true' : 'false'}
+          onTouchStart={() => setHeld(true)}
+          onTouchEnd={() => setHeld(false)}
+          onTouchCancel={() => setHeld(false)}
+        >
+          {NEW_TESTIMONIALS.map((clip) => (
+            <RailCard key={clip.videoId} clip={clip} onOpen={setOpen} />
+          ))}
+          {NEW_TESTIMONIALS.map((clip) => (
+            <RailCard key={`dup-${clip.videoId}`} clip={clip} onOpen={setOpen} duplicate />
+          ))}
+        </div>
+      </div>
+
+      {/* ══ phone · the original five, second rail ═══════════════════════
           Full-bleed: the rail is pulled out to the viewport edges so cards
           enter and leave the screen rather than appearing at a margin, which
           is what makes it read as continuous travel.
@@ -361,9 +460,18 @@ export default function Testimonials() {
           Two copies of the list. The track is animated to -50%, so at the end
           of a cycle copy two sits exactly where copy one started and the jump
           back to 0 is invisible. See .sm-testi-track in globals.css. */}
-      <div className="sm-testi-viewport -mx-4 mt-10 sm:hidden">
+      <div
+        /* mt-4 is the card gap, so the two rails read as one stacked strip.
+           The duration is derived rather than left to the CSS default for the
+           same reason the rail above sets one: the constant lives in one
+           place and neither rail can drift from the other. */
+        className="sm-testi-viewport -mx-4 mt-4 sm:hidden"
+        style={{ ['--rail-duration' as string]: railDuration(TESTIMONIALS.length) }}
+      >
         <div
-          className="sm-testi-track gap-4 px-4"
+          /* -rev is the only difference from the rail above: this one travels
+             left-to-right. See .sm-testi-track-rev in globals.css. */
+          className="sm-testi-track sm-testi-track-rev gap-4 px-4"
           data-paused={open !== null || held ? 'true' : 'false'}
           onTouchStart={() => setHeld(true)}
           onTouchEnd={() => setHeld(false)}

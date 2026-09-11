@@ -151,11 +151,36 @@ html[data-p='knee'] [data-v-p='knee'] {
   }
 }
 
+/* The duration is a VARIABLE because there are now two rails of different
+   lengths stacked on the phone, and the animation always travels -50% of the
+   track whatever that track holds. A single fixed duration would therefore
+   move the 8-clip rail almost twice as fast as the 5-clip one, and two rails
+   scrolling at visibly different speeds one above the other reads as a fault.
+
+   So each rail sets --rail-duration in proportion to its card count, keeping
+   the PIXELS PER SECOND equal: 46s for 5 cards, ~74s for 8. Anything that
+   adds or removes a clip should move that number with it. */
 .sm-testi-track {
   display: flex;
   width: max-content;
-  animation: sm-testi-rail 46s linear infinite;
+  animation: sm-testi-rail var(--rail-duration, 46s) linear infinite;
   will-change: transform;
+}
+
+/* The second rail travels the OTHER WAY, so the two stacked strips move in
+   opposite directions rather than sliding as one sheet.
+
+   animation-direction rather than a mirrored @keyframes: the track is two
+   identical copies and the animation moves it exactly -50%, so played
+   backwards it runs -50% → 0 and copy one lands where copy two started. The
+   seam is invisible in either direction, and there is only ever one keyframe
+   block to keep in step with the markup.
+
+   It MUST sit after .sm-testi-track. The `animation` shorthand there resets
+   animation-direction to normal, and with equal specificity the later
+   declaration is the one that survives. */
+.sm-testi-track-rev {
+  animation-direction: reverse;
 }
 
 /* Held still while a clip is open, and while a finger is down. A rail

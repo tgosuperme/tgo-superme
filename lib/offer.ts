@@ -234,8 +234,25 @@ export const OFFER = {
 
   /** When the programme batch starts, printed on /balance. */
   batchStartDate: env('NEXT_PUBLIC_BATCH_START_DATE', '28th September'),
-  /** Calendly (or the SuperMe booking tool) embed, shown on /call. */
-  bookingUrl: env('NEXT_PUBLIC_BOOKING_URL', ''),
+  /**
+   * Calendly (or the SuperMe booking tool) embed, shown on /call.
+   *
+   * The default is the live Calendly, not '', because /call is a POST-PAYMENT
+   * page: somebody has just paid the hold and the booking embed is the only
+   * thing on it that does anything. An unset variable used to fall back to a
+   * "we will message you on WhatsApp" card, which is a worse experience the
+   * buyer has already paid for. The env var still overrides, so the link can
+   * be changed on Vercel without a deploy of this file.
+   *
+   * hide_gdpr_banner keeps Calendly's own cookie strip out of a 720px iframe,
+   * where it covers the slot list on a phone. It suppresses the BANNER only —
+   * Calendly still honours its own consent rules, and the embed is sandboxed
+   * in app/call/page.tsx.
+   */
+  bookingUrl: env(
+    'NEXT_PUBLIC_BOOKING_URL',
+    'https://calendly.com/hello-mysuperme-yoga/10min?hide_gdpr_banner=1',
+  ),
   /** Razorpay pages for the balance, one per option. */
   balancePage30Url: env('NEXT_PUBLIC_RAZORPAY_PAGE_BALANCE_30', ''),
   balancePage60Url: env('NEXT_PUBLIC_RAZORPAY_PAGE_BALANCE_60', ''),

@@ -53,6 +53,11 @@ const VIP_EXTRAS = [
   'Lifetime replay library — all 5 sessions, both slots',
   '15-minute extended Q&A after each session with Atul',
   'Downloadable pain-relief quick-reference cheat sheets',
+  /* Deliberately the LAST of the four. The Standard card already promises
+     "Real-time, on-camera technique correction", so this one only adds the
+     word "Priority" — read first it looks like a duplicate of a line the
+     buyer just saw, and read last it lands as the upgrade to it. */
+  'Priority real-time, on-camera technique correction',
 ];
 
 /* The bar is 96px on a phone: two rows (toggle, then total + button) rather
