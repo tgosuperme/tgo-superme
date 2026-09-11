@@ -68,6 +68,19 @@ export async function POST(req: Request) {
 
       case 'charge.refunded': {
         const charge = event.data.object;
+        /* Gated the same way as a payment, and for the same reason: this
+           endpoint sees every refund on the account. A charge inherits the
+           PaymentIntent's metadata, which /api/checkout stamps, so the slug is
+           here too. Nothing is written from this branch today — but an
+           operator reading "remove the seat and the Zoom invite" for a refund
+           on somebody else's product is a false alarm that costs real time,
+           and this is where the fulfilment hook will eventually go. */
+        if (charge.metadata?.funnel !== CHECKOUT_CONFIG.funnelSlug) {
+          console.info(
+            `[stripe-webhook] refund on ${charge.id} ignored — not this funnel`,
+          );
+          break;
+        }
         console.warn(
           `[stripe-webhook] refund on ${charge.id} (${charge.amount_refunded} ${charge.currency}), remove the seat and the Zoom invite`,
         );
@@ -99,6 +112,42 @@ export async function POST(req: Request) {
  */
 async function onPaid(session: Stripe.Checkout.Session) {
   const m = session.metadata ?? {};
+
+  /* ── OWNERSHIP GATE ───────────────────────────────────────────────────
+     A Stripe endpoint is subscribed at the ACCOUNT level, so this handler is
+     handed EVERY completed checkout on the account — other products, other
+     funnels, a payment link sent by hand, an invoice paid from the dashboard.
+     Without this check every one of them would fire a `sales` conversion into
+     a Health-and-Wellness-restricted pixel and write a row into the sales
+     sheet, priced at whatever that stranger happened to pay.
+
+     THIS IS NOT HYPOTHETICAL. The India funnel shares a Razorpay account, and
+     before its gate existed a ₹1,999 sale and a ₹7,076 sale from unrelated
+     products reached the sheet and taught the ad account to bid for them.
+     Recovering from that meant deleting CRM rows and weighing up a fresh
+     pixel. The same exposure existed here and simply had not been hit yet.
+
+     /api/checkout stamps `funnel` into the metadata of every session it opens
+     — and onto the PaymentIntent too — so anything without our slug did not
+     come from this funnel and is none of our business.
+
+     A SESSION WITH NO METADATA AT ALL IS ALSO REFUSED. That is deliberate: a
+     manually created payment link for this same product would be indexed as
+     ours on a maybe, and reporting someone else's purchase is worse than
+     missing one of our own. If a hand-made link ever needs to count, give it
+     `funnel=superme-pain-reset-uk` in its metadata rather than loosening this.
+
+     Returns quietly instead of throwing. A 500 would make Stripe retry
+     somebody else's payment at us, with backoff, for three days. */
+  if (m.funnel !== CHECKOUT_CONFIG.funnelSlug) {
+    console.warn(
+      `[stripe-webhook] IGNORED ${session.id} — metadata.funnel is ` +
+        `${JSON.stringify(m.funnel ?? null)}, not "${CHECKOUT_CONFIG.funnelSlug}". ` +
+        `Not this funnel's payment (amount=${session.amount_total} ${session.currency}).`,
+    );
+    return;
+  }
+
   const firstName = m.firstName ?? '';
   const lastName = m.lastName ?? '';
   /* Which of the two products this was. Written by /api/checkout; an older
