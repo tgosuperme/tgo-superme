@@ -67,6 +67,18 @@ export default function OtoChoice() {
 
   const plan = vip ? PLANS.vip : PLANS.seat;
 
+  /* Shared by the whole VIP card and by the docked bar's checkbox, so the two
+     can never disagree about what is selected.
+
+     The selection guard is not fussiness: the card is mostly text, and without
+     it a reader who drags across a benefit line to read it more carefully
+     silently buys the upgrade when they let go. A click that ends a text
+     selection is not a click on the card. */
+  const toggleVip = () => {
+    if (typeof window !== 'undefined' && window.getSelection()?.toString()) return;
+    setVip((v) => !v);
+  };
+
   const go = () => {
     if (busy) return;
     setBusy(true);
@@ -202,10 +214,33 @@ export default function OtoChoice() {
             </ul>
           </section>
 
-          {/* ── the VIP upgrade · the only control on the page ───── */}
+          {/* ── the VIP upgrade · the only control on the page ─────
+              THE WHOLE CARD IS THE CHECKBOX, not the pill inside it. A card
+              this size that only responds on one small row reads as broken:
+              people tap the price, the title, the benefit they care about, and
+              nothing happens.
+
+              So there is exactly ONE control here rather than a control nested
+              inside a clickable parent — the pill below is a <span> that shows
+              state, and the <section> itself carries role, checked state, focus
+              and the keyboard handler. Nesting a real button inside a clickable
+              card would double-fire and is invalid besides. */}
           <section
+            role="checkbox"
+            aria-checked={vip}
+            aria-label={`Add the VIP Pass for ${PLANS.vip.priceLabel} total, including your seat`}
+            tabIndex={0}
+            onClick={toggleVip}
+            onKeyDown={(e) => {
+              /* Space is what a checkbox answers to; Enter is included because
+                 people reach for it and its absence reads as a dead card. */
+              if (e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+                toggleVip();
+              }
+            }}
             data-lego=""
-            className="relative flex flex-col rounded-3xl p-6 transition-shadow duration-300 sm:p-7"
+            className="relative flex cursor-pointer flex-col rounded-3xl p-6 transition-shadow duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:p-7"
             style={{
               ...legoDelay(1, 90),
               background: C.white,
@@ -215,6 +250,7 @@ export default function OtoChoice() {
                  contrast of every line at the moment they are deciding. */
               border: `2px solid ${vip ? C.gold : C.line}`,
               boxShadow: vip ? '0 26px 54px -30px rgba(191,148,42,0.6)' : 'none',
+              ['--tw-ring-color' as string]: C.goldDeep,
             }}
           >
             <div className="flex items-start justify-between gap-3">
@@ -255,19 +291,18 @@ export default function OtoChoice() {
               </span>
             </div>
 
-            <button
-              type="button"
-              role="checkbox"
-              aria-checked={vip}
-              onClick={() => setVip((v) => !v)}
-              className="lego-press mt-5 flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-left transition-colors duration-200"
+            {/* Shows the state; does not own it. The card above is the control,
+                so this is aria-hidden — otherwise a screen reader meets a second
+                "checkbox" that is really the same one. */}
+            <span
+              aria-hidden
+              className="mt-5 flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-left transition-colors duration-200"
               style={{
                 background: vip ? C.goldSoft : C.paleBlue,
                 border: `1px solid ${vip ? C.gold : C.lineStrong}`,
               }}
             >
               <span
-                aria-hidden
                 className="grid h-5 w-5 shrink-0 place-items-center rounded-md transition-colors duration-200"
                 style={{
                   background: vip ? C.goldDeep : C.white,
@@ -282,7 +317,7 @@ export default function OtoChoice() {
               >
                 Yes, add the VIP Pass — {PLANS.vip.priceLabel} total
               </span>
-            </button>
+            </span>
 
             <ul className="mt-5 grid flex-1 gap-2.5">
               {VIP_BENEFITS.map((line, i) => (
@@ -409,7 +444,7 @@ export default function OtoChoice() {
             type="button"
             role="checkbox"
             aria-checked={vip}
-            onClick={() => setVip((v) => !v)}
+            onClick={toggleVip}
             className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left transition-colors duration-200"
             style={{
               background: vip ? C.goldSoft : C.paleBlue,

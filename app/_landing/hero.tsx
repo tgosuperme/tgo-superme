@@ -147,7 +147,12 @@ export function Hero() {
     /* Top padding is lighter than it was: the header now sits above this
        and supplies most of the breathing room the hero used to make. */
     <section data-hero className="bg-white pb-6 pt-4 md:pt-7 lg:pt-9">
-      <div className="mx-auto grid max-w-[1180px] items-center gap-12 px-5 md:px-8 lg:grid-cols-[1.02fr_0.98fr] lg:gap-16">
+      {/* The left column takes more of the row than it used to (1.15 / 0.85,
+          was 1.02 / 0.98). The eyebrow is a single 65-character line and it was
+          wrapping to two on desktop, which put a one-word second line inside a
+          pill. The image column loses that width and is not harmed by it — it
+          is artwork with no measure to protect. */}
+      <div className="mx-auto grid max-w-[1180px] items-center gap-12 px-5 md:px-8 lg:grid-cols-[1.15fr_0.85fr] lg:gap-14">
         {/* ══ LEFT ══════════════════════════════════════════════════════ */}
         <div className="text-center lg:text-left">
           {/* Eyebrow in primary blue, not the derived skyInk it used to carry.
@@ -155,8 +160,13 @@ export function Hero() {
               reached 4.04 and bright sky #2AAAEF is 2.30, so neither can hold
               it. Primary blue is 6.08:1 here. Bright sky moves to the dot,
               which is a mark rather than type and has no floor to clear. */}
+          {/* From lg the line is locked to ONE line: nowrap, with the size and
+              tracking stepped down just enough that it fits the widened column
+              at the lg breakpoint itself (where the row is narrowest), not only
+              on a large desktop. Below lg the layout is a single column, so the
+              text has the full width and wraps naturally. */}
           <span
-            className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em]"
+            className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] lg:whitespace-nowrap lg:text-[10px] lg:tracking-[0.1em]"
             style={{ background: C.lightBlue, color: C.blue }}
           >
             <span
