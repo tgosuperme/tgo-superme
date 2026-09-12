@@ -928,3 +928,35 @@ html[data-p='knee'] [data-v-p='knee'] {
     display: none !important;
   }
 }
+
+/* ── a scroll strip without the bar ─────────────────────────────────────────
+   Used by the WhatsApp wall, which is a MANUAL horizontal strip rather than
+   one of the auto-scrolling rails above it. The scrollbar is hidden because
+   it sits under the last row of a chat screenshot and reads as part of the
+   image; the strip still scrolls by finger, wheel, trackpad and keyboard, and
+   snap points plus a card cut off at the edge are what say it moves.
+
+   Firefox and the WebKit pseudo-element both needed — `scrollbar-width` is
+   ignored by Chrome and Safari, and ::-webkit-scrollbar by Firefox. */
+.scroll-x-clean {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scroll-x-clean::-webkit-scrollbar {
+  display: none;
+}
+
+/* `safe center`, and the `safe` is the entire point.
+   Plain `justify-content: center` on a scroll container that OVERFLOWS centres
+   the overflow too, so it spills equally off both ends — and a scroll
+   container cannot scroll to a negative offset, which makes everything past
+   the left edge permanently unreachable. Measured on this strip before the
+   fix: at 640px the first card was cut by 280px with scrollLeft already at 0,
+   and it was still losing 10px at 1180px. The first card is the one genuine
+   screenshot, so it was the one being thrown away.
+   `safe` means "centre only while it fits, otherwise behave as start", which
+   is what was wanted at every width. Browsers too old to parse it drop the
+   declaration and fall back to start — the safe direction. */
+.justify-safe-center {
+  justify-content: safe center;
+}

@@ -60,6 +60,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { legoBrick } from './lego-style';
 import { C, SectionHeading } from './shared';
+import WhatsAppWall from './whatsapp-wall';
 
 type Clip = {
   /** Vimeo's numeric id. Also the key, and the poster's filename. */
@@ -485,6 +486,12 @@ export default function Testimonials() {
           ))}
         </div>
       </div>
+
+      {/* Written proof under the filmed proof, inside the SAME section rather
+          than as a new one. It is the same argument in another medium, and a
+          section break here would ask the reader to start again on something
+          they are already halfway convinced by. */}
+      <WhatsAppWall />
 
       {open && <ClipModal clip={open} onClose={close} />}
     </section>
