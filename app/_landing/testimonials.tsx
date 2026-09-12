@@ -51,6 +51,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { legoBrick } from './lego-style';
 import { C, SectionHeading } from './shared';
+import WhatsappWall from './whatsapp-wall';
 
 type Clip = { name: string; id: string; poster: string };
 
@@ -385,6 +386,12 @@ export default function Testimonials() {
         inFrame={inFrame}
         onActivate={setInFrame}
       />
+
+      {/* ══ the written proof, under the filmed proof ═════════════════
+          Same section, not a new one: it is the same claim in a second form,
+          and giving it its own masthead and background would make the page
+          argue the point twice rather than once with two kinds of evidence. */}
+      <WhatsappWall />
 
       {/* ══ MOBILE · full-screen player ═══════════════════════════════ */}
       {modal && (
