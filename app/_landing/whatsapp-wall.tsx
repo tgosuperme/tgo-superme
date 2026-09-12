@@ -6,20 +6,20 @@
  * Part A, A3: "a horizontal scroll of screenshots from the September group",
  * titled "From the September group".
  *
- * ── WHY THIS ONE DOES NOT AUTO-SCROLL ───────────────────────────────────────
- * The video rails above travel on their own. This does not, and that is the
- * whole design decision rather than an omission.
+ * ── IT AUTO-SCROLLS ON A PHONE AND NOT ON A DESKTOP ─────────────────────────
+ * The phone rail matches the two video rails above it: two copies of the list
+ * in one track, animated -50%, at the same pixels per second. That was a
+ * client decision — the first build made it manual on both, on the grounds
+ * that a chat screenshot is text and text under a moving strip cannot be read.
  *
- * A testimonial video is recognisable at a glance — a face, a room, a person
- * talking — so a card can drift past and still do its job; the reader taps the
- * one they like the look of. A chat screenshot is TEXT. Reading it takes ten
- * or fifteen seconds of holding still, and a strip that moves underneath makes
- * that impossible: the reader is chasing the sentence they started. Every
- * WhatsApp wall that auto-scrolls is unreadable, so this one is a manual,
- * snapping, swipeable strip.
+ * What makes the moving version work is the PAUSE. The rail stops while a
+ * finger is on it and while the lightbox is open, so the reading position is
+ * always one touch away, and the lightbox is where a screenshot is actually
+ * read. Without those two pauses this would be a wall of unreadable text.
  *
- * It also stops the page having three things moving at once in the same
- * section, which on a phone is where motion tips from lively into restless.
+ * From sm up it stays a manual strip, because there is no thumb to hold a
+ * desktop rail still with — and at 1280 all four fit at once, so there is
+ * nothing to scroll.
  *
  * ── THE STRIP IS A PREVIEW, THE MODAL IS THE ARTEFACT ───────────────────────
  * A 941px-wide screenshot shown in a 280px card is at 30% scale, which is
@@ -38,7 +38,7 @@ import { ArrowsOutSimple, WhatsappLogo, X } from '@phosphor-icons/react/dist/ssr
 import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { C } from './shared';
+import { C, railDuration } from './shared';
 
 type Shot = {
   /** Path under /public. */
@@ -86,6 +86,16 @@ const SHOTS: Shot[] = [
 
 /** One frame for every card, so a strip of mixed screenshot sizes lines up. */
 const SHOT_ASPECT = 'aspect-[9/16]';
+
+/**
+ * Card width plus gap — the distance the phone rail travels per card.
+ *
+ * 264 + 16, against the video rails' 240 + 16. The two are fed to the same
+ * railDuration() so both come out at the same PIXELS PER SECOND despite the
+ * different card widths; matching the durations instead would have run this
+ * rail 9% faster than the ones above it.
+ */
+const SHOT_CARD_PITCH = 264 + 16;
 
 /* ══ lightbox ════════════════════════════════════════════════════════════ */
 
@@ -155,13 +165,31 @@ function ShotModal({ shot, onClose }: { shot: Shot; onClose: () => void }) {
 
 /* ══ card ════════════════════════════════════════════════════════════════ */
 
-function ShotCard({ shot, onOpen }: { shot: Shot; onOpen: (s: Shot) => void }) {
+function ShotCard({
+  shot,
+  onOpen,
+  duplicate = false,
+}: {
+  shot: Shot;
+  onOpen: (s: Shot) => void;
+  duplicate?: boolean;
+}) {
   return (
     <button
       type="button"
       onClick={() => onOpen(shot)}
       aria-label={`Open screenshot: ${shot.alt}`}
-      className={`group relative w-[264px] shrink-0 snap-center overflow-hidden rounded-2xl border sm:w-[280px] ${SHOT_ASPECT}`}
+      /* The rail's second copy exists only to hide the loop seam. A screen
+         reader announcing eight screenshots when there are four is wrong, so
+         the copy is hidden from assistive tech and taken out of the tab order,
+         while staying tappable for anyone who taps what they can see. */
+      aria-hidden={duplicate || undefined}
+      tabIndex={duplicate ? -1 : undefined}
+      className={[
+        'sm-testi-card group relative w-[264px] shrink-0 snap-center overflow-hidden rounded-2xl border sm:w-[280px]',
+        SHOT_ASPECT,
+        duplicate ? 'sm-testi-dup' : '',
+      ].join(' ')}
       style={{ borderColor: C.line, background: C.lightBlue }}
     >
       {/* object-top, not centre. These are chats: the header and the first
@@ -172,6 +200,14 @@ function ShotCard({ shot, onOpen }: { shot: Shot; onOpen: (s: Shot) => void }) {
         alt=""
         fill
         sizes="(max-width: 639px) 264px, 280px"
+        /* EAGER, unlike the video rail's posters. Lazy loading works when a
+           card sits still until the reader scrolls to it; on a rail that
+           travels on its own, a card slides into view and spends its first
+           moment as an empty blue rectangle — and because the rail loops, it
+           does that where the reader is already looking. There are only four
+           distinct images and the duplicates share their URLs, so this is four
+           requests of about 74KB, once. */
+        loading="eager"
         className="object-cover object-top"
       />
 
@@ -193,6 +229,8 @@ function ShotCard({ shot, onOpen }: { shot: Shot; onOpen: (s: Shot) => void }) {
 
 export default function WhatsAppWall() {
   const [open, setOpen] = useState<Shot | null>(null);
+  /* True while a finger is on the rail, which pauses it. */
+  const [held, setHeld] = useState(false);
   const close = useCallback(() => setOpen(null), []);
 
   if (SHOTS.length === 0) return null;
@@ -226,17 +264,49 @@ export default function WhatsAppWall() {
         </p>
       </div>
 
-      {/* Full-bleed on a phone so a card sits at the screen edge and the strip
-          reads as continuing past it; contained from sm up, where a centred
-          row of cards inside the measure looks deliberate instead.
+      {/* ══ phone · auto-scrolling rail ══════════════════════════════════
+          Same mechanics as the two video rails above: two copies of the list
+          in one track, animated -50%, so copy two lands where copy one began
+          and the seam is invisible. Third rail down the page, so it travels
+          right-to-left and continues the alternation.
 
-          snap-x with snap-center parks a card in the middle rather than
-          wherever the finger stopped, which on a strip of things you have to
-          read is the difference between browsing and fighting it. */}
+          It pauses while the lightbox is open and while a finger is down —
+          without the second of those, tapping means aiming at a moving target
+          and the card slides out from under the thumb. That pause is what
+          makes a rail of TEXT usable: anyone who wants to read one holds it
+          still, and anyone who wants to read it properly taps it open. */}
       <div
-        className="scroll-x-clean justify-safe-center -mx-4 mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0"
-        /* Momentum scrolling on iOS, and a scroll padding so a snapped card
-           clears the full-bleed edge padding rather than butting against it. */
+        className="sm-testi-viewport -mx-4 mt-8 sm:hidden"
+        style={{ ['--rail-duration' as string]: railDuration(SHOTS.length, SHOT_CARD_PITCH) }}
+      >
+        <div
+          className="sm-testi-track gap-4 px-4"
+          data-paused={open !== null || held ? 'true' : 'false'}
+          onTouchStart={() => setHeld(true)}
+          onTouchEnd={() => setHeld(false)}
+          onTouchCancel={() => setHeld(false)}
+        >
+          {SHOTS.map((shot) => (
+            <ShotCard key={shot.src} shot={shot} onOpen={setOpen} />
+          ))}
+          {SHOTS.map((shot) => (
+            <ShotCard key={`dup-${shot.src}`} shot={shot} onOpen={setOpen} duplicate />
+          ))}
+        </div>
+      </div>
+
+      {/* ══ sm and up · a manual strip ════════════════════════════════════
+          NOT a rail. There is no thumb to hold a desktop rail still with, so
+          a moving strip of text would simply be unreadable, and at 1280 all
+          four fit at once with nothing to scroll anyway.
+
+          justify-safe-center rather than justify-center: plain centring on a
+          container that overflows centres the overflow too, and a scroll
+          container cannot scroll past zero, so the first card was unreachable
+          at every width between 640 and 1180. `safe` centres only while it
+          fits. */}
+      <div
+        className="scroll-x-clean justify-safe-center mt-8 hidden snap-x snap-mandatory gap-4 overflow-x-auto pb-2 sm:flex"
         style={{ WebkitOverflowScrolling: 'touch', scrollPaddingInline: '1rem' }}
       >
         {SHOTS.map((shot) => (

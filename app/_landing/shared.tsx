@@ -209,6 +209,35 @@ export function CtaNote({ text }: { text: string }) {
   );
 }
 
+/**
+ * How fast every auto-scrolling rail on the site travels, in CSS pixels per
+ * second.
+ *
+ * ── WHY A SPEED AND NOT A DURATION ──────────────────────────────────────────
+ * There are three rails on the phone now — two of video clips, one of WhatsApp
+ * screenshots — and they hold different numbers of cards at different widths.
+ * The animation always moves the track -50% whatever it contains, so a shared
+ * DURATION would give every rail a different speed, and rails moving at
+ * visibly different speeds one above another read as a fault rather than as a
+ * design. Sharing the speed and deriving each duration is the way round that
+ * holds no matter what anyone adds later.
+ *
+ * 27.8 is not chosen, it is measured: it is what the original 5-clip rail ran
+ * at when it was 46s, which was the speed everyone signed off.
+ */
+export const RAIL_PX_PER_SECOND = 27.8;
+
+/**
+ * The `--rail-duration` for a rail, from its card count and pitch.
+ *
+ * `cardPitchPx` is one card plus one gap, because that is the distance the
+ * track actually travels per card. Passing the card width alone makes a rail
+ * with a wide gap run slow.
+ */
+export function railDuration(cardCount: number, cardPitchPx: number): string {
+  return `${Math.round((cardCount * cardPitchPx) / RAIL_PX_PER_SECOND)}s`;
+}
+
 export function SectionHeading({
   children,
   sub,

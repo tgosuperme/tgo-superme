@@ -59,7 +59,7 @@ import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { legoBrick } from './lego-style';
-import { C, SectionHeading } from './shared';
+import { C, railDuration, SectionHeading } from './shared';
 import WhatsAppWall from './whatsapp-wall';
 
 type Clip = {
@@ -108,17 +108,11 @@ const TESTIMONIALS: Clip[] = [
 ];
 
 /**
- * Seconds of travel per card, so every rail moves at the same speed.
- *
- * The original rail was 46s for five cards. That ratio is now the constant and
- * each rail multiplies it by its own length — see .sm-testi-track in
- * globals.css for why two rails at different speeds is the thing to avoid.
+ * A rail card is 240px wide with a 16px gap, so the track travels 256px per
+ * card. Fed to the shared railDuration() so these two rails and the WhatsApp
+ * rail below them all move at one speed — see RAIL_PX_PER_SECOND in shared.
  */
-const RAIL_SECONDS_PER_CARD = 46 / 5;
-
-function railDuration(cards: number): string {
-  return `${Math.round(cards * RAIL_SECONDS_PER_CARD)}s`;
-}
+const RAIL_CARD_PITCH = 240 + 16;
 
 /** Desktop running order: the newer eight, then the original five. */
 const DESKTOP_WALL: Clip[] = [...NEW_TESTIMONIALS, ...TESTIMONIALS];
@@ -435,7 +429,7 @@ export default function Testimonials() {
           at. Opposing directions make each rail its own object. */}
       <div
         className="sm-testi-viewport -mx-4 mt-10 sm:hidden"
-        style={{ ['--rail-duration' as string]: railDuration(NEW_TESTIMONIALS.length) }}
+        style={{ ['--rail-duration' as string]: railDuration(NEW_TESTIMONIALS.length, RAIL_CARD_PITCH) }}
       >
         <div
           className="sm-testi-track gap-4 px-4"
@@ -467,7 +461,7 @@ export default function Testimonials() {
            same reason the rail above sets one: the constant lives in one
            place and neither rail can drift from the other. */
         className="sm-testi-viewport -mx-4 mt-4 sm:hidden"
-        style={{ ['--rail-duration' as string]: railDuration(TESTIMONIALS.length) }}
+        style={{ ['--rail-duration' as string]: railDuration(TESTIMONIALS.length, RAIL_CARD_PITCH) }}
       >
         <div
           /* -rev is the only difference from the rail above: this one travels
