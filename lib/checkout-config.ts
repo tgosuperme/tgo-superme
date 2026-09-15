@@ -223,6 +223,20 @@ export const CHECKOUT_CONFIG = {
     events: {
       addToCart: 'atc_event',
       initiateCheckout: 'ic_event',
+      /* THE POINT OF CAPTURING THE FORM SEPARATELY FROM THE PAYMENT.
+         Fired the moment the details are submitted and the Stripe session
+         opens — before the buyer has paid, and whether or not they ever do.
+
+         Stripe Checkout is not our page. Someone who reaches it and closes
+         the tab leaves no trace we can act on, and on a hosted checkout those
+         people outnumber the buyers. This is the only event that reports them.
+
+         It carries the FULL match set, because the details were typed on our
+         own form seconds earlier — so it is a high-EMQ audience to retarget
+         and build lookalikes from, not merely a counter. It does NOT carry
+         money: nobody has paid, and £1.99s that never became revenue would
+         teach value bidding the wrong thing. */
+      abandonedCart: 'abandoned_cart',
       sale: 'sales',
     },
     /* `contentName` was here and is deliberately gone: nothing sends a

@@ -1,7 +1,12 @@
 import { randomUUID } from 'node:crypto';
 
 import { CHECKOUT_CONFIG, resolvePlan } from '@/lib/checkout-config';
-import { browserContext, capiConfigured, sendCapiEvent } from '@/lib/meta-capi';
+import { browserContext, capiConfigured, externalIdFor, sendCapiEvent } from '@/lib/meta-capi';
+import {
+  pabblyLeadConfigured,
+  sendLeadToPabbly,
+  type LeadPayload,
+} from '@/lib/pabbly';
 import { getStripe, siteOrigin, stripeConfigured } from '@/lib/stripe';
 
 /**
@@ -299,9 +304,6 @@ export async function POST(req: Request) {
             clientIp,
             clientUserAgent,
           },
-          /* The plan's own price and content_name, not the seat's defaults —
-             an ic_event for a VIP checkout that reports the seat's value
-             teaches the ad account to bid for the wrong thing. */
           /* The plan's OWN price, not the seat's default — an ic_event for a
              VIP checkout that reports the seat's value teaches the ad account
              to bid for the wrong thing. With content_name gone for H&W, this
@@ -315,6 +317,110 @@ export async function POST(req: Request) {
            about to be redirected. Losing an ic_event is a reporting gap;
            failing this response is a lost sale. */
         console.error('[checkout] ic_event failed', err);
+      }
+
+      /* ── abandoned_cart ─────────────────────────────────────────────
+         THE EVENT THAT REPORTS PEOPLE WHO NEVER PAY. Stripe Checkout is not
+         our page, so a buyer who opens it and closes the tab is otherwise
+         invisible — and on a hosted checkout those people outnumber the
+         buyers. Fired here, at the last moment we are the server answering
+         the buyer's own browser.
+
+         Same match set as ic_event above, so the same 10-key EMQ. No value
+         and no currency: nobody has paid, and a stream of £1.99s that never
+         became revenue would train value bidding on income that does not
+         exist. `sales` stays the only event in this funnel carrying money.
+
+         Its own event_id, derived from the session so it is stable across a
+         retry and unmistakable in Events Manager beside the other two. */
+      try {
+        await sendCapiEvent({
+          eventName: CHECKOUT_CONFIG.capi.events.abandonedCart,
+          eventId: `${session.id}-ac`,
+          eventTime: Math.floor(Date.now() / 1000),
+          eventSourceUrl,
+          user: {
+            email,
+            phone,
+            firstName,
+            lastName,
+            city,
+            country: phoneCountry || 'GB',
+            fbp,
+            fbc,
+            clientIp,
+            clientUserAgent,
+          },
+        });
+      } catch (err) {
+        console.error('[checkout] abandoned_cart failed', err);
+      }
+    }
+
+    /* ── the lead row ─────────────────────────────────────────────────
+       Written whether or not the payment ever completes, which is the entire
+       point: a lead with no matching sale row IS the person who abandoned.
+
+       lead_id is the Stripe session id — deliberately the same value the sale
+       row carries as ITS lead_id, so the two sheets join with no extra
+       plumbing. That is also why this sits after the session is created
+       rather than before: no session, no join key, and a buyer who hits a
+       Stripe error and retries would leave two rows behind. */
+    const lead: LeadPayload = {
+      lead_id: session.id,
+      created_at: new Date().toISOString(),
+      first_name: firstName,
+      last_name: lastName,
+      email,
+      phone,
+      city,
+      country_code: phoneCountry || 'GB',
+
+      fbc,
+      fbp,
+      client_ip_address: clientIp,
+      client_user_agent: clientUserAgent,
+      /* Produced by the CAPI module itself, so the row and the events can
+         never disagree about who this person is. */
+      external_id: externalIdFor(email),
+
+      event_source_url: eventSourceUrl,
+      amount: plan.priceGbp.toFixed(2),
+      /* Honest rather than hard-coded: a preview deploy writing into the live
+         sheet should be filterable with a plain equals. */
+      is_test: process.env.NODE_ENV !== 'production' ? 'true' : 'false',
+
+      utm_source: utmSource,
+      utm_medium: utmMedium,
+      utm_campaign: utmCampaign,
+      utm_content: utmContent,
+      utm_term: utmTerm,
+      fbclid,
+      gclid,
+      referrer,
+      landing_url: landingUrl,
+
+      plan: plan.id,
+      plan_name: plan.productName,
+      stripe_session_id: session.id,
+    };
+
+    /* Logged before the hand-off, so the lead survives in the platform logs
+       even if Pabbly fails and no row ever appears. */
+    console.info('[checkout] lead captured', JSON.stringify(lead));
+
+    if (!pabblyLeadConfigured()) {
+      console.error(
+        `[checkout] PABBLY_LEAD_WEBHOOK_URL is not set, ${session.id} did not reach the lead sheet`,
+      );
+    } else {
+      try {
+        await sendLeadToPabbly(lead);
+      } catch (err) {
+        /* Logged, never thrown. The session is open and the buyer is about to
+           be redirected; failing this response would cost a sale to save a row
+           that is already in the log line above. */
+        console.error(`[checkout] lead hand-off failed for ${session.id}`, err);
       }
     }
 

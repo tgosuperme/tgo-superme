@@ -166,3 +166,133 @@ export async function sendSaleToPabbly(payload: SalePayload): Promise<void> {
     `Pabbly failed after ${attempts} attempts for ${payload.stripe_session_id}: ${String(lastError)}`,
   );
 }
+
+/**
+ * ── THE LEAD ROW · a second feed, an earlier moment ──────────────────────────
+ *
+ * Posted the instant the details form is submitted and the Stripe session
+ * opens — BEFORE the buyer has paid, and whether or not they ever do.
+ *
+ * That is the whole reason it exists. Stripe Checkout is not our page:
+ * somebody who reaches it, hesitates and closes the tab leaves no trace on our
+ * side at all, and on a hosted checkout those people outnumber the buyers.
+ * This row is the only record that they wanted it.
+ *
+ * ── A SEPARATE SHEET, ON PURPOSE ────────────────────────────────────────────
+ * PABBLY_LEAD_WEBHOOK_URL, not the sales URL. A lead is not a sale, and mixing
+ * the two means every count downstream has to filter first — which somebody
+ * eventually forgets to do, and then a revenue figure includes people who
+ * never paid.
+ *
+ * ── lead_id IS THE STRIPE SESSION ID ────────────────────────────────────────
+ * Deliberately the same value the sale row uses as its own lead_id, so the two
+ * sheets join on it with no extra plumbing: a lead with no matching sale row
+ * is exactly the person who abandoned. It is available here because this runs
+ * AFTER the session is created — which is also why the row is not written when
+ * Stripe itself fails, since a buyer who sees an error and retries should not
+ * leave two rows behind.
+ *
+ * Field names mirror SalePayload rather than inventing a second vocabulary, so
+ * one Apps Script can read either sheet.
+ */
+export type LeadPayload = {
+  lead_id: string; // = the Stripe Checkout Session id
+  created_at: string; // ISO 8601, UTC
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string; // E.164
+  city: string;
+  country_code: string; // ISO 3166-1 alpha-2
+
+  /* Meta match keys, read from the form's OWN request — unlike the Stripe
+     webhook, this one is the buyer's browser, so these are genuinely theirs. */
+  fbc: string;
+  fbp: string;
+  client_ip_address: string;
+  client_user_agent: string;
+  external_id: string; // sha256(lowercase(trim(email)))
+
+  event_source_url: string;
+  /** The price of the plan they chose, decimal. INTENDED, not paid. */
+  amount: string;
+  is_test: string; // "true" / "false"
+
+  utm_source: string;
+  utm_medium: string;
+  utm_campaign: string;
+  utm_content: string;
+  utm_term: string;
+  fbclid: string;
+  gclid: string;
+  referrer: string;
+  landing_url: string;
+
+  /* Which pass they chose. `plan` is the machine value ("seat" | "vip") and is
+     what anything downstream should branch on; `plan_name` is the same fact in
+     words. Both are here rather than inferred from `amount`, which only
+     separates the tiers while the prices are what they are today. */
+  plan: string;
+  plan_name: string;
+  /** Same as lead_id, under the name the sales sheet already uses for lookups. */
+  stripe_session_id: string;
+};
+
+export function pabblyLeadConfigured(): boolean {
+  return Boolean(process.env.PABBLY_LEAD_WEBHOOK_URL);
+}
+
+/**
+ * Posts one lead to the lead sheet.
+ *
+ * THROWS ON FAILURE, and the caller swallows it — the opposite of the sale
+ * path, deliberately. There is a buyer waiting on this response to be sent to
+ * Stripe and no processor behind them to retry. Failing the request would cost
+ * a sale to save a CRM row, and the row is recoverable from the log line
+ * /api/checkout writes before calling this.
+ */
+export async function sendLeadToPabbly(payload: LeadPayload): Promise<void> {
+  const url = process.env.PABBLY_LEAD_WEBHOOK_URL;
+  if (!url) throw new Error('PABBLY_LEAD_WEBHOOK_URL is not set');
+
+  const attempts = 3;
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        /* Tighter than the sale's 10s: a buyer is watching a spinner here, and
+           a slow Pabbly must never be why a checkout feels broken. */
+        signal: AbortSignal.timeout(6000),
+        cache: 'no-store',
+      });
+
+      if (res.ok) {
+        console.info(`[pabbly] lead sent ${payload.lead_id} (attempt ${attempt})`);
+        return;
+      }
+
+      const body = await res.text().catch(() => '');
+      if (res.status >= 400 && res.status < 500) {
+        throw new Error(`Pabbly rejected the lead: ${res.status} ${body.slice(0, 200)}`);
+      }
+      lastError = new Error(`Pabbly returned ${res.status} ${body.slice(0, 200)}`);
+    } catch (err) {
+      lastError = err;
+      if (err instanceof Error && err.message.startsWith('Pabbly rejected')) throw err;
+    }
+
+    if (attempt < attempts) {
+      await new Promise((resolve) => {
+        setTimeout(resolve, attempt * 400);
+      });
+    }
+  }
+
+  throw new Error(
+    `Pabbly lead failed after ${attempts} attempts for ${payload.lead_id}: ${String(lastError)}`,
+  );
+}
