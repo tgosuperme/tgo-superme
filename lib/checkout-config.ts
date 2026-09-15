@@ -155,6 +155,21 @@ export const CHECKOUT_CONFIG = {
     events: {
       addToCart: 'atc_event',
       initiateCheckout: 'ic_event',
+      /* THE POINT OF THE DETAILS FORM. Fired the moment someone hands over a
+         name, email and phone on /checkout — before they ever reach Razorpay.
+
+         Without it this funnel is blind to everyone who showed real intent and
+         then did not pay: the hosted Payment Page is not ours, so a buyer who
+         opens it and closes it leaves no trace anywhere we can see. This is
+         the only event in the funnel that reports a person we would otherwise
+         never have heard of.
+
+         It carries FULL match keys — email, phone, name, plus the four browser
+         ones — so it is a high-EMQ audience to retarget and to build
+         lookalikes from, not just a counter. It does NOT carry money: nobody
+         has paid, and a stream of ₹497s that never became revenue would teach
+         value bidding the wrong thing. */
+      abandonedCart: 'abandoned_cart',
       sale: 'sales',
     },
     /* contentName is GONE, not merely unused. It read "5-Day Pain Reset

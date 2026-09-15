@@ -195,3 +195,136 @@ export async function sendSaleToPabbly(payload: SalePayload): Promise<void> {
     `Pabbly failed after ${attempts} attempts for ${payload.razorpay_payment_id}: ${String(lastError)}`,
   );
 }
+
+/**
+ * ── THE LEAD ROW · a second feed, a different moment ─────────────────────────
+ *
+ * Posted the instant someone submits the details form on /checkout, BEFORE
+ * they are sent to Razorpay — so it exists whether or not they ever pay.
+ *
+ * That is the whole reason it exists. The Payment Page is not ours: somebody
+ * who opens it, hesitates and closes the tab leaves no trace on our side at
+ * all, and until now those people were invisible. This row is the only record
+ * that they wanted it.
+ *
+ * ── IT IS A SEPARATE SHEET, ON PURPOSE ──────────────────────────────────────
+ * PABBLY_LEAD_WEBHOOK_URL, not the sales URL. A lead is not a sale, and mixing
+ * the two into one sheet means every count downstream has to filter first —
+ * which somebody eventually forgets to do, and then a revenue figure includes
+ * people who never paid.
+ *
+ * `lead_id` IS THE SAME UUID THE SALE ROW WILL CARRY. It is minted once in
+ * /api/lead, stamped into the ref_id token that travels through Razorpay, and
+ * handed back by the webhook as the sale's lead_id and purchase_event_id. So
+ * the two sheets join on it, and "who filled the form but never paid" is a
+ * lookup rather than a guess.
+ *
+ * FIELDS ARE A SUBSET OF SalePayload, not a new vocabulary — same names, same
+ * meanings, so one Apps Script can read either. `city` is absent because the
+ * form does not ask for it; everything Razorpay would have collected arrives
+ * later on the sale row instead.
+ */
+export type LeadPayload = {
+  lead_id: string; // the uuid that will also be the sale's lead_id
+  created_at: string; // ISO 8601, UTC
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string; // E.164
+  country_code: string; // "IN"
+
+  /* Meta match keys, read from THIS request — the form POST is the buyer's own
+     browser, so unlike the Razorpay webhook these are genuinely theirs. */
+  fbc: string;
+  fbp: string;
+  client_ip_address: string;
+  client_user_agent: string;
+  external_id: string; // sha256(lowercase(trim(email)))
+
+  event_source_url: string;
+  /** The price of the pass they picked, decimal, e.g. "497.00". INTENDED, not
+      paid — nothing has been charged when this row is written. */
+  amount: string;
+  is_test: string; // "true" / "false"
+
+  utm_source: string;
+  utm_medium: string;
+  utm_campaign: string;
+  utm_content: string;
+  utm_term: string;
+  fbclid: string;
+  referrer: string;
+  landing_url: string;
+
+  /* ── which pass they picked ────────────────────────────────────────
+     `product` is the machine value ("base" | "vip") and is what anything
+     downstream should branch on — a filter, a follow-up sequence, a count of
+     VIP intent. `product_name` is the same fact in words, for a human reading
+     the sheet or an email merge field.
+
+     Both are here rather than left to be inferred from `amount`. Amount works
+     only while the prices are what they are today: reprice either tier and
+     every historic row becomes ambiguous, silently, with no way to tell a
+     ₹997 base sale from a ₹997 VIP one. */
+  product: string;
+  product_name: string;
+};
+
+export function pabblyLeadConfigured(): boolean {
+  return Boolean(process.env.PABBLY_LEAD_WEBHOOK_URL);
+}
+
+/**
+ * Posts one lead to the lead sheet, with the same retry as a sale.
+ *
+ * THROWS ON FAILURE, and the caller swallows it. That is the opposite of the
+ * sale path and it is deliberate: there is a person waiting on this response
+ * to be sent to a payment page, and no processor behind them to retry. Failing
+ * the request would cost a sale to save a CRM row. The row is recoverable from
+ * the log line /api/lead writes before calling this.
+ */
+export async function sendLeadToPabbly(payload: LeadPayload): Promise<void> {
+  const url = process.env.PABBLY_LEAD_WEBHOOK_URL;
+  if (!url) throw new Error('PABBLY_LEAD_WEBHOOK_URL is not set');
+
+  const attempts = 3;
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        /* Tighter than the sale's 10s. A buyer is watching a spinner here, and
+           a slow Pabbly must never be the reason a payment page feels broken. */
+        signal: AbortSignal.timeout(6000),
+        cache: 'no-store',
+      });
+
+      if (res.ok) {
+        console.info(`[pabbly] lead sent ${payload.lead_id} (attempt ${attempt})`);
+        return;
+      }
+
+      const body = await res.text().catch(() => '');
+      if (res.status >= 400 && res.status < 500) {
+        throw new Error(`Pabbly rejected the lead: ${res.status} ${body.slice(0, 200)}`);
+      }
+      lastError = new Error(`Pabbly returned ${res.status} ${body.slice(0, 200)}`);
+    } catch (err) {
+      lastError = err;
+      if (err instanceof Error && err.message.startsWith('Pabbly rejected')) throw err;
+    }
+
+    if (attempt < attempts) {
+      await new Promise((resolve) => {
+        setTimeout(resolve, attempt * 400);
+      });
+    }
+  }
+
+  throw new Error(
+    `Pabbly lead failed after ${attempts} attempts for ${payload.lead_id}: ${String(lastError)}`,
+  );
+}

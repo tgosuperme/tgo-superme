@@ -35,6 +35,7 @@ import { useState } from 'react';
 
 import type { ResolvedOffer } from '@/lib/offer';
 
+import LeadFormModal from './lead-form-modal';
 import { C } from './shared';
 
 /** The names as they should read on a receipt, not internal keys. */
@@ -85,12 +86,28 @@ function Tick({ on }: { on: boolean }) {
 
 export default function ProductPicker({ offer }: { offer: ResolvedOffer }) {
   const [vipOn, setVipOn] = useState(false);
+  /* The details form sits between choosing a pass and paying — see
+     ./lead-form-modal. Held here rather than in each button so both CTAs open
+     the same dialog against the same chosen tier. */
+  const [formOpen, setFormOpen] = useState(false);
 
   const base = offer.products.find((p) => p.key === 'base')!;
   const vip = offer.products.find((p) => p.key === 'vip')!;
   /* The TOTAL, not a sum. See the note at the top of this file. */
   const total = vipOn ? vip : base;
-  const href = `/go?product=${vipOn ? 'vip' : 'base'}`;
+  const product: 'base' | 'vip' = vipOn ? 'vip' : 'base';
+  /* The pre-form path. Still live, and still correct — it is where the modal
+     sends anyone whose /api/lead call fails, and where a direct link lands. */
+  const href = `/go?product=${product}`;
+
+  /* Buttons, not links, so the form can open in place. They keep their hrefs
+     for the middle-click and open-in-new-tab cases, and preventDefault only
+     fires on an ordinary left click. */
+  const openForm = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+    e.preventDefault();
+    setFormOpen(true);
+  };
 
   return (
     <div className="mt-6">
@@ -304,6 +321,7 @@ export default function ProductPicker({ offer }: { offer: ResolvedOffer }) {
         ) : (
           <a
             href={href}
+            onClick={openForm}
             data-cta="checkout"
             className="lego-press lego-pulse-glow group mt-4 inline-flex min-h-[56px] w-full items-center justify-center gap-2.5 rounded-full px-6 text-[16px] font-semibold text-white"
             style={{ background: C.blueFill }}
@@ -404,6 +422,7 @@ export default function ProductPicker({ offer }: { offer: ResolvedOffer }) {
               </span>
               <a
                 href={href}
+                onClick={openForm}
                 data-cta="checkout-sticky"
                 className="lego-press lego-pulse-glow group inline-flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-full px-4 text-[15px] font-semibold text-white"
                 style={{ background: C.blueFill }}
@@ -415,6 +434,14 @@ export default function ProductPicker({ offer }: { offer: ResolvedOffer }) {
           </div>
         </>
       )}
+
+      <LeadFormModal
+        open={formOpen}
+        onClose={() => setFormOpen(false)}
+        product={product}
+        priceLabel={total.priceLabel}
+        fallbackHref={href}
+      />
     </div>
   );
 }
