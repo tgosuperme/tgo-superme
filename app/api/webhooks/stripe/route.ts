@@ -49,11 +49,24 @@ export async function POST(req: Request) {
     return new Response('Invalid signature', { status: 400 });
   }
 
+  /* ── EVERY DELIVERY LEAVES A TRACE ────────────────────────────────────
+     Stripe reports 0% errors because this route answers 200 whatever it
+     decides, so a 200 in their dashboard proves only that we replied — not
+     that we acted. These lines are what tell the two apart. */
+  console.info(
+    `[stripe-webhook] RECEIVED type=${event.type} event_id=${event.id} livemode=${event.livemode}`,
+  );
+
   try {
     switch (event.type) {
       case 'checkout.session.completed':
       case 'checkout.session.async_payment_succeeded': {
         const session = event.data.object;
+        console.info(
+          `[stripe-webhook] SESSION ${session.id} payment_status=${session.payment_status} ` +
+            `amount_total=${session.amount_total} ${session.currency} livemode=${session.livemode} ` +
+            `metadata_keys=${Object.keys(session.metadata ?? {}).join(',') || 'NONE'}`,
+        );
         /* A session can complete before an asynchronous method has actually
            cleared, so paid is checked rather than assumed. */
         if (session.payment_status !== 'paid') {
@@ -88,7 +101,9 @@ export async function POST(req: Request) {
       }
 
       default:
-        /* Anything else is acknowledged so Stripe stops retrying it. */
+        /* Anything else is acknowledged so Stripe stops retrying it — but it
+           is logged, so "nothing happened" is never a silent state. */
+        console.info(`[stripe-webhook] UNHANDLED type=${event.type}, acknowledged`);
         break;
     }
   } catch (err) {
@@ -112,6 +127,11 @@ export async function POST(req: Request) {
  */
 async function onPaid(session: Stripe.Checkout.Session) {
   const m = session.metadata ?? {};
+  console.info(
+    `[stripe-webhook] onPaid ENTER ${session.id} funnel=${JSON.stringify(m.funnel ?? null)} ` +
+      `plan=${JSON.stringify(m.plan ?? null)} capiEventId=${JSON.stringify(m.capiEventId ?? null)} ` +
+      `has_fbp=${Boolean(m.fbp)} has_fbc=${Boolean(m.fbc)} has_ip=${Boolean(m.clientIp)} has_ua=${Boolean(m.clientUserAgent)}`,
+  );
 
   /* ── OWNERSHIP GATE ───────────────────────────────────────────────────
      A Stripe endpoint is subscribed at the ACCOUNT level, so this handler is
@@ -251,10 +271,16 @@ async function onPaid(session: Stripe.Checkout.Session) {
 
      Sent BEFORE Pabbly so a sheet outage cannot cost an ad-platform
      conversion; the two are independent and neither should block the other. */
-  if (capiConfigured()) {
+  const capiOn = capiConfigured();
+  console.info(
+    `[stripe-webhook] CAPI branch ${session.id} capiConfigured=${capiOn} ` +
+      `event_id=${purchaseEventId} value=${minor / 100} ${sale.currency}`,
+  );
+  if (capiOn) {
     try {
       await sendCapiEvent({
         eventName: CHECKOUT_CONFIG.capi.events.sale,
+        source: 'stripe-webhook',
         /* The SAME value written to the row as purchase_event_id, taken from
            the one variable so the two can never disagree. The downstream Apps
            Script events reference it, and dedup is auditable from the sheet. */
@@ -312,6 +338,7 @@ async function onPaid(session: Stripe.Checkout.Session) {
     return;
   }
 
+  console.info(`[stripe-webhook] Pabbly branch ${session.id} configured=${pabblyConfigured()}`);
   await sendSaleToPabbly(sale);
 
   /* TODO(fulfilment): send the joining email with the Zoom link and both

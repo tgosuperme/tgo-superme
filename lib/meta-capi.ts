@@ -167,6 +167,14 @@ export type CapiEvent = {
      Health & Wellness restricted. The two products are separated by `value`
      instead — see the note in sendCapiEvent. The field is REMOVED rather than
      ignored so a caller cannot pass one believing it still does something. */
+  /**
+   * WHICH CODE PATH FIRED THIS, e.g. "stripe-webhook" or "checkout".
+   *
+   * Logged on every line below, so a Vercel search for one event name shows
+   * where it came from. Three routes send events in this funnel, and "sales
+   * did not fire" is unanswerable without knowing which one was reached.
+   */
+  source?: string;
 };
 
 /**
@@ -274,24 +282,96 @@ export async function sendCapiEvent(e: CapiEvent): Promise<void> {
   const testCode = process.env.META_TEST_EVENT_CODE?.trim();
   if (testCode) body.test_event_code = testCode;
 
-  const res = await fetch(
-    `https://graph.facebook.com/${GRAPH_VERSION}/${pixelId}/events?access_token=${encodeURIComponent(token)}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(10_000),
-      cache: 'no-store',
-    },
+  /* ── FULL REQUEST LOG ─────────────────────────────────────────────────
+     The exact JSON body about to be POSTed, which route is sending it, and
+     which pixel it is going to. The access token lives in the URL and is NEVER
+     logged; everything here is either hashed (the PII keys) or already public.
+
+     This exists because "the sales event did not fire" was unanswerable for
+     days. The old line reported only a name AFTER the fact, so a call that was
+     never made, one that was rejected, and one that Meta accepted and then
+     dropped all produced either one identical success line or nothing at all. */
+  const src = e.source ?? 'unknown';
+  console.info(
+    `[capi] -> SENDING ${e.eventName} source=${src} event_id=${e.eventId} ` +
+      `pixel=${pixelId} graph=${GRAPH_VERSION} test_code=${testCode || 'none'} ` +
+      `match_keys=${Object.keys(userData).length} body=${JSON.stringify(body)}`,
   );
+
+  const startedAt = Date.now();
+  let res: Response;
+  try {
+    res = await fetch(
+      `https://graph.facebook.com/${GRAPH_VERSION}/${pixelId}/events?access_token=${encodeURIComponent(token)}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(10_000),
+        cache: 'no-store',
+      },
+    );
+  } catch (err) {
+    /* A timeout or a DNS failure never reaches the status checks below, so it
+       gets its own line. Without this the case is completely invisible. */
+    console.error(
+      `[capi] !! NETWORK FAILURE ${e.eventName} source=${src} event_id=${e.eventId} ` +
+        `after ${Date.now() - startedAt}ms: ${String(err)}`,
+    );
+    throw err;
+  }
+
+  const ms = Date.now() - startedAt;
+  const raw = await res.text().catch(() => '');
 
   if (!res.ok) {
     /* The token is in the URL, never in the log line. */
-    const detail = await res.text().catch(() => '');
-    throw new Error(`Meta CAPI returned ${res.status}: ${detail.slice(0, 300)}`);
+    console.error(
+      `[capi] !! REJECTED ${e.eventName} source=${src} event_id=${e.eventId} ` +
+        `http=${res.status} in ${ms}ms response=${raw.slice(0, 1000)}`,
+    );
+    throw new Error(`Meta CAPI returned ${res.status}: ${raw.slice(0, 300)}`);
   }
 
-  console.info(`[capi] ${e.eventName} sent, event_id=${e.eventId}`);
+  /* ── A 200 IS NOT PROOF THE EVENT COUNTED ─────────────────────────────
+     Meta answers 200 and then says what it actually did in the body:
+     `events_received` can be 0, and `messages` can carry a warning that a
+     field was ignored or the event dropped — which on a Health-and-Wellness
+     restricted dataset is a live possibility rather than a theoretical one.
+
+     The previous version discarded this body and logged "sent". So an event
+     Meta silently dropped and an event it counted produced the SAME log line,
+     which is precisely why this took so long to pin down. */
+  let received: unknown;
+  let messages: unknown[] = [];
+  let fbtrace = '';
+  try {
+    const parsed = JSON.parse(raw) as {
+      events_received?: number;
+      messages?: unknown[];
+      fbtrace_id?: string;
+    };
+    received = parsed.events_received;
+    messages = parsed.messages ?? [];
+    fbtrace = parsed.fbtrace_id ?? '';
+  } catch {
+    /* Unparseable body. The raw text is on the line below either way. */
+  }
+
+  const line =
+    `${e.eventName} source=${src} event_id=${e.eventId} http=${res.status} ` +
+    `events_received=${String(received)} fbtrace=${fbtrace} in ${ms}ms ` +
+    `response=${raw.slice(0, 1000)}`;
+
+  if (received === 1 && messages.length === 0) {
+    console.info(`[capi] <- ACCEPTED ${line}`);
+  } else {
+    /* 200, but not cleanly counted. Loud on purpose: this is the shape of a
+       problem that otherwise reads as success. */
+    console.warn(
+      `[capi] <- ACCEPTED-WITH-ISSUES ${line} messages=${JSON.stringify(messages)}`,
+    );
+  }
 }
 
 /**

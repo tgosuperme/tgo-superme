@@ -289,6 +289,7 @@ export async function POST(req: Request) {
       try {
         await sendCapiEvent({
           eventName: CHECKOUT_CONFIG.capi.events.initiateCheckout,
+          source: 'checkout',
           eventId: icEventId,
           eventTime: Math.floor(Date.now() / 1000),
           eventSourceUrl,
@@ -336,6 +337,7 @@ export async function POST(req: Request) {
       try {
         await sendCapiEvent({
           eventName: CHECKOUT_CONFIG.capi.events.abandonedCart,
+          source: 'checkout',
           eventId: `${session.id}-ac`,
           eventTime: Math.floor(Date.now() / 1000),
           eventSourceUrl,

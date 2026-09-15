@@ -54,6 +54,7 @@ export async function POST(req: Request) {
 
     await sendCapiEvent({
       eventName: event,
+      source: 'track',
       eventId,
       /* Seconds, not milliseconds. Meta rejects the latter. */
       eventTime: Math.floor(Date.now() / 1000),
