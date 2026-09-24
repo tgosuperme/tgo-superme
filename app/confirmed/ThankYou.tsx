@@ -657,7 +657,7 @@ export default function ThankYou({
         >
           <ShieldCheck weight="fill" className="h-4 w-4 shrink-0" style={{ color: C.mintInk }} />
           <span>
-            <strong>100% Money Back Guarantee.</strong>
+            <strong>100% Money-Back Guarantee.</strong>
           </span>
         </p>
 

@@ -20,6 +20,7 @@ import dynamic from 'next/dynamic';
 
 import CtaTracker from '@/components/CtaTracker';
 import { CHECKOUT_CONFIG } from '@/lib/checkout-config';
+import { ctaStickyLabel } from '@/lib/cta-copy';
 import { OFFER_REVALIDATE_SECONDS, resolveOffer } from '@/lib/offer';
 
 import { Hero, OfferStrip, SiteHeader } from './_landing/hero';
@@ -68,16 +69,9 @@ export default function Page() {
           renders its own flow spacer, so the footer is never covered. */}
       <StickyCta
         href={offer.ctaHref}
-        title="5-Day Pain Reset"
-        trailing={offer.priceLabel}
-        label={
-          offer.closed
-            ? 'Join the next batch'
-            : `Start Your 5-Day Reset · ${offer.priceLabel}`
-        }
+        label={ctaStickyLabel(offer)}
         date={offer.startsLabel}
         dateShort={offer.startsShortLabel}
-        times={offer.sessionTimes}
       />
     </main>
   );

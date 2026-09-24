@@ -43,6 +43,7 @@ import Link from 'next/link';
 
 import BrandMark from '@/components/BrandMark';
 import type { ResolvedOffer } from '@/lib/offer';
+import { ctaPrimaryLabel, CTA_RESERVE, GUARANTEE_LABEL } from '@/lib/cta-copy';
 import { PAIN_EYEBROW, PAIN_KEYS } from '@/lib/variants';
 
 import { legoBrick, legoDelay } from './lego-style';
@@ -126,7 +127,7 @@ function StripRun({ offer }: { offer: ResolvedOffer }) {
       {dot}
       {offer.sessionTimes}
       {dot}
-      100% Money-Back Guarantee
+      {GUARANTEE_LABEL}
       {/* Trailing separator so copy one runs into copy two the same way every
           other pair of facts meets. Without it the loop point reads as a gap. */}
       {dot}
@@ -177,7 +178,7 @@ export function OfferStrip({ offer }: { offer: ResolvedOffer }) {
         <span className="mx-2" style={{ color: C.blue }}>
           ·
         </span>
-        100% Money-Back Guarantee
+        {GUARANTEE_LABEL}
       </div>
     </div>
   );
@@ -318,6 +319,44 @@ export function Hero({ offer }: { offer: ResolvedOffer }) {
             </span>
           </h1>
 
+          {/* ══ phone-only banner ═════════════════════════════════════════
+              Sits between the headline and the standfirst, where the reader
+              has just been given the promise and has nothing to look at yet.
+              Below sm only: from sm up the offer card in the right-hand
+              column is already carrying the imagery, and a second 16:9 block
+              above it would say the same thing twice.
+
+              IT IS A LINK, and that is not decoration. The artwork contains a
+              PICTURE of a button — "Start Your 5-Day Reset · ₹497" — and a
+              picture of a button gets tapped. Making the whole banner the CTA
+              means the tap does what it looks like it does instead of
+              silently failing, and it inherits the same data-cta hook as
+              every other CTA so the click is tracked like one.
+
+              priority, because this is above the fold on the device it is
+              shown on. Lazy here would leave a 16:9 hole in the middle of the
+              hero on the first paint. */}
+          <Link
+            href={offer.ctaHref}
+            data-cta="hero-banner"
+            aria-label={ctaPrimaryLabel(offer)}
+            className="mt-6 block overflow-hidden rounded-2xl sm:hidden"
+            style={{
+              border: `1px solid ${C.line}`,
+              boxShadow: '0 18px 44px -28px rgba(24,59,86,0.35)',
+            }}
+          >
+            <Image
+              src="/banner/superme-india-hero.jpg"
+              alt="The team behind the Inner Brace Method: Atul Mishra with SuperMe co-founders Sriram Natarajan and Stéphane Bezençon."
+              width={1400}
+              height={788}
+              sizes="100vw"
+              priority
+              className="h-auto w-full"
+            />
+          </Link>
+
           <p
             className="mx-auto mt-5 max-w-[560px] text-[16px] leading-relaxed lg:mx-0"
             style={{ color: C.inkSoft }}
@@ -363,9 +402,7 @@ export function Hero({ offer }: { offer: ResolvedOffer }) {
               className="lego-press lego-pulse-glow group inline-flex min-h-[56px] w-full items-center justify-center gap-2.5 rounded-full px-8 text-[15.5px] font-semibold text-white sm:w-auto"
               style={{ background: C.blueFill }}
             >
-              {offer.closed
-                ? 'Join the next batch'
-                : `Start Your 5-Day Reset · ${offer.priceLabel}`}
+              {ctaPrimaryLabel(offer)}
               <ArrowRight
                 weight="bold"
                 className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5"
@@ -378,7 +415,7 @@ export function Hero({ offer }: { offer: ResolvedOffer }) {
             style={{ color: C.inkMuted }}
           >
             <ShieldCheck weight="fill" className="h-4 w-4" style={{ color: C.green }} />
-            100% Money Back Guarantee
+            {GUARANTEE_LABEL}
           </p>
 
           <ul className="mt-7 flex flex-wrap justify-center gap-2.5 lg:justify-start">
@@ -472,7 +509,7 @@ export function Hero({ offer }: { offer: ResolvedOffer }) {
                   {offer.priceLabel}
                 </span>
                 <span className="text-[13px]" style={{ color: C.inkMuted }}>
-                  100% Money Back Guarantee
+                  {GUARANTEE_LABEL}
                 </span>
               </div>
 
@@ -482,7 +519,7 @@ export function Hero({ offer }: { offer: ResolvedOffer }) {
                 className="lego-press lego-pulse-glow group mt-5 inline-flex min-h-[54px] w-full items-center justify-center gap-2.5 rounded-2xl text-[15.5px] font-semibold text-white"
                 style={{ background: C.blueFill }}
               >
-                Reserve My Spot
+                {CTA_RESERVE}
                 <ArrowRight
                   weight="bold"
                   className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5"

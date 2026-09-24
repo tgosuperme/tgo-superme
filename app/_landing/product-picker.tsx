@@ -33,6 +33,7 @@
 import { ArrowRight, CheckCircle, Lock, Sparkle } from '@phosphor-icons/react/dist/ssr';
 import { useState } from 'react';
 
+import { CTA_RESERVE } from '@/lib/cta-copy';
 import type { ResolvedOffer } from '@/lib/offer';
 
 import LeadFormModal from './lead-form-modal';
@@ -326,7 +327,7 @@ export default function ProductPicker({ offer }: { offer: ResolvedOffer }) {
             className="lego-press lego-pulse-glow group mt-4 inline-flex min-h-[56px] w-full items-center justify-center gap-2.5 rounded-full px-6 text-[16px] font-semibold text-white"
             style={{ background: C.blueFill }}
           >
-            Reserve My Spot · {total.priceLabel}
+            {CTA_RESERVE} • {total.priceLabel}
             <ArrowRight
               weight="bold"
               className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5"
@@ -427,7 +428,7 @@ export default function ProductPicker({ offer }: { offer: ResolvedOffer }) {
                 className="lego-press lego-pulse-glow group inline-flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-full px-4 text-[15px] font-semibold text-white"
                 style={{ background: C.blueFill }}
               >
-                Reserve My Spot
+                {CTA_RESERVE}
                 <ArrowRight weight="bold" className="h-4 w-4" />
               </a>
             </div>

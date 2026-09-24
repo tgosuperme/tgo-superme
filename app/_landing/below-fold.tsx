@@ -59,6 +59,8 @@ import type { ResolvedOffer } from '@/lib/offer';
 
 import Bonuses from './bonuses';
 import { legoBrick, legoDelay } from './lego-style';
+import { ctaPrimaryLabel, GUARANTEE_LABEL } from '@/lib/cta-copy';
+
 import Testimonials from './testimonials';
 import { domAnimation, LazyMotion, m, type Variants } from './motion-lite';
 import {
@@ -479,7 +481,7 @@ function SessionsBand({ offer }: { offer: ResolvedOffer }) {
               ['--pulse-color' as string]: 'rgba(255,255,255,0.5)',
             }}
           >
-            Start Your 5-Day Reset · {offer.priceLabel}
+            {ctaPrimaryLabel(offer)}
             <ArrowRight
               weight="bold"
               className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5"
@@ -489,7 +491,7 @@ function SessionsBand({ offer }: { offer: ResolvedOffer }) {
             className="mt-3 text-[13px] font-medium"
             style={{ color: 'rgba(250,245,234,0.7)' }}
           >
-            100% Money Back Guarantee
+            {GUARANTEE_LABEL}
           </p>
         </div>
       </div>
@@ -899,7 +901,7 @@ function Promise({ offer }: { offer: ResolvedOffer }) {
         >
           Join Day 1 of the 5-Day Pain Reset Challenge and experience the Inner
           Brace Method for yourself. If you attend Day 1 and decide it&apos;s not
-          for you, that is a 100% Money Back Guarantee.
+          for you, that is a 100% Money-Back Guarantee.
         </p>
 
         <p className="sm-promise-closer">
@@ -993,7 +995,7 @@ function TwoOptions({ offer }: { offer: ResolvedOffer }) {
               ['--pulse-color' as string]: 'rgba(255,255,255,0.45)',
             }}
           >
-            Start Your 5-Day Reset · {offer.priceLabel}
+            {ctaPrimaryLabel(offer)}
             <ArrowRight
               weight="bold"
               className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5"
@@ -1003,7 +1005,7 @@ function TwoOptions({ offer }: { offer: ResolvedOffer }) {
             className="mt-3 text-center text-[12.5px]"
             style={{ color: 'rgba(250,245,234,0.7)' }}
           >
-            100% Money Back Guarantee
+            {GUARANTEE_LABEL}
           </p>
         </div>
       </div>
