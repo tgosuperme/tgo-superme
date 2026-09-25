@@ -500,8 +500,21 @@ export function Hero({ offer }: { offer: ResolvedOffer }) {
                 Live coach-led · Back, Neck &amp; Knee · Zoom · 2 session timings
               </p>
 
+              {/* ══ everything below here is DESKTOP ONLY ═══════════════
+                  The phone banner added above the standfirst already carries
+                  the price, the guarantee, the CTA and the credentials — the
+                  same facts, in artwork sized so they can be read. Repeating
+                  them inside this card a screen later made the hero say the
+                  same four things twice and pushed the first real section of
+                  the page below a second fold.
+
+                  So on a phone the card keeps only what the banner does NOT
+                  duplicate: the system image, the eyebrow, the title and the
+                  one-line summary. From sm up the banner is hidden and this
+                  card is the only place the offer appears, so it keeps the
+                  lot. The two are complements, never both. */}
               {/* One price, stated once. No "was", no savings badge. */}
-              <div className="mt-5 flex items-baseline gap-2.5">
+              <div className="mt-5 hidden items-baseline gap-2.5 sm:flex">
                 <span
                   className="font-heading text-[42px] font-bold leading-none"
                   style={{ color: C.ink }}
@@ -516,7 +529,7 @@ export function Hero({ offer }: { offer: ResolvedOffer }) {
               <Link
                 href={offer.ctaHref}
                 data-cta="hero-card"
-                className="lego-press lego-pulse-glow group mt-5 inline-flex min-h-[54px] w-full items-center justify-center gap-2.5 rounded-2xl text-[15.5px] font-semibold text-white"
+                className="lego-press lego-pulse-glow group mt-5 hidden min-h-[54px] w-full items-center justify-center gap-2.5 rounded-2xl text-[15.5px] font-semibold text-white sm:inline-flex"
                 style={{ background: C.blueFill }}
               >
                 {CTA_RESERVE}
@@ -527,7 +540,7 @@ export function Hero({ offer }: { offer: ResolvedOffer }) {
               </Link>
 
               <p
-                className="mt-3 flex items-center justify-center gap-1.5 text-[11.5px] font-medium"
+                className="mt-3 hidden items-center justify-center gap-1.5 text-[11.5px] font-medium sm:flex"
                 style={{ color: C.inkMuted }}
               >
                 <Lock weight="fill" className="h-3 w-3" />
@@ -566,7 +579,9 @@ const STATS = [
 
 function StatsBar() {
   return (
-    <div className="mx-auto mt-14 max-w-[1180px] px-5 md:px-8">
+    /* Phone-hidden: 16+ Years, 1,000+ and 500+ are all printed on the banner
+       that stands in for this card's content below sm. */
+    <div className="mx-auto mt-14 hidden max-w-[1180px] px-5 sm:block md:px-8">
       <ul
         className="grid grid-cols-2 gap-x-4 gap-y-7 rounded-3xl bg-white px-6 py-8 sm:px-10 lg:grid-cols-4"
         style={{
