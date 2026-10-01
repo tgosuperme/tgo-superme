@@ -18,7 +18,7 @@
  *  11  FAQ ........................ page 11
  *  12  Important information ...... page 12
  *
- * COPY IS VERBATIM from that PDF. It is the wording the UK compliance review
+ * COPY IS VERBATIM from that PDF. It is the wording the compliance review
  * was run against, so it must not be re-voiced, shortened or "improved". Three
  * devices from the reference postpartum page are deliberately absent and must
  * stay absent: a rising-price strip, a struck-through list price with a savings
@@ -509,7 +509,7 @@ function SessionsBand() {
    as their own. Split into three parts rather than marked up inline so the
    sentences stay exactly as signed off, just wrapped. */
 const RECOGNITION: [string, string, string][] = [
-  ['You have spent money on physio, painkillers or a chiropractor, or ', 'waited months for an NHS appointment', ', and you are still stiff every morning.'],
+  ['You have spent money on physio, painkillers or a chiropractor, or ', 'been passed between clinics for months', ', and you are still stiff every morning.'],
   ['Your back, neck or knee pain ', 'keeps coming back', ', even after trying exercises and stretches.'],
   ['You wake up ', 'feeling stiff', ', or find yourself avoiding certain movements because they hurt.'],
   ["You're ", 'afraid of making things worse', ", so you've stopped doing the activities you actually enjoy."],
@@ -1464,7 +1464,7 @@ function Initiative() {
           style={{ color: C.inkMuted }}
         >
           SuperMe is operated by MyEntourage Sàrl, Lausanne, Switzerland, and
-          works with people across the UK, EU and Switzerland. SuperMe is a yoga
+          works with people across the UAE, Europe and Switzerland. SuperMe is a yoga
           and movement education service, not a medical service.
         </p>
 
@@ -1697,7 +1697,7 @@ export default function BelowFold() {
      that adds `bw-in` to revealed elements. Without it every .bw-reveal-*
      stays at opacity 0 once .bw-js is on the document. */
   return (
-    /* THREE SECTIONS WERE CUT for the UK build, all on phone-length grounds:
+    /* THREE SECTIONS WERE CUT, all on phone-length grounds:
        the mechanism grid ("why this works"), the values block and the founder
        cards. The mechanism's five principle titles were not lost with it — they
        run as a single line in the Experience intro, which is where a reader

@@ -297,7 +297,7 @@ async function onPaid(session: Stripe.Checkout.Session) {
              the best country signal available: Stripe only holds a billing
              address if the payment method supplied one. */
           country:
-            m.phoneCountry || session.customer_details?.address?.country || 'GB',
+            m.phoneCountry || session.customer_details?.address?.country || 'AE',
           /* All four captured at checkout time. This request is Stripe's, so
              it has none of them itself. */
           fbp: m.fbp,

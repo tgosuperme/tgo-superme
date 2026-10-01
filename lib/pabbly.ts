@@ -79,7 +79,7 @@ export type SalePayload = {
   /* ── AM onward · SuperMe extras, right of the lifecycle block ─────── */
   full_name: string;
   amount_minor: number; // pence, for anything that must not touch floats
-  currency: string; // "GBP"
+  currency: string; // "AED"
   payment_status: string;
   stripe_session_id: string; // = lead_id, kept under its own name for lookups
   stripe_payment_intent: string;

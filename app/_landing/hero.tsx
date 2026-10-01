@@ -9,17 +9,17 @@
  *
  * ── COPY AND COMPLIANCE, UPDATED FOR THE SEAT-HOLD OFFER ──────────────────
  * This page previously carried a note that a struck list price and a percentage
- * outcome claim were both forbidden. The UK brief that replaced it asks for
+ * outcome claim were both forbidden. The brief that replaced it asks for
  * both, deliberately and with the reasoning stated:
  *
  *   · The struck figure is a REAL comparison — five live group sessions at the
  *     app's own per-session rate — not a former price of this offer, and it is
- *     labelled as such. It is never presented as "was £23, now £1.99".
+ *     labelled as such. It is never presented as "was AED 17, now AED 4.99".
  *   · The 10–80% range is the headline the brief specifies, and it is qualified
  *     in the line directly beneath it: "Results vary from person to person."
  *     That qualifier is not decoration and must not be dropped.
  *
- * A rising-price line remains absent: the UK offer is one price, one page.
+ * A rising-price line remains absent: this offer is one price, one page.
  *
  * TWO HEADLINES ARE RENDERED. Variant A is the default; ?h=b selects B. Both
  * sit in the HTML and CSS picks one — see the pre-paint script in app/layout.

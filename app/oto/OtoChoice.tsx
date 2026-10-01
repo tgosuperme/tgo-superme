@@ -11,8 +11,8 @@
  *
  * TWO PACKAGES, PICK ONE — NOT A BASKET
  * The cards are a RADIO PAIR, defaulting to the seat. They are alternatives:
- * £9.99 is a total that already contains the seat, not an amount added to it,
- * so £1.99 + £9.99 is never a thing anyone pays. That is the one point this
+ * The VIP price is a total that already contains the seat, not an amount added
+ * to it, so seat + VIP is never a thing anyone pays. That is the one point this
  * page has to land without being read twice, which is why the VIP price carries
  * "total, seat included" directly under it and the total row restates the single
  * figure that will be charged.
@@ -55,7 +55,7 @@ import {
   START_DATE,
 } from '../_landing/shared';
 
-/* What the £1.99 seat buys. Deliberately the same four lines the checkout's
+/* What the seat buys. Deliberately the same four lines the checkout's
    order summary shows, so the reader sees the identical list twice rather than
    two overlapping descriptions of one thing. */
 const SEAT_INCLUDES = [
@@ -68,7 +68,7 @@ const SEAT_INCLUDES = [
 /**
  * One of the two plan cards.
  *
- * A RADIO, not a checkbox. The two cards are alternatives — £9.99 is a total
+ * A RADIO, not a checkbox. The two cards are alternatives — the VIP price is a total
  * that already contains the seat, not an amount added to it — and a radio pair
  * is the control that says so. A checkbox on one card implies the other is a
  * fixed baseline with something bolted on, which is the misreading this page
@@ -218,9 +218,9 @@ export default function OtoChoice() {
     if (busy) return;
     setBusy(true);
     gaEvent(GA_EVENTS.addToCart, {
-      value: plan.priceGbp,
-      currency: 'GBP',
-      items: [{ item_id: plan.id, item_name: plan.productName, price: plan.priceGbp }],
+      value: plan.priceAed,
+      currency: 'AED',
+      items: [{ item_id: plan.id, item_name: plan.productName, price: plan.priceAed }],
     });
     /* The plan rides in the query string rather than storage: it survives a
        refresh, a shared link and a back button, and the checkout can be linked
@@ -385,7 +385,7 @@ export default function OtoChoice() {
                 >
                   {PLANS.vip.priceLabel}
                 </span>
-                {/* THE line that stops this reading as £1.99 + £9.99. */}
+                {/* THE line that stops this reading as seat price + VIP price. */}
                 <span
                   className="mt-1 block text-[10.5px] leading-tight"
                   style={{ color: C.inkMuted }}
@@ -515,7 +515,7 @@ export default function OtoChoice() {
         watch="[data-oto-cta]"
         /* Short labels, because this bar is the tightest row on the site: two
            lines of text and a priced button inside 390px. "5-Day Pain Reset ·
-           £1.99" truncated the price away, and the longer note clipped mid-word
+           the price" truncated it away, and the longer note clipped mid-word
            at "Refunded if it's not for". Both now fit whole. */
         label={vip ? 'Your VIP seat' : 'Your seat'}
         trailing={plan.priceLabel}

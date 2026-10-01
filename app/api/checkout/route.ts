@@ -12,7 +12,7 @@ import { getStripe, siteOrigin, stripeConfigured } from '@/lib/stripe';
 /**
  * Opens a Stripe Checkout Session for the 5-Day Pain Reset.
  *
- * GBP offer on a UK account, so this is Stripe rather than the Razorpay flow
+ * AED offer for the Dubai market, so this is Stripe rather than the Razorpay flow
  * the postpartum funnel uses.
  *
  * Shape of the decisions taken here, so they are not re-litigated later:
@@ -299,7 +299,7 @@ export async function POST(req: Request) {
             firstName,
             lastName,
             city,
-            country: phoneCountry || 'GB',
+            country: phoneCountry || 'AE',
             fbp,
             fbc,
             clientIp,
@@ -310,7 +310,7 @@ export async function POST(req: Request) {
              to bid for the wrong thing. With content_name gone for H&W, this
              number is also the only thing separating the two products in
              Events Manager, so it has to be the real one. */
-          value: plan.priceGbp,
+          value: plan.priceAed,
           currency: CHECKOUT_CONFIG.capi.currency,
         });
       } catch (err) {
@@ -328,7 +328,7 @@ export async function POST(req: Request) {
          the buyer's own browser.
 
          Same match set as ic_event above, so the same 10-key EMQ. No value
-         and no currency: nobody has paid, and a stream of £1.99s that never
+         and no currency: nobody has paid, and a stream of AED 4.99s that never
          became revenue would train value bidding on income that does not
          exist. `sales` stays the only event in this funnel carrying money.
 
@@ -347,7 +347,7 @@ export async function POST(req: Request) {
             firstName,
             lastName,
             city,
-            country: phoneCountry || 'GB',
+            country: phoneCountry || 'AE',
             fbp,
             fbc,
             clientIp,
@@ -376,7 +376,7 @@ export async function POST(req: Request) {
       email,
       phone,
       city,
-      country_code: phoneCountry || 'GB',
+      country_code: phoneCountry || 'AE',
 
       fbc,
       fbp,
@@ -387,7 +387,7 @@ export async function POST(req: Request) {
       external_id: externalIdFor(email),
 
       event_source_url: eventSourceUrl,
-      amount: plan.priceGbp.toFixed(2),
+      amount: plan.priceAed.toFixed(2),
       /* Honest rather than hard-coded: a preview deploy writing into the live
          sheet should be filterable with a plain equals. */
       is_test: process.env.NODE_ENV !== 'production' ? 'true' : 'false',

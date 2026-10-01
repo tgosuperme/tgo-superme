@@ -30,7 +30,7 @@ const inter = Inter({
   display: 'swap',
 });
 
-const PRICE = `${CHECKOUT_CONFIG.currencySymbol}${CHECKOUT_CONFIG.amountGbpString}`;
+const PRICE = `${CHECKOUT_CONFIG.currencySymbol}${CHECKOUT_CONFIG.amountAedString}`;
 const START = CHECKOUT_CONFIG.startDate;
 
 /* Description stays inside the same compliance line as the page: no outcome

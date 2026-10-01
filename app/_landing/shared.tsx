@@ -108,10 +108,10 @@ export const C = {
   whisper: '#F4F9FE',
 };
 
-export const PRICE = CHECKOUT_CONFIG.amountGbpNumeric;
-export const PRICE_LABEL = `${CHECKOUT_CONFIG.currencySymbol}${CHECKOUT_CONFIG.amountGbpString}`;
+export const PRICE = CHECKOUT_CONFIG.amountAedNumeric;
+export const PRICE_LABEL = `${CHECKOUT_CONFIG.currencySymbol}${CHECKOUT_CONFIG.amountAedString}`;
 export const CURRENCY_SYMBOL = CHECKOUT_CONFIG.currencySymbol;
-/* ISO code, not the symbol. Meta's events want "GBP", never "£". */
+/* ISO code, not the display form. Meta's events want "AED", never "AED ". */
 export const CURRENCY_CODE = CHECKOUT_CONFIG.currency;
 /* The struck comparison on the price card, and the VIP figure the OTO quotes. */
 export const ANCHOR_LABEL = CHECKOUT_CONFIG.anchorLabel;

@@ -8,13 +8,13 @@
  * half-typed number — without rejecting valid numbers we do not know about.
  *
  * `min`/`max` are the national significant number: the digits AFTER the
- * dialling code and after any trunk prefix (the UK's leading 0) is stripped.
+ * dialling code and after any trunk prefix (a leading 0) is stripped.
  * Ranges are deliberately generous except where they are well known and fixed
  * (GB, US, CA, IN, AU); a validator that rejects a real customer's number is
  * far more expensive than one that lets a bad one through to a bounced message.
  *
- * The UK sits first and is the default: the offer is priced in GBP and the
- * sessions are quoted in UK time, so it is the overwhelmingly likely answer.
+ * The UAE sits first and is the default: the offer is priced in AED and the
+ * sessions are quoted in GST, so it is the overwhelmingly likely answer.
  */
 
 export type Country = {
@@ -29,6 +29,7 @@ export type Country = {
 };
 
 export const COUNTRIES: Country[] = [
+  { iso: 'AE', name: 'United Arab Emirates', dial: '971', min: 8, max: 9 },
   { iso: 'GB', name: 'United Kingdom', dial: '44', min: 9, max: 10 },
   { iso: 'IE', name: 'Ireland', dial: '353', min: 7, max: 9 },
   { iso: 'US', name: 'United States', dial: '1', min: 10, max: 10 },
@@ -36,7 +37,6 @@ export const COUNTRIES: Country[] = [
   { iso: 'AU', name: 'Australia', dial: '61', min: 9, max: 9 },
   { iso: 'NZ', name: 'New Zealand', dial: '64', min: 8, max: 10 },
   { iso: 'IN', name: 'India', dial: '91', min: 10, max: 10 },
-  { iso: 'AE', name: 'United Arab Emirates', dial: '971', min: 8, max: 9 },
   { iso: 'ZA', name: 'South Africa', dial: '27', min: 9, max: 9 },
   { iso: 'SG', name: 'Singapore', dial: '65', min: 8, max: 8 },
   { iso: 'HK', name: 'Hong Kong', dial: '852', min: 8, max: 8 },
@@ -71,7 +71,7 @@ export const COUNTRIES: Country[] = [
   { iso: 'MX', name: 'Mexico', dial: '52', min: 10, max: 10 },
 ];
 
-export const DEFAULT_ISO = 'GB';
+export const DEFAULT_ISO = 'AE';
 
 export function findCountry(iso: string): Country {
   return COUNTRIES.find((c) => c.iso === iso) ?? COUNTRIES[0];
