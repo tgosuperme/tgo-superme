@@ -108,16 +108,15 @@ export const C = {
   whisper: '#F4F9FE',
 };
 
-export const PRICE = CHECKOUT_CONFIG.amountGbpNumeric;
-/* NO SYMBOL PREFIX. amountGbpString is already a finished label — money()
+export const PRICE = CHECKOUT_CONFIG.amountAedNumeric;
+/* NO SYMBOL PREFIX. amountAedString is already a finished label — money()
    has put the symbol on a priced plan, and a FREE plan returns "Free", which
-   has nothing to put a symbol in front of. Concatenating one produced the
-   "£Free" that reached the hero, the sticky bar, the terms, the refund policy
-   and the page description. */
-export const PRICE_LABEL = CHECKOUT_CONFIG.amountGbpString;
+   has nothing to put a symbol in front of. Concatenating one printed
+   "AED Free" across the hero, the sticky bar, both legal pages and the
+   page description. */
+export const PRICE_LABEL = CHECKOUT_CONFIG.amountAedString;
 export const CURRENCY_SYMBOL = CHECKOUT_CONFIG.currencySymbol;
-/* ISO code, not the symbol. Meta's events and Stripe want "AED", never the
-   printed symbol. */
+/* ISO code, not the display form. Meta's events want "AED", never "AED ". */
 export const CURRENCY_CODE = CHECKOUT_CONFIG.currency;
 /* The struck comparison on the price card, and the VIP figure the OTO quotes. */
 export const ANCHOR_LABEL = CHECKOUT_CONFIG.anchorLabel;

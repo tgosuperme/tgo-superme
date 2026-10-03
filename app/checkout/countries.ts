@@ -8,7 +8,7 @@
  * half-typed number — without rejecting valid numbers we do not know about.
  *
  * `min`/`max` are the national significant number: the digits AFTER the
- * dialling code and after any trunk prefix (the UK's leading 0) is stripped.
+ * dialling code and after any trunk prefix (a leading 0) is stripped.
  * Ranges are deliberately generous except where they are well known and fixed
  * (AE, SA, GB, US, CA, IN, AU); a validator that rejects a real customer's
  * number is far more expensive than one that lets a bad one through to a
@@ -16,10 +16,10 @@
  *
  * ── THE GULF SITS FIRST ──────────────────────────────────────────────────
  * The UAE is the default and the six GCC states lead the list, because the
- * funnel is priced in AED and targeted at Gulf traffic. Saudi, Kuwait, Qatar,
- * Bahrain and Oman were ADDED with that move: a Saudi lead previously had no
- * dialling code to pick and could not finish the form at all, which is the
- * kind of thing that looks like a conversion-rate problem rather than a
+ * funnel is priced in AED, the sessions are quoted in GST, and the traffic is
+ * Gulf. Saudi, Kuwait, Qatar, Bahrain and Oman were ADDED with that move: a
+ * Saudi lead previously had no dialling code to pick and could not finish the
+ * form at all, which looks like a conversion-rate problem rather than a
  * missing list entry.
  *
  * The UK stays on the list, directly below them. The coach is UK-based and the

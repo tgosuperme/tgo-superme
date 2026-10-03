@@ -42,6 +42,15 @@
  * landing page says so in writing, with values, in its bonuses section. They
  * are absent here on purpose. See the note above VIP_BONUSES in
  * lib/checkout-config.ts.
+ *
+ * ── THE FIGURES ARE THE CLIENT'S ──────────────────────────────────────────
+ * AED 29 / 6 / 6 / 9 came with the Dubai move and are stated on the VIP order
+ * summary at the checkout too, from the same list. Nothing here is estimated,
+ * and the credit deliberately carries no figure: it is not a product.
+ *
+ * The stack total is SUMMED from that list rather than written down, so a
+ * repriced bonus cannot leave a total behind that no longer adds up — the one
+ * arithmetic error on a page like this that a reader will always spot.
  */
 import {
   ArrowLeft,
@@ -65,6 +74,7 @@ import {
   CHECKOUT_CONFIG,
   PLANS,
   VIP_BONUSES,
+  VIP_EXTRAS_TOTAL,
   type VipBonus,
 } from '@/lib/checkout-config';
 import { GA_EVENTS, gaEvent } from '@/lib/ga';
@@ -136,13 +146,28 @@ function BonusCard({ bonus, index }: { bonus: VipBonus; index: number }) {
           <Icon weight="fill" className="h-5 w-5" style={{ color: C.goldDeep }} />
         </span>
 
-        <div className="min-w-0">
-          <h3
-            className="font-heading text-[16px] font-bold leading-snug sm:text-[17px]"
-            style={{ color: C.ink }}
-          >
-            {bonus.title}
-          </h3>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-3">
+            <h3
+              className="font-heading text-[16px] font-bold leading-snug sm:text-[17px]"
+              style={{ color: C.ink }}
+            >
+              {bonus.title}
+            </h3>
+            {/* The price sits BESIDE the heading rather than under the prose,
+                so the five of them line up into a column the eye can add up
+                on its way down. The credit has no value and simply shows
+                nothing — no "included", no dash, no placeholder. */}
+            {typeof bonus.value === 'number' && (
+              <span
+                className="shrink-0 rounded-full px-2.5 py-1 text-[11.5px] font-bold"
+                style={{ background: C.goldSoft, color: C.goldDeep }}
+              >
+                {CHECKOUT_CONFIG.currencySymbol}
+                {bonus.value}
+              </span>
+            )}
+          </div>
           <p
             className="mt-1.5 text-[13.5px] leading-relaxed"
             style={{ color: C.inkSoft, textWrap: 'pretty' } as React.CSSProperties}
@@ -172,9 +197,9 @@ export default function OtoChoice() {
     setBusy(true);
 
     gaEvent(GA_EVENTS.beginCheckout, {
-      value: VIP.priceGbp,
+      value: VIP.priceAed,
       currency: CHECKOUT_CONFIG.currency,
-      items: [{ item_id: VIP.id, item_name: VIP.productName, price: VIP.priceGbp }],
+      items: [{ item_id: VIP.id, item_name: VIP.productName, price: VIP.priceAed }],
     });
 
     router.push('/checkout?plan=vip');
@@ -269,6 +294,31 @@ export default function OtoChoice() {
             <BonusCard key={bonus.key} bonus={bonus} index={i} />
           ))}
         </div>
+
+        {/* ── what the stack adds up to ──────────────────────────────
+            One line, not a panel. The arithmetic is the argument here and it
+            does not need decorating: a reader who has just scrolled five
+            priced cards already has the number roughly in mind, and this
+            confirms it rather than announcing it.
+
+            NO SAVINGS PERCENTAGE. Against a 4.99 pass that figure rounds to
+            90%, which is the loud claim the advertising rules actually care
+            about — and bonus-data.ts records that the stack was deliberately
+            sized to keep the landing page's headline near 70%. Stating the two
+            real numbers and letting them speak is the same argument without
+            the claim. */}
+        <p
+          data-lego=""
+          className="mt-6 text-center text-[13.5px] leading-relaxed"
+          style={{ ...legoDelay(1, 90), color: C.inkSoft }}
+        >
+          That is{' '}
+          <strong style={{ color: C.ink }}>
+            {CHECKOUT_CONFIG.currencySymbol}
+            {VIP_EXTRAS_TOTAL} of extras
+          </strong>{' '}
+          on top of the five live days, for {VIP.priceLabel}.
+        </p>
 
         {/* ── the price and the ask ──────────────────────────────────
             ONE figure on the page. There is no "total today" row reconciling a

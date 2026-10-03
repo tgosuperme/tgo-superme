@@ -10,7 +10,7 @@ import LegalPage, { type LegalSection } from '../_landing/legal-page';
  * footer, at the point in the scroll where a reader is deciding — so it moved
  * here and the landing page carries one line and this link instead.
  *
- * THE TEXT IS UNCHANGED. It is the wording the UK compliance review was run
+ * THE TEXT IS UNCHANGED. It is the wording the compliance review was run
  * against, so it was moved verbatim and must not be re-voiced or shortened.
  * Moving it does not make it optional: the footer line that replaced it links
  * here from every page.

@@ -32,8 +32,16 @@ yarn-error.log*
 # rules listed .env and .env*.local by name, which meant a new variant like
 # .env.india — carrying a Meta CAPI token, a Razorpay webhook secret and the
 # Pabbly URL — was not covered and sat one `git add -A` from being committed.
-.env
-.env.*
+#
+# `.env*`, not `.env` + `.env.*`. Those two require a DOT after "env", so a
+# perfectly ordinary name slips straight past them:
+#
+#     .env_uk_paid          ← underscore. Carries a LIVE Stripe key.
+#     .env (2).example      ← what a browser writes on a second download
+#
+# Both have turned up in this repo untracked and committable. One `git add -A`
+# and a live key is in the history forever.
+.env*
 !.env.example
 # the dotless typo. Next.js does not load it, so it is easy to create by
 # mistake and not notice — and the patterns above do not catch it.

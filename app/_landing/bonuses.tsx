@@ -40,7 +40,22 @@ import {
 } from './shared';
 
 const TOTAL = INCLUDED_TOTAL;
+
+/**
+ * ── A FREE PLACE HAS NO PERCENTAGE ───────────────────────────────────────
+ * savingPercent(0) is 100, and "You save 100%" is both true and the wrong
+ * thing to print. bonus-data.ts records that this stack was deliberately
+ * sized to keep the headline near 70%, because a louder discount is the claim
+ * the advertising rules actually examine — and 100% is as loud as it gets,
+ * on a page where the honest statement is simply that the guides come with a
+ * place.
+ *
+ * So the badge reads "Included free" when the place is free, and falls back to
+ * the percentage if a seat price ever returns. Derived from the price rather
+ * than hard-written, so neither case can be left behind by the other.
+ */
 const SAVING_PCT = savingPercent(PRICE);
+const IS_FREE = PRICE <= 0;
 
 /* Inverted from the rest of the page: the copy sits on the page's pale blue,
    and the cover panel above it is white. That flip means the "instant access"
@@ -232,7 +247,7 @@ export default function Bonuses() {
             style={{ background: C.greenBed, color: C.greenInk }}
           >
             <Lightning weight="fill" className="h-3 w-3" />
-            You save {SAVING_PCT}%
+            {IS_FREE ? 'Included free' : `You save ${SAVING_PCT}%`}
           </p>
 
           <p className="mt-3 text-[12.5px]" style={{ color: C.inkMuted }}>

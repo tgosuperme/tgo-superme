@@ -1,7 +1,7 @@
 import Stripe from 'stripe';
 
 /**
- * Stripe client for the 5-Day Pain Reset (GBP offer, UK account).
+ * Stripe client for the 5-Day Pain Reset (AED offer, Dubai market).
  *
  * Constructed lazily on first use, never at module scope. A build or a page
  * render must not fall over just because the key is absent from an environment

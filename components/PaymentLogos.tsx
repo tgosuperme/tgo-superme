@@ -109,7 +109,7 @@ type Brand = { id: string; label: string; Logo: (p: LogoProps) => JSX.Element; w
 // `compact` row drops Maestro (visually nearly identical to Mastercard) so the
 // most common 5 fit cleanly in a single row on mobile — no orphan logo wrapping
 // to its own line. `full` row shows all 6 in the checkout strip.
-// UK rails only. RuPay and UPI are Indian schemes and were dropped when this
+// UAE/international card rails. RuPay and UPI are Indian schemes and were dropped when this
 // component came across from the postpartum funnel: showing a payment mark the
 // checkout cannot actually accept is a false trust signal.
 const COMPACT_LOGOS: Brand[] = [

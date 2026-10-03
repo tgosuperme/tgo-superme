@@ -36,7 +36,13 @@ import {
   toE164,
 } from './countries';
 
-import { BONUSES, INCLUDED_TOTAL, SCORE_REPORT } from '../_landing/bonus-data';
+import {
+  BONUSES,
+  INCLUDED_TOTAL,
+  SCORE_REPORT,
+  VIP_EXTRAS,
+  VIP_EXTRAS_TOTAL,
+} from '../_landing/bonus-data';
 import { legoBrick, legoDelay } from '../_landing/lego-style';
 import MobileCtaBar, { MOBILE_CTA_BAR_SPACE } from '../_landing/mobile-cta-bar';
 import {
@@ -91,9 +97,20 @@ type FieldKey = keyof Fields;
    31.990000000000002 in binary floating point, and that is exactly what
    rendered on the page once. This is a comparison figure rather than anything
    anyone is charged — the charged amount is an integer of pence, computed
-   separately — so rounding it to a whole pound is safe as well as correct to
-   look at. */
-const FULL_VALUE = Math.round(CHECKOUT_CONFIG.anchorGbpNumeric + INCLUDED_TOTAL);
+   separately — so rounding it to a whole dirham is safe as well as correct to
+   look at.
+
+   ── ONE PER TIER, BECAUSE THE TIERS CONTAIN DIFFERENT THINGS ───────────
+   A single struck figure for both was fine while VIP was priced against the
+   seat's stack. It is not fine now: VIP genuinely includes four more items,
+   and striking the SAME total against two different prices would have made
+   the seat read as a 71% discount and VIP as a 70% one off an identical
+   number, which is a figure nobody can defend when asked what it is made of.
+
+   Each total is the sum of what that tier actually contains, so both come out
+   near 70% honestly rather than by arrangement. */
+const SEAT_FULL_VALUE = Math.round(CHECKOUT_CONFIG.anchorAedNumeric + INCLUDED_TOTAL);
+const VIP_FULL_VALUE = SEAT_FULL_VALUE + VIP_EXTRAS_TOTAL;
 
 const INCLUDED = [
   { icon: VideoCamera, text: 'Five live, coach-led sessions on Zoom' },
@@ -172,8 +189,8 @@ export default function CheckoutForm({
     phone: '',
     city: '',
   });
-  /* UK by default: the sessions are quoted in UK time, so it is the
-     overwhelmingly likely answer. Fully changeable. */
+  /* UAE by default: the offer is in AED and the sessions are quoted in GST,
+     so it is the overwhelmingly likely answer. Fully changeable. */
   const [iso, setIso] = useState(DEFAULT_ISO);
 
   /* ── PREFILLED FROM THE REGISTRATION ───────────────────────────────────
@@ -249,9 +266,9 @@ export default function CheckoutForm({
        so a double-submit collapses into one conversion at Meta's end. */
     const icEventId = newEventId();
     gaEvent(GA_EVENTS.initiateCheckout, {
-      value: plan.priceGbp,
+      value: plan.priceAed,
       currency: CURRENCY_CODE,
-      items: [{ item_id: plan.id, item_name: plan.productName, price: plan.priceGbp }],
+      items: [{ item_id: plan.id, item_name: plan.productName, price: plan.priceAed }],
     });
 
     /* Last-touch UTM + first-touch entry point, captured on whatever page the
@@ -726,10 +743,35 @@ export default function CheckoutForm({
 
             <div className="my-5 h-px" style={{ background: C.lineStrong }} />
 
-            {/* The two components of the struck total below, both stated
-                PLAINLY. Neither is struck here: they are what the full value is made
-                of, and striking a number twice (once as a component, once
-                inside the total) reads as two different discounts. */}
+            {/* VIP's four extra lines, shown ONLY on the VIP summary. They
+                are what makes its struck total larger, so omitting them would
+                leave a bigger number with nothing behind it. */}
+            {plan.id === 'vip' ? (
+              <>
+                <div className="grid gap-2">
+                  {VIP_EXTRAS.map((x) => (
+                    <div key={x.title} className="flex items-baseline justify-between gap-3">
+                      <span className="text-[13.5px]" style={{ color: C.inkSoft }}>
+                        {x.title}
+                      </span>
+                      <span
+                        className="shrink-0 text-[13.5px] font-semibold"
+                        style={{ color: C.ink }}
+                      >
+                        {CURRENCY_SYMBOL}
+                        {x.value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div className="my-4 h-px" style={{ background: C.lineStrong }} />
+              </>
+            ) : null}
+
+            {/* The components of the struck total below, both stated PLAINLY.
+                Neither is struck here: they are what that figure is made of,
+                and striking a number twice — once as a component, once inside
+                the total — reads as two different discounts. */}
             <div className="grid gap-2">
               <div className="flex items-baseline justify-between">
                 <span className="text-[13.5px]" style={{ color: C.inkSoft }}>
@@ -770,7 +812,7 @@ export default function CheckoutForm({
                   style={{ color: C.inkMuted }}
                 >
                   {CURRENCY_SYMBOL}
-                  {FULL_VALUE}
+                  {plan.id === 'vip' ? VIP_FULL_VALUE : SEAT_FULL_VALUE}
                 </span>
                 <span
                   className="font-heading text-[36px] font-bold leading-none"
@@ -951,7 +993,7 @@ const OPTION_H = 42;
 const VISIBLE_OPTIONS = 6;
 
 /**
- * Mobile number, with a dialling-code selector defaulting to the UK.
+ * Mobile number, with a dialling-code selector defaulting to the UAE.
  *
  * The trigger and the input are two controls inside one bordered group, so the
  * pair reads as a single field. The border therefore lives on the wrapper and

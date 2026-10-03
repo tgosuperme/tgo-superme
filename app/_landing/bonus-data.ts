@@ -11,12 +11,19 @@
  * Same reasoning as ./lego-style: a module imported by both client and server
  * trees must not carry a 'use client' directive.
  *
- * ── ON THE POUND VALUES ──────────────────────────────────────────────────
+ * ── ON THE STATED VALUES ─────────────────────────────────────────────────
  * SuperMe-Bonus-PDFs-Copy.md records a prior compliance decision AGAINST
- * stated pound values on bonuses ("Appendix A: the pound values come off, the
+ * stated values on bonuses ("Appendix A: the pound values come off, the
  * contents stay on"), on value-stacking grounds. The client has since asked
  * for the values, a struck total and a savings percentage. Implemented as
  * asked and flagged here rather than silently dropped.
+ *
+ * ── THE FIGURES ARE SIZED TO A ~70% HEADLINE, NOT TO A MARKET RATE ───────
+ * AED 2 for a guide is low for Dubai. It is what the arithmetic allows: the
+ * seat is AED 4.99, and a ~70% discount puts the whole stack at AED 17. Raise
+ * these and the discount climbs past 90%, which is the louder claim and the
+ * one the advertising rules care about. The brief asked for ~70%, so the
+ * stack was sized to it rather than the other way round.
  *
  * The values below sum to BONUS_TOTAL, the bonus figure on its own. The
  * checkout adds the challenge price to it (FULL_VALUE = PRICE + BONUS_TOTAL)
@@ -25,12 +32,14 @@
  * price moves, and the arithmetic is done in code precisely so the two cannot
  * drift apart.
  */
+import { VIP_BONUSES, type VipBonus } from '@/lib/checkout-config';
+
 import { C } from './shared';
 
 export type Bonus = {
   n: string;
   title: string;
-  /** Whole pounds. Drives the card, the value block and the checkout summary. */
+  /** Whole AED. Drives the card, the value block and the checkout summary. */
   value: number;
   body: string;
   src: string;
@@ -45,7 +54,7 @@ export const BONUSES: Bonus[] = [
   {
     n: 'Bonus 1',
     title: 'The Back Pain Relief Guide',
-    value: 9,
+    value: 2,
     body: 'The five postures and two breathing techniques Atul uses to take the load off a guarding lower back, in the order that matters: unload first, strengthen after.',
     src: '/bonuses/back-pain-relief-guide.png',
     alt: 'The Back Pain Relief Guide',
@@ -55,7 +64,7 @@ export const BONUSES: Bonus[] = [
   {
     n: 'Bonus 2',
     title: 'The Knee Support Guide',
-    value: 6,
+    value: 2,
     body: 'Learn which of the two knees you actually have, load-related or arthritic, and the exact strengthening work Atul uses to take pressure off the joint without ever bending a sore knee first.',
     src: '/bonuses/knee-support-guide.png',
     alt: 'The Knee Support Guide',
@@ -65,7 +74,7 @@ export const BONUSES: Bonus[] = [
   {
     n: 'Bonus 3',
     title: 'The Neck & Shoulder Relief Guide',
-    value: 7,
+    value: 2,
     body: "Atul's posture corrections and daily habit fixes for a neck that's been carrying a decade of screen time, paired with a calming breath practice to ease tension through the shoulders.",
     src: '/bonuses/neck-shoulder-relief-guide.png',
     alt: 'The Neck and Shoulder Relief Guide',
@@ -75,7 +84,7 @@ export const BONUSES: Bonus[] = [
   {
     n: 'Bonus 4',
     title: 'The Unload Breath Guide',
-    value: 5,
+    value: 1,
     body: 'Four techniques explained simply, Nadi Shodhana, Ujjayi, diaphragmatic breathing and Kapalabhati: which one calms which kind of tension, and why breath comes before every movement in the Inner Brace Method.',
     src: '/bonuses/unload-breath-guide.png',
     alt: 'The Unload Breath Guide',
@@ -97,7 +106,7 @@ export const BONUS_TOTAL = BONUSES.reduce((sum, b) => sum + b.value, 0);
  */
 export const SCORE_REPORT = {
   title: 'Your Day 1 and Day 4 Pain Score Report',
-  value: 5,
+  value: 1,
 };
 
 /** Everything included with a seat, guides plus the score report. */
@@ -107,3 +116,41 @@ export const INCLUDED_TOTAL = BONUS_TOTAL + SCORE_REPORT.value;
 export function savingPercent(price: number): number {
   return Math.round(((INCLUDED_TOTAL - price) / INCLUDED_TOTAL) * 100);
 }
+
+/**
+ * What the VIP pass adds, priced the same way the seat's stack is.
+ *
+ * SEPARATE from BONUSES because these are not registration bonuses — nobody
+ * gets them for showing up, they are what the upgrade buys. The seat summary
+ * must never list them, and the VIP summary must never omit them.
+ *
+ * ── THE SAME ITEM NEVER CARRIES TWO PRICES ──────────────────────────────
+ * The VIP total is the seat's stack PLUS these, not a second valuation of the
+ * same things at a higher number. A buyer who reads both pages sees one price
+ * list, which is the only version of this that survives being compared.
+ *
+ *     seat   AED 17  (sessions + four guides + score report)
+ *     VIP    AED 67  (all of that, plus the four lines below)
+ *
+ * At AED 4.99 and AED 19.99 those land at 71% and 70% off respectively.
+ */
+export type VipExtra = { title: string; value: number };
+
+/**
+ * DERIVED from VIP_BONUSES in lib/checkout-config.ts, which is where the VIP
+ * products and their prices now live.
+ *
+ * This was a second hand-written list of the same four things, carrying the
+ * same four figures. The OTO page needs them with headings and prose, the
+ * order summary needs them as priced one-liners, and both reading from one
+ * list is what stops the checkout quoting a product the OTO has renamed.
+ *
+ * The credit is filtered out rather than given a zero: it is not a product and
+ * has no price, and a zero would be summed into the struck total as though it
+ * were worth nothing.
+ */
+export const VIP_EXTRAS: VipExtra[] = VIP_BONUSES.filter(
+  (b): b is VipBonus & { value: number } => typeof b.value === 'number',
+).map((b) => ({ title: b.summaryTitle, value: b.value }));
+
+export { VIP_EXTRAS_TOTAL } from '@/lib/checkout-config';

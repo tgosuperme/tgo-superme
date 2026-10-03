@@ -31,7 +31,7 @@ const inter = Inter({
 });
 
 /* Already a finished label — see the note on PRICE_LABEL in _landing/shared. */
-const PRICE = CHECKOUT_CONFIG.amountGbpString;
+const PRICE = CHECKOUT_CONFIG.amountAedString;
 const START = CHECKOUT_CONFIG.startDate;
 
 /* Description stays inside the same compliance line as the page: no outcome
