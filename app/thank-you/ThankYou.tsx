@@ -61,7 +61,6 @@ import {
   IMPORTANT_INFO_HREF,
   LEGAL_LINKS,
   OTO_HREF,
-  PRICE_LABEL,
   SESSION_TIMES_TZ,
   SESSIONS_LABEL,
   START_DATE,
@@ -319,7 +318,6 @@ export default function ThankYou({
 }: ThankYouProps) {
   if (!paid) return <PendingState email={email} />;
 
-  const paidLabel = vip ? VIP_PRICE_LABEL : PRICE_LABEL;
 
   return (
     <main className="font-body" style={{ background: C.paleBlue, color: C.ink }}>
@@ -371,8 +369,10 @@ export default function ThankYou({
             className="mx-auto mt-4 max-w-[560px] text-[15.5px] leading-relaxed"
             style={{ ...legoDelay(3, 80), color: C.inkSoft }}
           >
-            That is {paidLabel} paid and your place held on the live 5-Day
-            Pain Reset Challenge with Atul. Your joining email is on its way
+            {vip
+              ? `That is ${VIP_PRICE_LABEL} paid, and your place is held on the live 5-Day Pain Reset Challenge with Atul.`
+              : 'Your place is held on the live 5-Day Pain Reset Challenge with Atul, free of charge.'}{' '}
+            Your joining email is on its way
             {email ? ` to ${email}` : ''}. Please read this page before you
             close it — there is one step left, and your session links come
             through it.
@@ -710,9 +710,19 @@ export default function ThankYou({
             style={{ color: C.mintInk }}
           />
           <span>
-            <strong>Your guarantee.</strong> Attend Day 1, message us in the
-            community or on WhatsApp by the end of that day, and your{' '}
-            {paidLabel} is refunded within 24 hours.
+            {vip ? (
+              <>
+                <strong>Your guarantee.</strong> Attend Day 1, message us in the
+                community or on WhatsApp by the end of that day, and your{' '}
+                {VIP_PRICE_LABEL} is refunded within 24 hours.
+              </>
+            ) : (
+              <>
+                <strong>Nothing to cancel.</strong> Your seat is free. If the
+                five days turn out not to be for you, simply stop coming — there
+                is no payment to refund and no subscription running.
+              </>
+            )}
           </span>
         </p>
 

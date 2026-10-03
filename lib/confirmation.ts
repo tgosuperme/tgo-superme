@@ -1,4 +1,11 @@
-import { type Plan, resolvePlan } from './checkout-config';
+import { cookies } from 'next/headers';
+
+import { type Plan, PLANS, resolvePlan } from './checkout-config';
+import {
+  REG_COOKIE,
+  unpackRegistrationCookie,
+  verifyRegistration,
+} from './registration';
 import { getStripe, stripeConfigured } from './stripe';
 
 /**
@@ -45,11 +52,40 @@ const UNPAID = (plan: Plan): Confirmation => ({
  * panel in that case — and telling a customer who has actually paid that
  * something broke is worse than asking them to watch their inbox for a moment.
  */
+/**
+ * The free seat's proof: the httpOnly cookie /api/register set.
+ *
+ * A registration is not a payment, so this returns `paid` on the FREE plan
+ * only. Someone holding a valid registration cookie can see /confirmed, which
+ * is the joining instructions for the free challenge they genuinely signed up
+ * for; it does not get them into /confirmed-plus, which still needs Stripe.
+ */
+async function freeConfirmation(): Promise<Confirmation | null> {
+  const raw = cookies().get(REG_COOKIE)?.value;
+  const unpacked = unpackRegistrationCookie(
+    raw ? decodeURIComponent(raw) : undefined,
+  );
+  if (!unpacked) return null;
+  if (!verifyRegistration(unpacked.token, unpacked.email)) return null;
+  return {
+    paid: true,
+    plan: PLANS.seat,
+    firstName: '',
+    email: unpacked.email,
+  };
+}
+
 export async function loadConfirmation(
   sessionId: string | undefined,
 ): Promise<Confirmation> {
   const fallback = resolvePlan(undefined);
-  if (!sessionId || !stripeConfigured()) return UNPAID(fallback);
+
+  /* NO STRIPE SESSION IS THE NORMAL CASE NOW. The seat is free, so most people
+     reaching /confirmed never went near a till — they registered and walked
+     here from the OTO. The cookie is their proof. */
+  if (!sessionId) return (await freeConfirmation()) ?? UNPAID(fallback);
+
+  if (!stripeConfigured()) return UNPAID(fallback);
 
   try {
     const session = await getStripe().checkout.sessions.retrieve(sessionId);

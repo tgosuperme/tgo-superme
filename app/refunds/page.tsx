@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 import LegalPage, { type LegalSection } from '../_landing/legal-page';
-import { PRICE_LABEL } from '../_landing/shared';
+import { VIP_PRICE_LABEL } from '../_landing/shared';
 
 export const metadata: Metadata = {
   title: 'Refund Policy | SuperMe',
@@ -17,7 +17,8 @@ const SECTIONS: LegalSection[] = [
   {
     heading: 'The Day One promise',
     paragraphs: [
-      `Come to Day One. If you decide it is not for you, tell us by the end of that day and we refund your ${PRICE_LABEL} in full.`,
+      `Your place on the five days is free, so there is nothing to refund for the challenge itself — if it is not for you, simply stop coming.`,
+      `This policy is about the one thing we do charge for: the optional ${VIP_PRICE_LABEL} VIP pass. Come to Day One, and if you decide it is not for you, tell us by the end of that day and we refund it in full.`,
       'You do not need to explain yourself, justify the decision or complete a form. One message is enough.',
     ],
   },
@@ -69,7 +70,7 @@ export default function RefundsPage() {
       eyebrow="Refund Policy"
       title="Come to Day One."
       titleAccent="Then decide."
-      intro={`The whole policy in one line: attend Day One, and if it is not for you, tell us by the end of that day and we refund your ${PRICE_LABEL} in full. Everything below is detail.`}
+      intro={`The five days are free, so this page is about the optional ${VIP_PRICE_LABEL} VIP pass. The whole policy in one line: attend Day One, and if it is not for you, tell us by the end of that day and we refund it in full. Everything below is detail.`}
       updated="August 2026"
       sections={SECTIONS}
     />

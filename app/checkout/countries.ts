@@ -10,11 +10,21 @@
  * `min`/`max` are the national significant number: the digits AFTER the
  * dialling code and after any trunk prefix (the UK's leading 0) is stripped.
  * Ranges are deliberately generous except where they are well known and fixed
- * (GB, US, CA, IN, AU); a validator that rejects a real customer's number is
- * far more expensive than one that lets a bad one through to a bounced message.
+ * (AE, SA, GB, US, CA, IN, AU); a validator that rejects a real customer's
+ * number is far more expensive than one that lets a bad one through to a
+ * bounced message.
  *
- * The UK sits first and is the default: the offer is priced in GBP and the
- * sessions are quoted in UK time, so it is the overwhelmingly likely answer.
+ * ── THE GULF SITS FIRST ──────────────────────────────────────────────────
+ * The UAE is the default and the six GCC states lead the list, because the
+ * funnel is priced in AED and targeted at Gulf traffic. Saudi, Kuwait, Qatar,
+ * Bahrain and Oman were ADDED with that move: a Saudi lead previously had no
+ * dialling code to pick and could not finish the form at all, which is the
+ * kind of thing that looks like a conversion-rate problem rather than a
+ * missing list entry.
+ *
+ * The UK stays on the list, directly below them. The coach is UK-based and the
+ * sessions are quoted in UK time, so UK sign-ups are expected, just no longer
+ * the default answer.
  */
 
 export type Country = {
@@ -29,6 +39,14 @@ export type Country = {
 };
 
 export const COUNTRIES: Country[] = [
+  /* GCC first — see the note above. Gulf mobile numbers are a fixed 8 or 9
+     significant digits, so these ranges are tight rather than generous. */
+  { iso: 'AE', name: 'United Arab Emirates', dial: '971', min: 8, max: 9 },
+  { iso: 'SA', name: 'Saudi Arabia', dial: '966', min: 9, max: 9 },
+  { iso: 'KW', name: 'Kuwait', dial: '965', min: 8, max: 8 },
+  { iso: 'QA', name: 'Qatar', dial: '974', min: 8, max: 8 },
+  { iso: 'BH', name: 'Bahrain', dial: '973', min: 8, max: 8 },
+  { iso: 'OM', name: 'Oman', dial: '968', min: 8, max: 8 },
   { iso: 'GB', name: 'United Kingdom', dial: '44', min: 9, max: 10 },
   { iso: 'IE', name: 'Ireland', dial: '353', min: 7, max: 9 },
   { iso: 'US', name: 'United States', dial: '1', min: 10, max: 10 },
@@ -36,7 +54,6 @@ export const COUNTRIES: Country[] = [
   { iso: 'AU', name: 'Australia', dial: '61', min: 9, max: 9 },
   { iso: 'NZ', name: 'New Zealand', dial: '64', min: 8, max: 10 },
   { iso: 'IN', name: 'India', dial: '91', min: 10, max: 10 },
-  { iso: 'AE', name: 'United Arab Emirates', dial: '971', min: 8, max: 9 },
   { iso: 'ZA', name: 'South Africa', dial: '27', min: 9, max: 9 },
   { iso: 'SG', name: 'Singapore', dial: '65', min: 8, max: 8 },
   { iso: 'HK', name: 'Hong Kong', dial: '852', min: 8, max: 8 },
@@ -71,7 +88,22 @@ export const COUNTRIES: Country[] = [
   { iso: 'MX', name: 'Mexico', dial: '52', min: 10, max: 10 },
 ];
 
-export const DEFAULT_ISO = 'GB';
+export const DEFAULT_ISO = 'AE';
+
+/**
+ * An example number per country for the phone field's placeholder. Only the
+ * ones worth showing: everywhere else gets the generic "Mobile number", which
+ * is better than a plausible-looking example in the wrong format.
+ */
+export const PHONE_PLACEHOLDERS: Record<string, string> = {
+  AE: '50 123 4567',
+  SA: '51 234 5678',
+  KW: '5123 4567',
+  QA: '3312 3456',
+  BH: '3600 1234',
+  OM: '9212 3456',
+  GB: '7700 900000',
+};
 
 export function findCountry(iso: string): Country {
   return COUNTRIES.find((c) => c.iso === iso) ?? COUNTRIES[0];

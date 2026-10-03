@@ -271,7 +271,7 @@ async function onPaid(session: Stripe.Checkout.Session) {
              the best country signal available: Stripe only holds a billing
              address if the payment method supplied one. */
           country:
-            m.phoneCountry || session.customer_details?.address?.country || 'GB',
+            m.phoneCountry || session.customer_details?.address?.country || 'AE',
           /* All four captured at checkout time. This request is Stripe's, so
              it has none of them itself. */
           fbp: m.fbp,
@@ -280,13 +280,12 @@ async function onPaid(session: Stripe.Checkout.Session) {
           clientUserAgent: m.clientUserAgent,
         },
         /* WHAT STRIPE ACTUALLY CHARGED, in major units — not a figure from
-           config. A seat reports 1.99 and a VIP 9.99 without this code knowing
-           which page took the money, and it keeps reporting the truth if a
-           price changes, a coupon lands or a new tier is added.
+           config. It keeps reporting the truth if the price changes, a coupon
+           lands or a second tier is added, without this code being told.
 
-           With content_name removed for H&W, this is also the only thing
-           separating the two products under the shared `sales` name — which is
-           fine, because value is what the ad account bids on anyway. */
+           Since the seat went free, `sales` fires for the VIP upgrade and
+           nothing else: a free registration never reaches Stripe, so there is
+           no second product to tell apart here any more. */
         value: minor / 100,
         currency: sale.currency,
       });

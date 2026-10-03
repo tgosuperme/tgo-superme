@@ -33,7 +33,14 @@ type Search = {
 };
 
 export default async function ConfirmedPlusPage({ searchParams }: Search) {
-  const { paid, firstName, email } = await loadConfirmation(searchParams.session_id);
+  const { paid, plan, firstName, email } = await loadConfirmation(searchParams.session_id);
+
+  /* THE PLAN HAS TO MATCH, not just `paid`.
+     Since the seat went free, a registration cookie also returns paid — that is
+     what lets a free registrant see /confirmed. Checking only `paid` here let
+     that same cookie open the VIP page and hand out the VIP joining detail to
+     someone who never upgraded. This page needs a VIP purchase specifically. */
+  const isVip = paid && plan.id === 'vip';
 
   /* Off unless NEXT_PUBLIC_PREVIEW_CONFIRMATION=1 — see the note in /confirmed. */
   const preview =
@@ -45,7 +52,7 @@ export default async function ConfirmedPlusPage({ searchParams }: Search) {
       <JoinTracker />
       <ThankYou
         vip
-        paid={paid || preview}
+        paid={isVip || preview}
         firstName={firstName || (preview ? (searchParams.name ?? '') : '')}
         email={email}
       />

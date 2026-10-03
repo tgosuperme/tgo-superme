@@ -7,26 +7,27 @@ import {
 } from '@/lib/meta-capi';
 
 /**
- * Server half of the browser-fired custom events.
+ * Server half of the one event the browser starts.
  *
- * Only atc_event comes through here. ic_event is sent from /api/checkout,
- * which is already handling that exact click and knows the buyer's details,
- * and `sales` is sent from the Stripe webhook.
+ * Only atc_event comes through here. registration_complete is sent from
+ * /api/register, which is already handling that submission and knows who the
+ * person is; ic_event from /api/checkout; `sales` from the Stripe webhook.
  *
  * The point of routing a browser event through our own server at all is that
  * the Pixel is blocked for a meaningful share of people. This request is made
- * by the buyer's own browser, so the IP and user agent on it are genuinely
+ * by the reader's own browser, so the IP and user agent on it are genuinely
  * theirs, which is what makes the server copy worth sending.
  *
- * ALWAYS RETURNS 204. Tracking must never surface an error to someone trying
- * to buy, and the browser has nothing useful to do with a failure anyway.
+ * ALWAYS RETURNS 204. Tracking must never surface an error to somebody trying
+ * to register, and the browser has nothing useful to do with a failure anyway.
  */
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /* A whitelist, not a passthrough. Without it this route is an open relay for
-   writing arbitrary events into the ad account. */
+   writing arbitrary events into the ad account: the URL is public, so anyone
+   could post `sales` at it all day. */
 const ALLOWED: CapiEventName[] = [CHECKOUT_CONFIG.capi.events.addToCart];
 
 type Body = {
@@ -59,12 +60,18 @@ export async function POST(req: Request) {
       eventTime: Math.floor(Date.now() / 1000),
       eventSourceUrl: (body.eventSourceUrl ?? '').slice(0, 400),
       user: {
-        /* No PII at this point in the funnel: the reader has only tapped a
-           button. The cookies, IP and user agent are the whole match set. */
+        /* NO PII IS AVAILABLE HERE, and that is not a gap to be filled later.
+           This fires as the registration form opens: the reader has tapped a
+           button and nothing else. The cookies, IP and user agent are the
+           entire match set, which is why this event's EMQ is structurally
+           lower than the three that follow it and why the ad account should
+           not be optimised on it. */
         fbp: (body.fbp ?? '').slice(0, 255),
         fbc: (body.fbc ?? '').slice(0, 255),
         ...browserContext(req),
       },
+      /* No value and no currency. The seat is free, so a figure here would be
+         inventing revenue on a form-open. */
     });
   } catch (err) {
     console.error('[track] failed', err);

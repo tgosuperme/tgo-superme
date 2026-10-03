@@ -22,6 +22,7 @@ import BrandMark from '@/components/BrandMark';
 import { getFbc, newEventId, readCookie } from '@/components/MetaPixel';
 import { type PlanId, PLANS, VIP_BENEFITS } from '@/lib/checkout-config';
 import { GA_EVENTS, gaEvent } from '@/lib/ga';
+import { readRegistration } from '@/lib/registration-client';
 import { restoreParams } from '@/lib/track';
 import PaymentLogos from '@/components/PaymentLogos';
 
@@ -31,6 +32,7 @@ import {
   findCountry,
   flagFor,
   nationalDigits,
+  PHONE_PLACEHOLDERS,
   toE164,
 } from './countries';
 
@@ -40,6 +42,7 @@ import MobileCtaBar, { MOBILE_CTA_BAR_SPACE } from '../_landing/mobile-cta-bar';
 import {
   ANCHOR_LABEL,
   C,
+  CURRENCY_CODE,
   CURRENCY_SYMBOL,
   OTO_HREF,
   SESSION_TIMES_TZ,
@@ -169,9 +172,34 @@ export default function CheckoutForm({
     phone: '',
     city: '',
   });
-  /* UK by default: the offer is in GBP and the sessions are quoted in UK time,
-     so it is the overwhelmingly likely answer. Fully changeable. */
+  /* UK by default: the sessions are quoted in UK time, so it is the
+     overwhelmingly likely answer. Fully changeable. */
   const [iso, setIso] = useState(DEFAULT_ISO);
+
+  /* ── PREFILLED FROM THE REGISTRATION ───────────────────────────────────
+     Nobody reaches this page without registering first, and they typed these
+     exact five fields in the modal minutes ago. Asking again is how an upgrade
+     gets abandoned on the form rather than on the price.
+
+     In an effect rather than in useState's initialiser because sessionStorage
+     does not exist during the server render: reading it there would make the
+     server and client markup disagree and React would throw out the tree.
+
+     The number is stored in E.164 and the field edits a national number, so
+     the dialling code is split back off and the selector set to match. */
+  useEffect(() => {
+    const reg = readRegistration();
+    if (!reg) return;
+    const country = findCountry(reg.phoneCountry || DEFAULT_ISO);
+    setIso(country.iso);
+    setF({
+      firstName: reg.firstName ?? '',
+      lastName: reg.lastName ?? '',
+      email: reg.email ?? '',
+      phone: nationalDigits(reg.phone?.replace(`+${country.dial}`, '') ?? ''),
+      city: reg.city ?? '',
+    });
+  }, []);
   /* Per-field, set on blur, so an error appears when the reader LEAVES a field
      rather than while they are still half-way through typing it. `submitted`
      reveals every outstanding error at once when they try to pay. */
@@ -222,7 +250,7 @@ export default function CheckoutForm({
     const icEventId = newEventId();
     gaEvent(GA_EVENTS.initiateCheckout, {
       value: plan.priceGbp,
-      currency: 'GBP',
+      currency: CURRENCY_CODE,
       items: [{ item_id: plan.id, item_name: plan.productName, price: plan.priceGbp }],
     });
 
@@ -436,7 +464,7 @@ export default function CheckoutForm({
                 className="lego-press lego-pulse-glow group mt-2 inline-flex min-h-[56px] w-full items-center justify-center gap-2.5 rounded-full text-[15.5px] font-semibold text-white disabled:cursor-progress disabled:opacity-70"
                 style={{ background: C.blueFill }}
               >
-                {busy ? 'Opening secure checkout…' : `Hold My Seat · ${plan.priceLabel}`}
+                {busy ? 'Opening secure checkout…' : `Pay ${plan.priceLabel} · Keep It All`}
                 {!busy && (
                   <ArrowRight
                     weight="bold"
@@ -699,7 +727,7 @@ export default function CheckoutForm({
             <div className="my-5 h-px" style={{ background: C.lineStrong }} />
 
             {/* The two components of the struck total below, both stated
-                PLAINLY. Neither is struck here: they are what the £33 is made
+                PLAINLY. Neither is struck here: they are what the full value is made
                 of, and striking a number twice (once as a component, once
                 inside the total) reads as two different discounts. */}
             <div className="grid gap-2">
@@ -810,7 +838,7 @@ export default function CheckoutForm({
               {/* The full label needs room the narrowest phones do not have. */}
               <span className="min-[400px]:hidden">{plan.priceLabel}</span>
               <span className="hidden min-[400px]:inline">
-                Hold My Seat · {plan.priceLabel}
+                Pay {plan.priceLabel} · Keep It All
               </span>
               <ArrowRight
                 weight="bold"
@@ -1052,7 +1080,7 @@ function PhoneField({
             type="tel"
             inputMode="tel"
             autoComplete="tel-national"
-            placeholder={country.iso === 'GB' ? '7700 900000' : 'Mobile number'}
+            placeholder={PHONE_PLACEHOLDERS[country.iso] ?? 'Mobile number'}
             value={value}
             onChange={onChange}
             onBlur={onBlur}

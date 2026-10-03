@@ -1,7 +1,12 @@
 import type { Metadata } from 'next';
 
 import LegalPage, { type LegalSection } from '../_landing/legal-page';
-import { PRICE_LABEL, SESSION_TIMES, START_DATE } from '../_landing/shared';
+import {
+  PRICE_LABEL,
+  SESSION_TIMES,
+  START_DATE,
+  VIP_PRICE_LABEL,
+} from '../_landing/shared';
 
 export const metadata: Metadata = {
   title: 'Terms of Use | SuperMe',
@@ -63,7 +68,8 @@ const SECTIONS: LegalSection[] = [
   {
     heading: 'Payment',
     paragraphs: [
-      `The price is ${PRICE_LABEL} and is stated once, in full, with nothing added at checkout. Payment is taken by Stripe; your card details do not pass through our systems.`,
+      `Your place on the challenge is ${PRICE_LABEL.toLowerCase()}. There is nothing to pay to attend any of the five days, and nothing is added at checkout.`,
+      `There is one optional extra: a VIP pass at ${VIP_PRICE_LABEL}, offered once after you register, which adds the recordings and the guides. You are asked about it once and saying no changes nothing about your place. Payment for it is taken by Stripe; your card details do not pass through our systems.`,
       'Refunds are covered on their own page — see the Refund Policy link at the foot of this page.',
     ],
   },

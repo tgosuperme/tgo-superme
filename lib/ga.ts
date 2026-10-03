@@ -22,7 +22,15 @@ import { CHECKOUT_CONFIG } from '@/lib/checkout-config';
  */
 
 export const GA_EVENTS = {
+  /* A CTA was tapped and the registration form opened. Sent WITHOUT value or
+     currency params, unlike the two commerce events below: the seat is free,
+     and GA_VALUE here would book £4.99 of imaginary revenue on a form-open. */
   addToCart: 'add_to_cart',
+  /* The free registration form was submitted. This, not add_to_cart above, is
+     the conversion to mark in GA4. */
+  registrationComplete: 'registration_complete',
+  /* The VIP upgrade was chosen on the OTO. */
+  beginCheckout: 'begin_checkout',
   initiateCheckout: 'initiate_checkout',
   joinWhatsapp: 'join_whatsapp',
 } as const;

@@ -5,14 +5,17 @@ import { CHECKOUT_CONFIG } from '@/lib/checkout-config';
 /**
  * Meta Conversions API for the 5-Day Pain Reset.
  *
- * ── THE THREE EVENTS ────────────────────────────────────────────────────────
+ * ── THE FOUR EVENTS ────────────────────────────────────────────────────────
  * This funnel reports CUSTOM events, not Meta's standard ones. No AddToCart,
- * no InitiateCheckout, no Purchase. The ad account optimises on these three
- * and nothing else:
+ * no InitiateCheckout, no Purchase. These four are the only names it sends:
  *
- *     atc_event   the reader taps a CTA on the landing page
- *     ic_event    the buyer taps the pay button on the checkout page
- *     sales       the money actually moved, confirmed on the Stripe webhook
+ *     atc_event              a CTA is tapped and the registration form opens
+ *     registration_complete  the free form was submitted
+ *     ic_event               the pay button on the VIP checkout
+ *     sales                  the money moved, confirmed on the Stripe webhook
+ *
+ * THE AD ACCOUNT OPTIMISES ON registration_complete AND sales. atc_event is a
+ * volume number and cannot carry identity — see the note in checkout-config.
  *
  * Custom events are sent exactly like standard ones: the name simply is not
  * one Meta reserves, so it arrives as a custom conversion and gets used from
@@ -87,7 +90,7 @@ import { CHECKOUT_CONFIG } from '@/lib/checkout-config';
 
 const GRAPH_VERSION = process.env.META_GRAPH_VERSION?.trim() || 'v21.0';
 
-/** The only three names this funnel is allowed to send. */
+/** The only four names this funnel is allowed to send. */
 export const CAPI_EVENTS = CHECKOUT_CONFIG.capi.events;
 export type CapiEventName = (typeof CAPI_EVENTS)[keyof typeof CAPI_EVENTS];
 
@@ -235,11 +238,12 @@ export async function sendCapiEvent(e: CapiEvent): Promise<void> {
      the whole funnel's reporting down rather than just that one field.
 
      ── HOW THE TWO PRODUCTS ARE STILL TOLD APART ───────────────────────
-     By `value`. The seat reports 1.99 and VIP reports 9.99 under the same
-     `sales` name, which is the separation the ad account actually bids on,
-     and a price is not health data. The human-readable split lives on the
-     Pabbly row, where `plan`, `plan_name` and `content_name` all survive —
-     that sheet is ours and is not subject to this restriction.
+     There is nothing left to tell apart. The seat is FREE and never touches
+     Stripe, so `sales` only ever fires for a VIP upgrade and its `value` is
+     always what Stripe charged for that one product. The human-readable
+     labels live on the Pabbly row, where `plan`, `plan_name` and
+     `content_name` all survive — that sheet is ours and is not subject to
+     this restriction.
 
      DO NOT reintroduce a product, category or content string here. A
      "neutral" code word is not worth the re-review it risks. */

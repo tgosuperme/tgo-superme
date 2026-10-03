@@ -82,6 +82,18 @@ export async function POST(req: Request) {
      server's own PLANS entry. An unknown value buys the seat. */
   const plan = resolvePlan(body.plan);
 
+  /* THE FREE SEAT NEVER REACHES STRIPE. Stripe rejects a zero-amount line item
+     outright, so without this the seat would fail at the till with a payment
+     error rather than a clear one — and it should not be here at all: a free
+     seat is registered through /api/register and goes straight to the
+     confirmation page. Only the VIP upgrade is sold. */
+  if (plan.free) {
+    return Response.json(
+      { error: 'That plan is free and does not need a checkout.' },
+      { status: 400 },
+    );
+  }
+
   const firstName = (body.firstName ?? '').trim();
   const lastName = (body.lastName ?? '').trim();
   const email = (body.email ?? '').trim();
@@ -293,7 +305,7 @@ export async function POST(req: Request) {
             firstName,
             lastName,
             city,
-            country: phoneCountry || 'GB',
+            country: phoneCountry || 'AE',
             fbp,
             fbc,
             clientIp,

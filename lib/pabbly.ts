@@ -104,9 +104,75 @@ export type SalePayload = {
   session_times: string;
 };
 
+/**
+ * TWO WORKFLOWS, TWO URLS.
+ *
+ * A free registration and a paid VIP upgrade are different events with
+ * different follow-ups — one gets the joining sequence, the other gets that
+ * plus the recordings and the guides — so they go to separate Pabbly workflows
+ * rather than one workflow branching on a field it might be asked to ignore.
+ *
+ *     PABBLY_FREE_WEBHOOK_URL   every registration, the moment the form is sent
+ *     PABBLY_WEBHOOK_URL        VIP payments only, from the Stripe webhook
+ *
+ * A VIP buyer appears in BOTH: they registered first, then upgraded. The free
+ * row is the registration and the paid row is the purchase, keyed on the same
+ * email, which is what lets the sheet show the conversion rather than guess it.
+ */
 export function pabblyConfigured(): boolean {
   return Boolean(process.env.PABBLY_WEBHOOK_URL);
 }
+
+export function pabblyFreeConfigured(): boolean {
+  return Boolean(process.env.PABBLY_FREE_WEBHOOK_URL);
+}
+
+/**
+ * The free registration row.
+ *
+ * Deliberately the same shape as the paid one where the fields mean the same
+ * thing — the universal identity and attribution block is identical — so the
+ * two sheets can be joined on email without translating a single column name.
+ * What is absent is everything about money, because none moved.
+ */
+export type RegistrationPayload = {
+  lead_id: string;
+  created_at: string;
+
+  first_name: string;
+  last_name: string;
+  full_name: string;
+  email: string;
+  phone: string;
+  city: string;
+  country_code: string;
+
+  fbc: string;
+  fbp: string;
+  client_ip_address: string;
+  client_user_agent: string;
+  external_id: string;
+
+  event_source_url: string;
+  registration_event_id: string;
+
+  utm_source: string;
+  utm_medium: string;
+  utm_campaign: string;
+  utm_content: string;
+  utm_term: string;
+  fbclid: string;
+  gclid: string;
+  referrer: string;
+  landing_url: string;
+
+  funnel: string;
+  offer: string;
+  plan: string;
+  cohort_start_date: string;
+  cohort_end_date: string;
+  session_times: string;
+};
 
 /**
  * Posts one sale to Pabbly, with a small retry.
@@ -116,9 +182,36 @@ export function pabblyConfigured(): boolean {
  * never reaching the sheet.
  */
 export async function sendSaleToPabbly(payload: SalePayload): Promise<void> {
-  const url = process.env.PABBLY_WEBHOOK_URL;
+  return post(process.env.PABBLY_WEBHOOK_URL, payload, payload.stripe_session_id);
+}
+
+/**
+ * Posts one free registration to the free workflow.
+ *
+ * SWALLOWS its failure rather than throwing, which is the opposite of the paid
+ * path and deliberate. A sale is retried by Stripe until it lands; a
+ * registration has no retry behind it, and the person is standing in front of a
+ * spinner waiting to be let through. Losing the row costs a CRM entry that is
+ * recoverable from the log line; refusing the response costs the registration
+ * itself. The row is logged before the attempt for exactly that reason.
+ */
+export async function sendRegistrationToPabbly(
+  payload: RegistrationPayload,
+): Promise<void> {
+  try {
+    await post(process.env.PABBLY_FREE_WEBHOOK_URL, payload, payload.lead_id);
+  } catch (err) {
+    console.error('[pabbly] registration did not reach the sheet', err);
+  }
+}
+
+async function post(
+  url: string | undefined,
+  payload: unknown,
+  id: string,
+): Promise<void> {
   if (!url) {
-    throw new Error('PABBLY_WEBHOOK_URL is not set');
+    throw new Error('Pabbly webhook URL is not set');
   }
 
   const attempts = 3;
@@ -138,7 +231,7 @@ export async function sendSaleToPabbly(payload: SalePayload): Promise<void> {
 
       if (res.ok) {
         console.info(
-          `[pabbly] sale sent ${payload.stripe_session_id} (attempt ${attempt})`,
+          `[pabbly] sent ${id} (attempt ${attempt})`,
         );
         return;
       }
@@ -147,7 +240,7 @@ export async function sendSaleToPabbly(payload: SalePayload): Promise<void> {
          only delays the Stripe retry that might, so it fails out now. */
       const body = await res.text().catch(() => '');
       if (res.status >= 400 && res.status < 500) {
-        throw new Error(`Pabbly rejected the sale: ${res.status} ${body.slice(0, 200)}`);
+        throw new Error(`Pabbly rejected it: ${res.status} ${body.slice(0, 200)}`);
       }
       lastError = new Error(`Pabbly returned ${res.status} ${body.slice(0, 200)}`);
     } catch (err) {
@@ -163,6 +256,6 @@ export async function sendSaleToPabbly(payload: SalePayload): Promise<void> {
   }
 
   throw new Error(
-    `Pabbly failed after ${attempts} attempts for ${payload.stripe_session_id}: ${String(lastError)}`,
+    `Pabbly failed after ${attempts} attempts for ${id}: ${String(lastError)}`,
   );
 }

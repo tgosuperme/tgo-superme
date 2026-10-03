@@ -8,7 +8,7 @@
  */
 import dynamic from 'next/dynamic';
 
-import CtaTracker from '@/components/CtaTracker';
+import RegisterGate from '@/components/RegisterGate';
 import { CHECKOUT_CONFIG } from '@/lib/checkout-config';
 
 import { Hero, OfferStrip, SiteHeader } from './_landing/hero';
@@ -33,8 +33,9 @@ export default function Page() {
       style={{ background: C.white, color: C.ink }}
     >
       {/* One delegated listener for every CTA on the page, so the hero and the
-          sections below it stay Server Components. Fires atc_event. */}
-      <CtaTracker eventName={CHECKOUT_CONFIG.capi.events.addToCart} />
+          sections below it stay Server Components. Opens the registration
+          modal rather than navigating. */}
+      <RegisterGate />
       <OfferStrip />
       <SiteHeader />
       <Hero />
@@ -45,7 +46,7 @@ export default function Page() {
         href={OTO_HREF}
         title="5-Day Pain Reset"
         trailing={PRICE_LABEL}
-        label={`Hold My Seat · ${PRICE_LABEL}`}
+        label="Claim My Free Seat"
         date={START_DATE}
         times={SESSION_TIMES_TZ}
       />

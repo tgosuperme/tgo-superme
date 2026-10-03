@@ -30,12 +30,13 @@ const inter = Inter({
   display: 'swap',
 });
 
-const PRICE = `${CHECKOUT_CONFIG.currencySymbol}${CHECKOUT_CONFIG.amountGbpString}`;
+/* Already a finished label — see the note on PRICE_LABEL in _landing/shared. */
+const PRICE = CHECKOUT_CONFIG.amountGbpString;
 const START = CHECKOUT_CONFIG.startDate;
 
 /* Description stays inside the same compliance line as the page: no outcome
    promise, no percentage, no "pain-free". */
-const DESCRIPTION = `A live, coach-led 5-day pain reset challenge for adults 35+ with persistent back, neck or knee pain. Guided movement, breath work, strengthening and real-time correction. Starts ${START}, live on Zoom, for ${PRICE}.`;
+const DESCRIPTION = `A live, coach-led 5-day pain reset challenge for adults 35+ with persistent back, neck or knee pain. Guided movement, breath work, strengthening and real-time correction. Starts ${START}, live on Zoom. ${PRICE} to join.`;
 
 export const metadata: Metadata = {
   title: '5-Day Pain Reset Challenge | SuperMe',

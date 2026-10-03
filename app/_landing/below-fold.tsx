@@ -71,6 +71,7 @@ import {
   SESSION_TIMES_TZ,
   SESSIONS_LABEL,
   START_DATE,
+  VIP_PRICE_LABEL,
 } from './shared';
 
 // ── Animation primitives (same curve and timings as the reference page) ──
@@ -485,7 +486,7 @@ function SessionsBand() {
               ['--pulse-color' as string]: 'rgba(255,255,255,0.5)',
             }}
           >
-            Hold My Seat · {PRICE_LABEL}
+            Claim My Free Seat
             <ArrowRight
               weight="bold"
               className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5"
@@ -495,7 +496,7 @@ function SessionsBand() {
             className="mt-3 text-[13px] font-medium"
             style={{ color: 'rgba(250,245,234,0.7)' }}
           >
-            Refunded after Day 1 if it&apos;s not for you
+            Free to join · No card needed
           </p>
         </div>
       </div>
@@ -1091,9 +1092,8 @@ function Promise() {
           className="mx-auto mt-6 max-w-[560px] text-[17px] leading-[1.65]"
           style={{ color: C.inkSoft }}
         >
-          Hold your seat for {PRICE_LABEL}. Come to Day 1, and if it&apos;s not
-          for you, message us by the end of the day and the {PRICE_LABEL} is
-          back on your card.
+          Registering is free and takes two minutes. Come to Day 1, and if it
+          is not for you, simply do not come back on Day 2.
         </p>
 
         <p className="sm-promise-closer">
@@ -1187,7 +1187,7 @@ function TwoOptions() {
               ['--pulse-color' as string]: 'rgba(255,255,255,0.45)',
             }}
           >
-            Hold My Seat · {PRICE_LABEL}
+            Claim My Free Seat
             <ArrowRight
               weight="bold"
               className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5"
@@ -1197,7 +1197,7 @@ function TwoOptions() {
             className="mt-3 text-center text-[12.5px]"
             style={{ color: 'rgba(250,245,234,0.7)' }}
           >
-            Refunded after Day 1 if it&apos;s not for you
+            Free to join · No card needed
           </p>
         </div>
       </div>
@@ -1221,8 +1221,8 @@ const FAQS = [
     a: "Because a video cannot see you. Nobody on YouTube knows that your left hip drops when you stand, or that the movement you have been repeating every morning is the one making it worse. This is live, with a coach adjusting what you are doing while you do it, and a sequence built for a back, neck or knee that is already guarding rather than for a general audience.",
   },
   {
-    q: `Why only ${PRICE_LABEL}? What is the catch?`,
-    a: `There is no catch, and there is no upsell you have to take to attend. ${PRICE_LABEL} is a seat hold, not the value of the five days — it exists because a free sign-up fills a room with people who never turn up, and a live coaching session needs people in it. Come to Day 1, and if it is not for you, message us by the end of that day and it goes back on your card.`,
+    q: 'If it is free, what is the catch?',
+    a: `There is no catch, and there is nothing you have to buy to attend. All five live days are free, and you can come to every one of them without spending anything. Afterwards there is an optional ${VIP_PRICE_LABEL} pass for people who want the recordings and the guides to keep — that is the only thing we sell here, you will be asked once, and saying no changes nothing about the five days.`,
   },
   {
     q: "Isn't physiotherapy enough?",
@@ -1479,9 +1479,9 @@ function Initiative() {
           viewport={{ once: true, amount: 0.3 }}
           className="mt-11 flex flex-col items-center"
         >
-          <PrimaryCTA label={`Hold my place for ${PRICE_LABEL}`} />
+          <PrimaryCTA label="Claim my free place" />
           <CtaNote
-            text="100% Money Back Guarantee"
+            text="Free to join · No card needed"
           />
         </m.div>
       </div>
@@ -1649,7 +1649,7 @@ function Footer() {
           {' · '}
         </span>
         <span className="block sm:inline">
-          {PRICE_LABEL}, refunded after Day 1 if it&apos;s not for you
+          Free to join · No card needed
         </span>
       </p>
 

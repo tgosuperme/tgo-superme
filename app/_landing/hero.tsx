@@ -111,7 +111,7 @@ export function OfferStrip() {
       {/* Two centred lines on a phone, split between WHAT the offer is and
           WHEN it runs. One line from sm up, where it fits. */}
       <span className="font-semibold">5-Day Pain Reset Challenge</span> ·{' '}
-      {PRICE_LABEL}, refunded after Day 1 if it&apos;s not for you
+      Free to join · No card needed
       <br className="sm:hidden" />
       <span className="mx-2" style={{ color: C.blue }}>
         ·
@@ -273,7 +273,7 @@ export function Hero() {
               className="lego-press lego-pulse-glow group inline-flex min-h-[56px] w-full items-center justify-center gap-2.5 rounded-full px-8 text-[15.5px] font-semibold text-white sm:w-auto"
               style={{ background: C.blueFill }}
             >
-              Hold My Seat · {PRICE_LABEL}
+              Claim My Free Seat
               <ArrowRight
                 weight="bold"
                 className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5"
@@ -290,8 +290,7 @@ export function Hero() {
               className="mt-0.5 h-4 w-4 shrink-0"
               style={{ color: C.green }}
             />
-            Come to Day 1. If it&apos;s not for you, your {PRICE_LABEL} is
-            refunded the same day.
+            Free to join, and no card is needed. Two minutes to register.
           </p>
 
           <ul className="mt-7 flex flex-wrap justify-center gap-2.5 lg:justify-start">
@@ -363,7 +362,7 @@ export function Hero() {
                 className="inline-flex items-center rounded-full px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-[0.14em]"
                 style={{ background: C.goldSoft, color: C.goldDeep }}
               >
-                Seat hold · {PRICE_LABEL}
+                Free seat · Limited places
               </span>
 
               <h2
@@ -402,8 +401,8 @@ export function Hero() {
               </p>
 
               <p className="mt-3 text-[13px] leading-snug" style={{ color: C.inkSoft }}>
-                {PRICE_LABEL} holds your seat, so the room is people who turn
-                up. Refunded after Day 1 if it&apos;s not for you.
+                Register in two minutes and the five live days are yours. No card,
+                no catch.
               </p>
 
               <Link
@@ -411,7 +410,7 @@ export function Hero() {
                 className="lego-press lego-pulse-glow group mt-5 inline-flex min-h-[54px] w-full items-center justify-center gap-2.5 rounded-2xl text-[15.5px] font-semibold text-white"
                 style={{ background: C.blueFill }}
               >
-                Hold My Seat · {PRICE_LABEL}
+                Claim My Free Seat
                 <ArrowRight
                   weight="bold"
                   className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5"
