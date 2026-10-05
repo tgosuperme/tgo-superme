@@ -239,6 +239,47 @@ export function Hero() {
             </span>
           </h1>
 
+          {/* ── the team banner · PHONES AND TABLETS ONLY ───────────────
+              lg:hidden, because above that breakpoint the right-hand offer
+              card is already beside the headline carrying the artwork. On a
+              phone that card is a long scroll below the fold, so the first
+              screen was words alone — this gives it a face, and the three
+              coaches are the proof the headline is asking to be believed on.
+
+              Sits BETWEEN the headline and the standfirst on purpose. Putting
+              it above the headline would push the claim the page is built on
+              below the fold on a small phone; putting it after the CTA would
+              mean nobody sees it before deciding.
+
+              Same max-w-[560px] measure as the headline and both paragraphs,
+              so it shares their left and right edges rather than finding its
+              own.
+
+              priority: on a phone this is the largest contentful paint, so it
+              must not be lazy-loaded, and the intrinsic size is passed so the
+              box is reserved before the bytes land and nothing shifts. */}
+          <div
+            data-lego=""
+            className="mx-auto mt-6 max-w-[560px] overflow-hidden rounded-3xl lg:hidden"
+            style={{
+              ...legoDelay(2, 80),
+              border: `1px solid ${C.lineStrong}`,
+              boxShadow: '0 18px 44px -30px rgba(24,59,86,0.28)',
+            }}
+          >
+            <Image
+              src="/banner/superme_intl_banner.png"
+              alt="The team behind the Inner Brace Method, founded in Lausanne, Switzerland: head coach Atul Mishra with co-founders Sriram Natarajan and Stéphane Bezençon"
+              width={2752}
+              height={1536}
+              /* Never rendered above 1024px, so the wide branch of this is the
+                 tablet case rather than a desktop one. */
+              sizes="(max-width: 640px) 92vw, 560px"
+              priority
+              className="h-auto w-full"
+            />
+          </div>
+
           {/* Line 2 pairs with the headline, so it varies with it. */}
           <p
             className="mx-auto mt-5 max-w-[560px] text-[16px] leading-relaxed lg:mx-0"

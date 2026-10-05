@@ -9,7 +9,7 @@
  * cohort change is an env edit and a redeploy, never a code change:
  *
  *     NEXT_PUBLIC_VIP_PRICE_AED=4.99                      # the optional VIP pass
- *     NEXT_PUBLIC_ANCHOR_PRICE_AED=9                      # five live sessions, one part of the struck figure
+ *     NEXT_PUBLIC_ANCHOR_PRICE_AED=20                     # five live sessions, one half of the struck 40
  *     NEXT_PUBLIC_START_DATE=14th October                 # cohort start
  *     NEXT_PUBLIC_END_DATE=18th October
  *     NEXT_PUBLIC_REGISTRATIONS_CLOSE=13th October         # last day to book
@@ -82,7 +82,7 @@ const VIP_PRICE_AED = parsePriceEnv(process.env.NEXT_PUBLIC_VIP_PRICE_AED, 4.99)
 /* The struck comparison: five live group sessions at the app's own rate. ONE
    component of the figure the checkout strikes through, never that figure
    itself — the rest comes from the guides in bonus-data.ts. */
-const ANCHOR_PRICE_AED = parsePriceEnv(process.env.NEXT_PUBLIC_ANCHOR_PRICE_AED, 9);
+const ANCHOR_PRICE_AED = parsePriceEnv(process.env.NEXT_PUBLIC_ANCHOR_PRICE_AED, 20);
 
 const START_DATE = text(process.env.NEXT_PUBLIC_START_DATE, '14th October');
 const END_DATE = text(process.env.NEXT_PUBLIC_END_DATE, '18th October');

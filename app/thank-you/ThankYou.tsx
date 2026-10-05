@@ -51,6 +51,7 @@ import Link from 'next/link';
 
 import BrandMark from '@/components/BrandMark';
 import ConfettiBurst from '@/components/ConfettiBurst';
+import WhatsAppJoinPanel from '@/components/WhatsAppJoinPanel';
 import { VIP_BENEFITS } from '@/lib/checkout-config';
 
 import { legoBrick, legoDelay } from '../_landing/lego-style';
@@ -502,54 +503,26 @@ export default function ThankYou({
           ))}
         </ul>
 
-        {/* ── 3 · the one required action ──────────────────────────── */}
-        <section
-          data-lego=""
-          className="mt-10 overflow-hidden rounded-3xl px-6 py-10 text-center sm:px-10"
-          style={{
-            background: `linear-gradient(150deg, ${C.mintInk} 0%, ${C.greenInk} 55%, #0F6B33 100%)`,
-            boxShadow: '0 30px 60px -34px rgba(23,135,64,0.6)',
-          }}
+        {/* ── 3 · the one required action ────────────────────────────
+            The shell is shared with the foot of the OTO — see
+            components/WhatsAppJoinPanel. Same step, same panel, so the two
+            cannot end up describing it differently. */}
+        <WhatsAppJoinPanel
+          className="mt-10"
+          title="Join the WhatsApp community now."
+          body={
+            <>
+              Zoom links, reminders and the daily joining note are all sent
+              inside the community.{' '}
+              <strong className="font-semibold text-white">
+                Your access to the challenge runs through this group.
+              </strong>
+            </>
+          }
+          footnote={HAS_INVITE ? 'Opens in WhatsApp · one tap to join' : undefined}
         >
-          <span
-            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em]"
-            style={{ background: 'rgba(255,255,255,0.22)', color: '#FFFFFF' }}
-          >
-            <WarningCircle weight="fill" className="h-3 w-3" />
-            {/* No "step 1 of 1". A counter that never counts past one is not
-                telling the reader where they are, it is just noise around the
-                only instruction on the page. */}
-            Important
-          </span>
-
-          <h2
-            className="mt-4 font-heading text-[clamp(22px,3.2vw,32px)] font-bold leading-tight text-white"
-          >
-            Join the WhatsApp community now.
-          </h2>
-          <p
-            className="mx-auto mt-3 max-w-[460px] text-[14.5px] leading-relaxed"
-            style={{ color: 'rgba(255,255,255,0.88)' }}
-          >
-            Zoom links, reminders and the daily joining note are all sent inside
-            the community.{' '}
-            <strong className="font-semibold text-white">
-              Your access to the challenge runs through this group.
-            </strong>
-          </p>
-
-          <JoinButton
-            className="mt-7"
-            tone="onGreen"
-            label="Join the Community"
-          />
-
-          {HAS_INVITE && (
-            <p className="mt-3 text-[12.5px]" style={{ color: 'rgba(255,255,255,0.75)' }}>
-              Opens in WhatsApp · one tap to join
-            </p>
-          )}
-        </section>
+          <JoinButton tone="onGreen" label="Join the Community" />
+        </WhatsAppJoinPanel>
 
         {/* ── 4 · what the community gets you ──────────────────────── */}
         <section className="mt-14 text-center">

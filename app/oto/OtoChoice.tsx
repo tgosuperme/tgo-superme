@@ -29,13 +29,23 @@
  * reconciling two numbers. The page names what VIP adds, shows it, and asks
  * once.
  *
- * ── THE DECLINE LINK STAYS ────────────────────────────────────────────────
- * Quiet, under the button, and it is not optional to keep. The seat is real
- * and already registered, so a reader who does not want the pass still has
- * somewhere to be: /confirmed, with the joining instructions. A page that
- * registered someone for a free challenge and then gave them no way to reach
- * it would be a trap, and would strand the funnel's main conversion one click
- * from the finish line.
+ * ── THE DECLINE IS A BUTTON, NOT A WHISPER ────────────────────────────────
+ * It shipped as a bare underlined link below the price card, and that was
+ * wrong in a way the numbers showed: people who did not want the pass could
+ * not find the way on, so they left the page rather than reaching their
+ * joining instructions.
+ *
+ * Which is the whole lesson. The seat is real and ALREADY REGISTERED by the
+ * time anyone reads this page — the Pabbly row is written, registration_
+ * complete has fired. Hiding the way forward does not sell more upgrades; it
+ * strands the funnel's main conversion one click from the finish line and
+ * loses a lead that was already won.
+ *
+ * So it is a full-width secondary button in the same container as the primary,
+ * and it is repeated in the docked bar on phones. The hierarchy is carried by
+ * FILL, not by size or by hiding: solid blue for the upgrade, outlined on
+ * white for the decline. A clear first and second, with no third state called
+ * "invisible".
  *
  * ── WHAT THIS PAGE MAY NOT CLAIM ──────────────────────────────────────────
  * The four guides and the score report belong to a PLACE, not to VIP — the
@@ -63,13 +73,16 @@ import {
   Moon,
   ShieldCheck,
   VideoCamera,
+  WhatsappLogo,
 } from '@phosphor-icons/react/dist/ssr';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import BrandMark from '@/components/BrandMark';
+import JoinTracker from '@/components/JoinTracker';
 import PaymentLogos from '@/components/PaymentLogos';
+import WhatsAppJoinPanel from '@/components/WhatsAppJoinPanel';
 import {
   CHECKOUT_CONFIG,
   PLANS,
@@ -81,10 +94,15 @@ import { GA_EVENTS, gaEvent } from '@/lib/ga';
 import { readRegistration, type StoredRegistration } from '@/lib/registration-client';
 
 import { legoBrick, legoDelay } from '../_landing/lego-style';
-import MobileCtaBar, { MOBILE_CTA_BAR_SPACE } from '../_landing/mobile-cta-bar';
+import MobileCtaBar, { MOBILE_CTA_BAR_SPACE_TALL } from '../_landing/mobile-cta-bar';
 import { C, DATE_RANGE, SESSION_TIMES_TZ, START_DATE } from '../_landing/shared';
 
 const VIP = PLANS.vip;
+
+/* Flat and non-clickable when the invite is unset — the same rule the
+   confirmation page uses, so a missing URL fails visibly in review rather than
+   shipping a dead button to someone who has already registered. */
+const HAS_INVITE = CHECKOUT_CONFIG.whatsappCommunityUrl.length > 0;
 
 /* Icons live here rather than in the config, which is imported by server code
    that has no business pulling in a component library. Keyed on VipBonus.key
@@ -207,6 +225,10 @@ export default function OtoChoice() {
 
   return (
     <main className="min-h-screen" style={{ background: C.paleBlue }}>
+      {/* GA join_whatsapp. One delegated listener for the [data-ga-join]
+          button in the panel at the foot of this page, same as the
+          confirmation pages mount for theirs. */}
+      <JoinTracker />
       {/* ── header ─────────────────────────────────────────────────── */}
       <header style={{ background: C.white, borderBottom: `1px solid ${C.line}` }}>
         <div className="mx-auto flex max-w-[1120px] items-center justify-between gap-4 px-5 py-4 md:px-8">
@@ -369,6 +391,34 @@ export default function OtoChoice() {
             )}
           </button>
 
+          {/* ── the decline, INSIDE the card ──────────────────────────
+              It was a bare underlined link below the card, and it cost
+              completions: people who did not want the pass could not see the
+              way on, so they left the page instead of reaching their joining
+              instructions. A decline that is hard to find does not sell more
+              upgrades, it just loses the registration that was already made.
+
+              So it is a real secondary button now, in the same container as
+              the primary, sharing its width and its height. The hierarchy is
+              carried by FILL rather than by size: the upgrade is a solid blue
+              pill, this is outlined on white. That is a clear first and second
+              without one of them being hidden. */}
+          <Link
+            href={CHECKOUT_CONFIG.confirmedPath}
+            className="lego-press group mt-3 inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full text-[14.5px] font-semibold transition-colors duration-200"
+            style={{
+              background: C.white,
+              border: `1.5px solid ${C.lineStrong}`,
+              color: C.ink,
+            }}
+          >
+            Continue with my standard seat
+            <ArrowRight
+              weight="bold"
+              className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5"
+            />
+          </Link>
+
           <p
             className="mt-3.5 flex items-start justify-center gap-1.5 text-[12.5px] leading-snug"
             style={{ color: C.inkSoft }}
@@ -387,21 +437,6 @@ export default function OtoChoice() {
           </div>
         </section>
 
-        {/* ── the decline ────────────────────────────────────────────
-            Deliberately plain: a text link, no card, no price, no second
-            button competing with the one above it. It is still a real,
-            reachable route to the joining instructions — see the note at the
-            top of this file on why it cannot be removed. */}
-        <p className="mt-6 text-center">
-          <Link
-            href={CHECKOUT_CONFIG.confirmedPath}
-            className="text-[13.5px] underline decoration-1 underline-offset-4 transition-colors duration-200 hover:opacity-70"
-            style={{ color: C.inkMuted }}
-          >
-            No thanks — continue with my standard seat
-          </Link>
-        </p>
-
         <p className="mt-8 text-center text-[12.5px]" style={{ color: C.inkMuted }}>
           <CalendarBlank
             weight="bold"
@@ -410,18 +445,98 @@ export default function OtoChoice() {
           />
           Starts {START_DATE} · {DATE_RANGE} · {SESSION_TIMES_TZ} · Live on Zoom
         </p>
+
+        {/* ── the step that has to happen either way ──────────────────
+            BELOW the offer, not above it, and that order is the whole design.
+            Put it first and it answers the page before the page has asked:
+            somebody who has their Zoom links has no reason left to read about
+            the pass. Put it last and it catches everyone the offer did not —
+            which, on an upsell, is most of them.
+
+            It is the same panel as the confirmation page, from the same
+            component, because it is the same instruction. The copy differs
+            only where this moment differs: nobody has upgraded yet, so it says
+            the group is the way in whichever way they go, and the pass is
+            mentioned once so declining the offer does not feel like leaving
+            something behind.
+
+            This is also why the page needed the decline button beside the
+            upgrade: a reader who joins the community from here and closes the
+            tab has done everything the funnel actually needs. */}
+        <WhatsAppJoinPanel
+          className="mt-12"
+          /* A typographic apostrophe as the character, not &rsquo;: entities
+             are decoded in JSX text but not in a string prop, so the entity
+             form would print literally on the badge. */
+          eyebrow="Don’t Miss This!"
+          pulseEyebrow
+          title="Your place is held. One step to use it."
+          body={
+            <>
+              Zoom links, reminders and the daily joining note are all sent
+              inside the WhatsApp community — for VIP and standard places
+              alike.{' '}
+              <strong className="font-semibold text-white">
+                Join it now, whichever you choose above.
+              </strong>
+            </>
+          }
+          footnote={
+            HAS_INVITE
+              ? 'Opens in WhatsApp · one tap to join'
+              : undefined
+          }
+        >
+          {/* A plain anchor rather than the thank-you page's JoinButton: that
+              one carries the `data-join-cta` marker its docked bar watches, and
+              this page's bar is watching the upgrade button instead. Tagged
+              `data-ga-join` so the same JoinTracker listener counts it. */}
+          {HAS_INVITE ? (
+            <a
+              href={CHECKOUT_CONFIG.whatsappCommunityUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-ga-join=""
+              className="lego-press group inline-flex min-h-[54px] items-center justify-center gap-2.5 rounded-full px-8 text-[15px] font-bold"
+              style={{ background: C.white, color: C.greenInk }}
+            >
+              <WhatsappLogo weight="fill" className="h-5 w-5" />
+              Join the Community
+              <ArrowRight
+                weight="bold"
+                className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5"
+              />
+            </a>
+          ) : (
+            /* Flat and non-clickable when NEXT_PUBLIC_WHATSAPP_COMMUNITY_URL
+               is unset, so a missing invite is obvious in review rather than
+               shipping as a dead button. */
+            <span
+              className="inline-flex min-h-[54px] cursor-default items-center justify-center gap-2.5 rounded-full px-8 text-[15px] font-bold"
+              style={{ background: 'rgba(255,255,255,0.4)', color: '#FFFFFF' }}
+            >
+              <WhatsappLogo weight="fill" className="h-5 w-5" />
+              Join the Community
+            </span>
+          )}
+        </WhatsAppJoinPanel>
       </div>
 
-      {/* Reserves the docked bar's height in normal flow. The SHORT value now:
-          the bar used to carry a segmented plan control above its button, and
-          with the choice gone there is one row left to reserve. */}
-      <div aria-hidden className="lg:hidden" style={{ height: MOBILE_CTA_BAR_SPACE }} />
+      {/* Reserves the docked bar's height in normal flow. The TALL value,
+          because the bar carries the decline row as well as the button. */}
+      <div aria-hidden className="lg:hidden" style={{ height: MOBILE_CTA_BAR_SPACE_TALL }} />
 
       {/* ── docked CTA · mobile and tablet ───────────────────────────
-          One button, mirroring the one above. Nothing to keep in sync any more:
-          when this bar carried the plan radios it was a second copy of the
-          page's state, and a bar that could disagree with the page it is docked
-          to was the fiddliest thing on the route. */}
+          BOTH ROUTES, not just the upgrade. On a phone the price card is a
+          long way down the page, so a bar offering only the upgrade left a
+          reader who did not want it with nothing to tap and no visible way to
+          their joining instructions — which is the drop-off this bar is meant
+          to prevent, not cause.
+
+          The decline sits in the row ABOVE the button rather than beside it.
+          Two reasons: the primary stays in the easiest reach at the bottom of
+          the screen, and a full-width row is the only shape that fits this
+          label at 390px without truncating it to "Continue with my stand…". */}
       <MobileCtaBar
         watch="[data-oto-cta]"
         label="VIP pass"
@@ -431,6 +546,23 @@ export default function OtoChoice() {
             <ShieldCheck weight="fill" className="h-3 w-3 shrink-0" style={{ color: C.mintInk }} />
             Refunded after Day 1
           </>
+        }
+        above={
+          <Link
+            href={CHECKOUT_CONFIG.confirmedPath}
+            className="lego-press group inline-flex min-h-[42px] w-full items-center justify-center gap-1.5 rounded-xl text-[13px] font-semibold"
+            style={{
+              background: C.paleBlue,
+              border: `1px solid ${C.lineStrong}`,
+              color: C.ink,
+            }}
+          >
+            Continue with my standard seat
+            <ArrowRight
+              weight="bold"
+              className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5"
+            />
+          </Link>
         }
       >
         <button

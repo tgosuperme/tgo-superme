@@ -18,12 +18,20 @@
  * for the values, a struck total and a savings percentage. Implemented as
  * asked and flagged here rather than silently dropped.
  *
- * ── THE FIGURES ARE SIZED TO A ~70% HEADLINE, NOT TO A MARKET RATE ───────
- * AED 2 for a guide is low for Dubai. It is what the arithmetic allows: the
- * seat is AED 4.99, and a ~70% discount puts the whole stack at AED 17. Raise
- * these and the discount climbs past 90%, which is the louder claim and the
- * one the advertising rules care about. The brief asked for ~70%, so the
- * stack was sized to it rather than the other way round.
+ * ── THE FIGURES ADD UP TO 40, AND THAT IS THE POINT ──────────────────────
+ * The client set the arithmetic: AED 5 a guide, four guides, so AED 20 of
+ * written material; AED 20 for the five live days (NEXT_PUBLIC_ANCHOR_PRICE_
+ * AED); AED 40 for a place, struck through, given away.
+ *
+ * It replaces an earlier set sized to keep a discount headline near 70%. That
+ * reasoning died with the seat price: at zero the discount is 100% whatever
+ * these say, so there is no percentage left to tune and nothing to be gained
+ * by keeping the numbers small. What matters now is only that they are
+ * defensible and that they sum to the figure the page strikes through.
+ *
+ * TWO HALVES THAT MUST STAY EQUAL. 20 and 20 is a deliberate shape — the
+ * guides are worth what the live days are worth — so if one moves the other
+ * should be looked at, and the struck total follows both automatically.
  *
  * The values below sum to BONUS_TOTAL, the bonus figure on its own. The
  * checkout adds the challenge price to it (FULL_VALUE = PRICE + BONUS_TOTAL)
@@ -32,7 +40,7 @@
  * price moves, and the arithmetic is done in code precisely so the two cannot
  * drift apart.
  */
-import { VIP_BONUSES, type VipBonus } from '@/lib/checkout-config';
+import { CHECKOUT_CONFIG, VIP_BONUSES, type VipBonus } from '@/lib/checkout-config';
 
 import { C } from './shared';
 
@@ -54,7 +62,7 @@ export const BONUSES: Bonus[] = [
   {
     n: 'Bonus 1',
     title: 'The Back Pain Relief Guide',
-    value: 2,
+    value: 5,
     body: 'The five postures and two breathing techniques Atul uses to take the load off a guarding lower back, in the order that matters: unload first, strengthen after.',
     src: '/bonuses/back-pain-relief-guide.png',
     alt: 'The Back Pain Relief Guide',
@@ -64,7 +72,7 @@ export const BONUSES: Bonus[] = [
   {
     n: 'Bonus 2',
     title: 'The Knee Support Guide',
-    value: 2,
+    value: 5,
     body: 'Learn which of the two knees you actually have, load-related or arthritic, and the exact strengthening work Atul uses to take pressure off the joint without ever bending a sore knee first.',
     src: '/bonuses/knee-support-guide.png',
     alt: 'The Knee Support Guide',
@@ -74,7 +82,7 @@ export const BONUSES: Bonus[] = [
   {
     n: 'Bonus 3',
     title: 'The Neck & Shoulder Relief Guide',
-    value: 2,
+    value: 5,
     body: "Atul's posture corrections and daily habit fixes for a neck that's been carrying a decade of screen time, paired with a calming breath practice to ease tension through the shoulders.",
     src: '/bonuses/neck-shoulder-relief-guide.png',
     alt: 'The Neck and Shoulder Relief Guide',
@@ -84,7 +92,7 @@ export const BONUSES: Bonus[] = [
   {
     n: 'Bonus 4',
     title: 'The Unload Breath Guide',
-    value: 1,
+    value: 5,
     body: 'Four techniques explained simply, Nadi Shodhana, Ujjayi, diaphragmatic breathing and Kapalabhati: which one calms which kind of tension, and why breath comes before every movement in the Inner Brace Method.',
     src: '/bonuses/unload-breath-guide.png',
     alt: 'The Unload Breath Guide',
@@ -101,16 +109,42 @@ export const BONUS_TOTAL = BONUSES.reduce((sum, b) => sum + b.value, 0);
  *
  * It has no cover artwork, which is why it is not a BONUSES entry: that list
  * drives an image grid and a member without a `src` would render an empty
- * panel. It appears as a line in the value block instead, and counts toward
- * INCLUDED_TOTAL.
+ * panel. It appears as a line in the value block instead.
+ *
+ * ── IT CARRIES NO PRICE, DELIBERATELY ────────────────────────────────────
+ * It was AED 1, which read as an apology rather than a value. More to the
+ * point, the stack is now four guides at 5 and the live days at 20, summing
+ * to the 40 the page strikes through — and a priced fifth item would make
+ * that sum wrong by exactly its own figure.
+ *
+ * It is also the one included thing with no market price to borrow: it is a
+ * report generated from the reader's own two scores, not a product anybody
+ * sells. Stating it as included and leaving the money out is both the honest
+ * description and the one that keeps the arithmetic whole.
+ *
+ * Give it a value only alongside a decision about what the struck total
+ * should then become.
  */
 export const SCORE_REPORT = {
   title: 'Your Day 1 and Day 4 Pain Score Report',
-  value: 1,
+  value: 0,
 };
 
 /** Everything included with a seat, guides plus the score report. */
 export const INCLUDED_TOTAL = BONUS_TOTAL + SCORE_REPORT.value;
+
+/**
+ * WHAT A PLACE IS WORTH, and the figure struck through on both the landing
+ * page's value block and the checkout's order summary: the five live days
+ * plus everything written that comes with them.
+ *
+ * Derived here so the two surfaces cannot disagree. The checkout used to do
+ * this addition itself, which meant a repriced guide moved one of the two
+ * struck totals and left the other behind.
+ */
+export const PLACE_FULL_VALUE = Math.round(
+  CHECKOUT_CONFIG.anchorAedNumeric + INCLUDED_TOTAL,
+);
 
 /** Derived from the live offer price, so the headline saving cannot go stale. */
 export function savingPercent(price: number): number {

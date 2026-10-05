@@ -39,6 +39,7 @@ import {
 import {
   BONUSES,
   INCLUDED_TOTAL,
+  PLACE_FULL_VALUE,
   SCORE_REPORT,
   VIP_EXTRAS,
   VIP_EXTRAS_TOTAL,
@@ -109,7 +110,10 @@ type FieldKey = keyof Fields;
 
    Each total is the sum of what that tier actually contains, so both come out
    near 70% honestly rather than by arrangement. */
-const SEAT_FULL_VALUE = Math.round(CHECKOUT_CONFIG.anchorAedNumeric + INCLUDED_TOTAL);
+/* The same arithmetic the landing page strikes through, imported rather than
+   repeated: doing it in both places meant a repriced guide moved one struck
+   total and left the other behind. */
+const SEAT_FULL_VALUE = PLACE_FULL_VALUE;
 const VIP_FULL_VALUE = SEAT_FULL_VALUE + VIP_EXTRAS_TOTAL;
 
 const INCLUDED = [
@@ -731,12 +735,19 @@ export default function CheckoutForm({
                 >
                   {SCORE_REPORT.title}
                 </span>
+                {/* "Included" rather than a figure. The report is the one
+                    item here with no price — see the note above SCORE_REPORT
+                    — and printing CURRENCY_SYMBOL against its zero put a bare
+                    "AED 0" in the middle of a priced list, which reads as a
+                    bug rather than as a gift. The column still fills, so the
+                    row keeps its shape. */}
                 <span
                   className="shrink-0 text-[13px] font-semibold"
                   style={{ color: C.inkSoft }}
                 >
-                  {CURRENCY_SYMBOL}
-                  {SCORE_REPORT.value}
+                  {SCORE_REPORT.value > 0
+                    ? `${CURRENCY_SYMBOL}${SCORE_REPORT.value}`
+                    : 'Included'}
                 </span>
               </li>
             </ul>
