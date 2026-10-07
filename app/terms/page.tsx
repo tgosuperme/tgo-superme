@@ -1,7 +1,11 @@
 import type { Metadata } from 'next';
 
-import LegalPage, { type LegalSection } from '../_landing/legal-page';
-import { PRICE_LABEL, SESSION_TIMES_TZ, START_DATE } from '../_landing/shared';
+import LegalPage, { type LegalSection } from '@/components/LegalPageLayout';
+
+// ⚠️ TODO: this policy still describes the paid 5-Day Pain Reset Challenge. Replace with SuperMe's wording for the free assessment call.
+const PRICE_LABEL = '₹497';
+const START_DATE = '7th October';
+const SESSION_TIMES_TZ = '7 AM & 7 PM IST';
 
 export const metadata: Metadata = {
   title: 'Terms of Use | SuperMe',
@@ -86,6 +90,7 @@ const SECTIONS: LegalSection[] = [
 export default function TermsPage() {
   return (
     <LegalPage
+      notice="[TODO] This page still describes the paid 5-Day Pain Reset Challenge and has not yet been updated for the free assessment call."
       eyebrow="Terms of Use"
       title="What you are buying, and"
       titleAccent="what we owe you"

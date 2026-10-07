@@ -1,12 +1,6 @@
 import type { Config } from 'tailwindcss';
 
-/**
- * SuperMe · 5-Day Pain Reset.
- *
- * White and pale blue are the environment; the accents are the personality.
- * Roughly 70 to 80% white / pale blue, 15 to 20% blue, 5 to 10% accent, and
- * accents only ever land on individual elements, never on a large area.
- */
+/* SuperMe. White ground, blue for action, accents on small marks only. */
 const config: Config = {
   content: ['./app/**/*.{ts,tsx}', './components/**/*.{ts,tsx}'],
   theme: {

@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 
-import LegalPage, { type LegalSection } from '../_landing/legal-page';
-import { PRICE_LABEL } from '../_landing/shared';
+import LegalPage, { type LegalSection } from '@/components/LegalPageLayout';
+
+// ⚠️ TODO: this policy still describes the paid 5-Day Pain Reset Challenge. Replace with SuperMe's wording for the free assessment call.
+const PRICE_LABEL = '₹497';
 
 export const metadata: Metadata = {
   title: 'Refund Policy | SuperMe',
@@ -66,6 +68,7 @@ const SECTIONS: LegalSection[] = [
 export default function RefundsPage() {
   return (
     <LegalPage
+      notice="[TODO] This page still describes the paid 5-Day Pain Reset Challenge and has not yet been updated for the free assessment call."
       eyebrow="Refund Policy"
       title="Come to Day One."
       titleAccent="Then decide."

@@ -1,242 +1,133 @@
-import { createHash } from 'node:crypto';
-
-import { CHECKOUT_CONFIG } from '@/lib/checkout-config';
+import crypto from 'crypto';
 
 /**
- * Meta Conversions API for the 5-Day Pain Reset.
+ * Meta Conversions API, server side only.
  *
- * ── THE THREE EVENTS ────────────────────────────────────────────────────────
- * This funnel reports CUSTOM events, not Meta's standard ones. No AddToCart,
- * no InitiateCheckout, no Purchase. The ad account optimises on these three
- * and nothing else:
- *
- *     atc_event   the reader taps a CTA on the landing page
- *     ic_event    the buyer taps the pay button on the checkout page
- *     sales       the money actually moved, confirmed on the Stripe webhook
- *
- * Custom events are sent exactly like standard ones: the name simply is not
- * one Meta reserves, so it arrives as a custom conversion and gets used from
- * Events Manager.
- *
- * ── SERVER ONLY. THE BROWSER FIRES NOTHING BUT PageView ─────────────────────
- * All three events are sent from here and ONLY from here. There is no browser
- * half to deduplicate against.
- *
- * The Pixel stays on the page for its cookies — `_fbp`, and `_fbc` from the ad
- * click — because those are two of the strongest match keys these server
- * events carry. It just is not asked to report conversions, which it does
- * badly: ad blockers, ITP, iOS and a buyer closing the tab on Stripe's success
- * redirect all cost it events the server never loses.
- *
- * Every event still carries an event_id. With one copy there is no pair to
- * collapse, but the id is what makes a retry, a double-click or a replayed
- * Stripe webhook land as one conversion rather than several.
- *
- * ── THE PARAMETER PROBLEM, AND HOW IT IS SOLVED ─────────────────────────────
- * An event is only as good as its match keys, and four of them exist ONLY in
- * the buyer's browser:
- *
- *     _fbp                 the Pixel's own browser cookie
- *     _fbc                 the click id, derived from ?fbclid on the ad click
- *     client_ip_address    the buyer's IP
- *     client_user_agent    the buyer's browser
- *
- * atc_event and ic_event are sent from a request the buyer's own browser made,
- * so the IP and user agent come straight off that request and the cookies come
- * in the body.
- *
- * `sales` is the hard one. The Stripe webhook cannot read any of the four: that
- * request comes from Stripe's servers, so its IP is Stripe's, its user agent is
- * Stripe's, and it carries none of our cookies. Reading them there would send
- * Meta a datacentre instead of a buyer. So they are captured at checkout time
- * and carried through the payment:
- *
- *     browser  ──POST /api/checkout──▶  server captures IP + UA from the
- *     (_fbp, _fbc, page URL)            request, mints an event_id, and writes
- *                                       all of it into the Checkout Session's
- *                                       metadata
- *                                              │
- *                                              ▼
- *                                    Stripe stores it on the session
- *                                              │
- *                        checkout.session.completed hands it all back
- *                                              │
- *                                              ▼
- *                                    webhook fires the `sales` event
- *
- * Stripe's metadata is the Razorpay `notes` of this flow: up to 50 keys, 500
- * characters per value, returned verbatim on the webhook. No database needed.
+ * Classification hygiene (this offer is pain coaching, so assume Meta's health
+ * category applies): custom_data carries NOTHING descriptive, no content_name,
+ * no product string, no UTM, no fbclid, and event_source_url is cut to the
+ * origin here rather than trusted from the browser. user_data stays maximal:
+ * it is hashed and says nothing about the offer. Event names stay standard.
  */
 
-const GRAPH_VERSION = process.env.META_GRAPH_VERSION?.trim() || 'v21.0';
+/** Meta's standard events. A free call funnel has no payment, so no Purchase. */
+export type StandardEvent = 'ViewContent' | 'Schedule';
+export type SendableEvent = StandardEvent;
 
-/** The only three names this funnel is allowed to send. */
-export const CAPI_EVENTS = CHECKOUT_CONFIG.capi.events;
-export type CapiEventName = (typeof CAPI_EVENTS)[keyof typeof CAPI_EVENTS];
+/** Which funnel step a ViewContent belongs to. Feeds the event id only, never Meta. */
+export type FunnelStage = 'landing' | 'booking';
 
-export function capiConfigured(): boolean {
-  return Boolean(
-    process.env.META_PIXEL_ID?.trim() && process.env.META_CAPI_ACCESS_TOKEN?.trim(),
-  );
+export function capiConfig() {
+  return {
+    pixelId: (process.env.META_PIXEL_ID ?? '').trim(),
+    accessToken: (process.env.META_CAPI_ACCESS_TOKEN ?? '').trim(),
+    testEventCode: (process.env.META_CAPI_TEST_EVENT_CODE ?? '').trim(),
+  };
 }
 
-/** SHA-256 hex, the only hashing Meta accepts for the PII keys. */
-function hash(value: string): string {
-  return createHash('sha256').update(value).digest('hex');
+export function capiReady(): boolean {
+  const c = capiConfig();
+  return Boolean(c.pixelId && c.accessToken);
 }
 
-/* Meta's normalisation rules. Getting these wrong does not error, it silently
-   lowers the match rate, which is the worst kind of bug: invisible. */
-const norm = {
-  email: (v: string) => v.trim().toLowerCase(),
-  /** Digits only, country code included, no plus sign. */
-  phone: (v: string) => v.replace(/\D/g, ''),
-  name: (v: string) => v.trim().toLowerCase().replace(/[^a-zÀ-ɏ\s'-]/gi, ''),
-  /** City: lowercase, no spaces or punctuation at all. */
-  city: (v: string) => v.trim().toLowerCase().replace(/[^a-zÀ-ɏ]/gi, ''),
-  country: (v: string) => v.trim().toLowerCase().slice(0, 2),
-};
-
-function hashed(value: string | undefined, fn: (v: string) => string) {
-  const v = (value ?? '').trim();
-  if (!v) return undefined;
-  const normalised = fn(v);
-  return normalised ? hash(normalised) : undefined;
+export function originOnly(url: string): string {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return url;
+  }
 }
 
-/**
- * The `external_id` sent to Meta, exposed so the CRM row can carry the SAME
- * value.
- *
- * It MUST be produced here rather than re-implemented at the call site. The
- * whole point of external_id is that Meta links the browser event, the server
- * event and every downstream Apps Script event into one person; two
- * implementations that drift by a `.trim()` silently break that link, and
- * nothing errors to tell you.
- */
-export function externalIdFor(email: string): string {
-  return hashed(email, norm.email) ?? '';
+export function sha256Hex(value: string): string {
+  return crypto.createHash('sha256').update(value).digest('hex');
 }
 
-/** Whatever is known about the person at the moment the event fires. */
-export type CapiUser = {
+function hashEmail(v: string) {
+  const s = v.trim().toLowerCase();
+  return s ? sha256Hex(s) : undefined;
+}
+function hashPhone(v: string) {
+  const s = v.replace(/\D/g, '');
+  return s ? sha256Hex(s) : undefined;
+}
+function hashName(v: string) {
+  const s = v.trim().toLowerCase();
+  return s ? sha256Hex(s) : undefined;
+}
+function hashCountry(v: string) {
+  const s = v.trim().toLowerCase();
+  return s ? sha256Hex(s) : undefined;
+}
+
+export type UserSignals = {
   email?: string;
   phone?: string;
   firstName?: string;
   lastName?: string;
-  city?: string;
   country?: string;
-  /** Unhashed, browser-captured. Absent is fine; wrong is harmful. */
-  fbp?: string;
+  externalId?: string;
   fbc?: string;
+  fbp?: string;
   clientIp?: string;
   clientUserAgent?: string;
 };
 
-export type CapiEvent = {
-  eventName: CapiEventName;
-  /** Shared with the browser copy so Meta deduplicates the pair. */
-  eventId: string;
-  /** Unix SECONDS. Meta rejects milliseconds. */
-  eventTime: number;
-  eventSourceUrl?: string;
-  user: CapiUser;
-  /** Only `sales` carries money; the other two are intent. */
-  value?: number;
-  currency?: string;
-};
-
-/**
- * Sends one event to the Conversions API.
- *
- * Throws on failure. Each caller decides what that means: the webhook logs and
- * carries on (a retry there would re-run fulfilment), the browser-facing
- * routes swallow it (tracking must never break a checkout).
- */
-export async function sendCapiEvent(e: CapiEvent): Promise<void> {
-  const pixelId = process.env.META_PIXEL_ID?.trim();
-  const token = process.env.META_CAPI_ACCESS_TOKEN?.trim();
-  if (!pixelId || !token) {
-    throw new Error('META_PIXEL_ID or META_CAPI_ACCESS_TOKEN is not set');
-  }
-
-  const u = e.user;
-  /* Undefined entries are stripped below: an empty string counts as a supplied
-     but unmatchable key and drags the match quality score down. */
-  const userData: Record<string, unknown> = {
-    em: hashed(u.email, norm.email),
-    ph: hashed(u.phone, norm.phone),
-    fn: hashed(u.firstName, norm.name),
-    ln: hashed(u.lastName, norm.name),
-    ct: hashed(u.city, norm.city),
-    country: hashed(u.country, norm.country),
-    /* A stable pseudonymous id. The email hash is the obvious choice: no new
-       identifier to store, and consistent across all three events. On
-       atc_event there is no email yet, so it is simply absent. */
-    external_id: hashed(u.email, norm.email),
-    fbp: u.fbp || undefined,
-    fbc: u.fbc || undefined,
-    client_ip_address: u.clientIp || undefined,
-    client_user_agent: u.clientUserAgent || undefined,
+function buildUserData(u: UserSignals) {
+  const em = u.email ? hashEmail(u.email) : undefined;
+  const ph = u.phone ? hashPhone(u.phone) : undefined;
+  const fn = u.firstName ? hashName(u.firstName) : undefined;
+  const ln = u.lastName ? hashName(u.lastName) : undefined;
+  const country = u.country ? hashCountry(u.country) : undefined;
+  return {
+    ...(em && { em: [em] }),
+    ...(ph && { ph: [ph] }),
+    ...(fn && { fn: [fn] }),
+    ...(ln && { ln: [ln] }),
+    ...(country && { country: [country] }),
+    ...(u.externalId && { external_id: [sha256Hex(u.externalId)] }),
+    ...(u.fbc && { fbc: u.fbc }),
+    ...(u.fbp && { fbp: u.fbp }),
+    ...(u.clientIp && { client_ip_address: u.clientIp }),
+    ...(u.clientUserAgent && { client_user_agent: u.clientUserAgent }),
   };
-  for (const k of Object.keys(userData)) {
-    if (userData[k] === undefined) delete userData[k];
-  }
-
-  const customData: Record<string, unknown> = {
-    content_name: CHECKOUT_CONFIG.capi.contentName,
-  };
-  if (typeof e.value === 'number') customData.value = e.value;
-  if (e.currency) customData.currency = e.currency;
-
-  const event = {
-    event_name: e.eventName,
-    event_time: e.eventTime,
-    event_id: e.eventId,
-    action_source: 'website',
-    event_source_url: e.eventSourceUrl || undefined,
-    user_data: userData,
-    custom_data: customData,
-  };
-
-  const body: Record<string, unknown> = { data: [event] };
-  /* Set only while testing, so events appear in Events Manager's Test Events
-     tab. It must be UNSET in production or the events are treated as tests and
-     excluded from optimisation. */
-  const testCode = process.env.META_TEST_EVENT_CODE?.trim();
-  if (testCode) body.test_event_code = testCode;
-
-  const res = await fetch(
-    `https://graph.facebook.com/${GRAPH_VERSION}/${pixelId}/events?access_token=${encodeURIComponent(token)}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(10_000),
-      cache: 'no-store',
-    },
-  );
-
-  if (!res.ok) {
-    /* The token is in the URL, never in the log line. */
-    const detail = await res.text().catch(() => '');
-    throw new Error(`Meta CAPI returned ${res.status}: ${detail.slice(0, 300)}`);
-  }
-
-  console.info(`[capi] ${e.eventName} sent, event_id=${e.eventId}`);
 }
 
-/**
- * The two match keys every request from a real browser can supply itself.
- *
- * NEVER call this from the Stripe webhook: that request is Stripe's, so it
- * would attribute the sale to a Stripe datacentre.
- */
-export function browserContext(req: Request) {
-  return {
-    /* x-forwarded-for is a list, oldest client first, so the first entry is
-       the real client rather than the proxy chain. */
-    clientIp: (req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim().slice(0, 100),
-    clientUserAgent: (req.headers.get('user-agent') ?? '').slice(0, 400),
+/** Never throws: a failed analytics call must not fail a page. */
+export async function sendCapiEvent(params: {
+  eventName: SendableEvent;
+  eventId: string;
+  eventSourceUrl: string;
+  user: UserSignals;
+}): Promise<{ ok: boolean; status: number; body: unknown }> {
+  const { pixelId, accessToken, testEventCode } = capiConfig();
+  if (!pixelId || !accessToken) return { ok: false, status: 0, body: 'capi-not-configured' };
+
+  const body = {
+    data: [
+      {
+        event_name: params.eventName,
+        event_time: Math.floor(Date.now() / 1000),
+        event_id: params.eventId,
+        event_source_url: originOnly(params.eventSourceUrl),
+        action_source: 'website',
+        user_data: buildUserData(params.user),
+      },
+    ],
+    ...(testEventCode && { test_event_code: testEventCode }),
   };
+
+  try {
+    const res = await fetch(
+      `https://graph.facebook.com/v21.0/${pixelId}/events?access_token=${encodeURIComponent(accessToken)}`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+        cache: 'no-store',
+      },
+    );
+    return { ok: res.ok, status: res.status, body: await res.json().catch(() => null) };
+  } catch (e) {
+    return { ok: false, status: 0, body: String(e) };
+  }
 }

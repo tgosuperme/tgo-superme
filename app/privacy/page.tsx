@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 
-import LegalPage, { type LegalSection } from '../_landing/legal-page';
+import LegalPage, { type LegalSection } from '@/components/LegalPageLayout';
+
+// ⚠️ TODO: this policy still describes the paid 5-Day Pain Reset Challenge. Replace with SuperMe's wording for the free assessment call.
 
 export const metadata: Metadata = {
   title: 'Privacy Policy | SuperMe',
@@ -106,6 +108,7 @@ const SECTIONS: LegalSection[] = [
 export default function PrivacyPage() {
   return (
     <LegalPage
+      notice="[TODO] This page still describes the paid 5-Day Pain Reset Challenge and has not yet been updated for the free assessment call."
       eyebrow="Privacy"
       title="How we look after"
       titleAccent="your information"

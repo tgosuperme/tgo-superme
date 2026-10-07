@@ -1,15 +1,24 @@
-/**
- * SuperMe India — the site's own address.
- *
- * HARD-CODED on purpose, not read from env. This deployment has exactly one
- * live home, and the tracking that hangs off it (GA4, Clarity, the Pixel) is
- * pinned to the same property set. An env var here would let a stale value on
- * the host silently repoint canonical URLs and Stripe redirects at the UK
- * site, which is precisely the failure this constant exists to prevent.
- *
- * Change it here, in one place, if the domain ever moves.
- */
-export const SITE_URL = 'https://india.mysuperme.com';
+const configured = (process.env.NEXT_PUBLIC_SITE_URL ?? '').trim().replace(/\/+$/, '');
 
-/** The same value as a URL, for `metadataBase` and anything resolving paths. */
+if (!configured) {
+  console.error(
+    '[site] NEXT_PUBLIC_SITE_URL is not set. Canonical urls, og tags and every Meta event_source_url fall back to localhost.',
+  );
+}
+
+export const SITE_URL = configured || 'http://localhost:3000';
 export const SITE_ORIGIN = new URL(SITE_URL);
+
+export const BOOK_HREF = '/book-a-call';
+export const THANK_YOU_HREF = '/thank-you';
+
+export const CONTACT_EMAIL =
+  (process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? '').trim() || 'hello@superme.co.uk';
+
+export const LEGAL_ENTITY = 'MyEntourage Sàrl, Lausanne';
+
+export const LEGAL_LINKS = [
+  { href: '/privacy', label: 'Privacy Policy' },
+  { href: '/terms', label: 'Terms of Use' },
+  { href: '/refunds', label: 'Refund Policy' },
+] as const;

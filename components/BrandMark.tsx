@@ -1,5 +1,7 @@
 import Image from 'next/image';
 
+import { asset } from '@/app/_landing/asset-version';
+
 /**
  * The SuperMe logo, one definition used by every page.
  *
@@ -55,7 +57,7 @@ export default function BrandMark({
       }}
     >
       <Image
-        src="/brand/superme-icon.png"
+        src={asset('/brand/superme-icon.png')}
         alt="SuperMe"
         width={Math.round(height * WORDMARK_RATIO)}
         height={height}
@@ -64,7 +66,7 @@ export default function BrandMark({
       />
       {symbol && (
         <Image
-          src="/brand/superme-butterfly.png"
+          src={asset('/brand/superme-butterfly.png')}
           /* Decorative: the wordmark beside it already carries the name, and a
              screen reader announcing "SuperMe SuperMe" helps nobody. */
           alt=""
