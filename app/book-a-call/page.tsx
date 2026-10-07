@@ -5,112 +5,32 @@ import { useEffect, useRef, useState } from 'react';
 import BrandMark from '@/components/BrandMark';
 import SiteFooter from '@/components/SiteFooter';
 import { readAttribution } from '@/lib/attribution';
-import {
-  CAL_LINK,
-  CAL_NAMESPACE,
-  CAL_ORIGIN,
-  CAL_URL,
-  CALL_FIRST_STEP,
-  CALL_PURPOSE,
-} from '@/lib/call';
-import { getOrCreateExternalId } from '@/lib/client-signals';
+import { CALENDLY_URL, CALL_FIRST_STEP, CALL_PURPOSE } from '@/lib/call';
 import { CONTACT_EMAIL, THANK_YOU_HREF } from '@/lib/site';
 import { trackBookingView, trackSchedule } from '@/lib/track';
 
-type CalApi = ((...args: unknown[]) => void) & {
-  loaded?: boolean;
-  ns?: Record<string, (...args: unknown[]) => void>;
-  q?: unknown[][];
-};
+const WIDGET_SRC = 'https://assets.calendly.com/assets/external/widget.js';
 
-/* Cal's own loader snippet, typed. It queues calls until embed.js lands. */
-function loadCal(scriptSrc: string): CalApi {
-  const w = window as unknown as { Cal?: CalApi };
-  const push = (a: { q?: unknown[][] }, ar: unknown[]) => {
-    (a.q = a.q || []).push(ar);
-  };
-  w.Cal =
-    w.Cal ||
-    function (...ar: unknown[]) {
-      const cal = w.Cal as CalApi;
-      if (!cal.loaded) {
-        cal.ns = {};
-        cal.q = cal.q || [];
-        (document.head.appendChild(document.createElement('script')) as HTMLScriptElement).src =
-          scriptSrc;
-        cal.loaded = true;
-      }
-      if (ar[0] === 'init') {
-        const api = function (...a: unknown[]) {
-          push(api as unknown as { q?: unknown[][] }, a);
-        } as unknown as ((...a: unknown[]) => void) & { q?: unknown[][] };
-        const namespace = ar[1];
-        api.q = api.q || [];
-        if (typeof namespace === 'string') {
-          cal.ns![namespace] = cal.ns![namespace] || api;
-          push(cal.ns![namespace] as unknown as { q?: unknown[][] }, ar);
-          push(cal as unknown as { q?: unknown[][] }, ['initNamespace', namespace]);
-        } else {
-          push(cal as unknown as { q?: unknown[][] }, ar);
-        }
-        return;
-      }
-      push(cal as unknown as { q?: unknown[][] }, ar);
-    };
-  return w.Cal as CalApi;
-}
+type CalendlyApi = { initInlineWidget: (o: { url: string; parentElement: HTMLElement }) => void };
 
-type CalBooking = {
-  uid?: string;
-  responses?: { email?: string; name?: string | { firstName?: string; lastName?: string } };
-  attendees?: { email?: string; name?: string }[];
-};
-
-/* Cal's success payload has changed shape across embed versions, so every
-   field is optional and a miss only costs match quality, never the redirect. */
-function readBooking(e: unknown) {
-  const data = (e as { detail?: { data?: { booking?: CalBooking; uid?: string } } })?.detail?.data;
-  const b = data?.booking ?? {};
-  const r = b.responses ?? {};
-  const email = r.email || b.attendees?.[0]?.email || '';
-  let firstName = '';
-  let lastName = '';
-  if (typeof r.name === 'object' && r.name) {
-    firstName = r.name.firstName ?? '';
-    lastName = r.name.lastName ?? '';
-  } else {
-    const parts = ((typeof r.name === 'string' ? r.name : b.attendees?.[0]?.name) ?? '')
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean);
-    firstName = parts[0] ?? '';
-    lastName = parts.slice(1).join(' ');
-  }
-  return { uid: b.uid || data?.uid || '', email, firstName, lastName };
-}
-
-/* Campaign context into Cal's booking metadata, so the booking record (and
-   whatever Cal's webhook feeds) carries the ad that produced it. */
-function calMetadata(): Record<string, string> {
+/* Calendly's own utm_* parameters, so the booking record carries the ad that produced it. */
+function calendlyUrl(): string {
   const a = readAttribution();
-  const pairs: [string, string][] = [
+  const p = new URLSearchParams({ hide_gdpr_banner: '1', primary_color: '1054c2' });
+  const utm: [string, string][] = [
     ['utm_source', a.utmSource],
     ['utm_medium', a.utmMedium],
     ['utm_campaign', a.utmCampaign],
     ['utm_content', a.utmContent],
     ['utm_term', a.utmTerm],
-    ['fbclid', a.fbclid],
-    ['external_id', getOrCreateExternalId()],
   ];
-  const out: Record<string, string> = {};
-  for (const [k, v] of pairs) if (v) out[`metadata[${k}]`] = v.slice(0, 200);
-  return out;
+  for (const [k, v] of utm) if (v) p.set(k, v.slice(0, 200));
+  return `${CALENDLY_URL}?${p.toString()}`;
 }
 
 export default function BookACallPage() {
-  const [state, setState] = useState<'loading' | 'ready' | 'failed'>(
-    CAL_LINK ? 'loading' : 'failed',
-  );
+  const [state, setState] = useState<'loading' | 'ready' | 'failed'>('loading');
+  const box = useRef<HTMLDivElement>(null);
   const booted = useRef(false);
   const viewed = useRef(false);
 
@@ -121,12 +41,11 @@ export default function BookACallPage() {
   }, []);
 
   useEffect(() => {
-    if (!CAL_LINK) return;
     let cancelled = false;
     const started = Date.now();
     const poll = window.setInterval(() => {
       if (cancelled) return;
-      if (document.querySelector('#sm-cal iframe')) {
+      if (box.current?.querySelector('iframe')) {
         setState('ready');
         window.clearInterval(poll);
       } else if (Date.now() - started > 9000) {
@@ -135,52 +54,41 @@ export default function BookACallPage() {
       }
     }, 300);
 
-    // StrictMode runs this effect twice; a second `inline` would mount a second embed.
-    if (booted.current) {
-      return () => {
-        cancelled = true;
-        window.clearInterval(poll);
+    let handedOff = false;
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin !== 'https://calendly.com') return;
+      const data = e.data as { event?: string; payload?: { invitee?: { uri?: string } } };
+      if (data?.event !== 'calendly.event_scheduled' || handedOff) return;
+      handedOff = true;
+      const uid = data.payload?.invitee?.uri?.split('/').pop() ?? '';
+      trackSchedule(uid, {});
+      window.location.href = `${THANK_YOU_HREF}?booked=1`;
+    };
+    window.addEventListener('message', onMessage);
+
+    // StrictMode runs this effect twice; a second init would mount a second widget.
+    if (!booted.current) {
+      booted.current = true;
+      const init = () => {
+        const api = (window as unknown as { Calendly?: CalendlyApi }).Calendly;
+        if (api && box.current) api.initInlineWidget({ url: calendlyUrl(), parentElement: box.current });
       };
-    }
-    booted.current = true;
-
-    try {
-      const Cal = loadCal(`${CAL_ORIGIN}/embed/embed.js`);
-      Cal('init', CAL_NAMESPACE, { origin: CAL_ORIGIN });
-      const ns = Cal.ns![CAL_NAMESPACE];
-
-      ns('inline', {
-        elementOrSelector: '#sm-cal',
-        calLink: CAL_LINK,
-        config: { layout: 'month_view', useSlotsViewOnSmallScreen: 'true', ...calMetadata() },
-      });
-
-      ns('ui', {
-        cssVarsPerTheme: { light: { 'cal-brand': '#1054C2' }, dark: { 'cal-brand': '#1054C2' } },
-        theme: 'light',
-        hideEventTypeDetails: false,
-        layout: 'month_view',
-      });
-
-      let handedOff = false;
-      ns('on', {
-        action: 'bookingSuccessful',
-        callback: (e: unknown) => {
-          if (handedOff) return;
-          handedOff = true;
-          const b = readBooking(e);
-          trackSchedule(b.uid, { email: b.email, firstName: b.firstName, lastName: b.lastName });
-          window.location.href = `${THANK_YOU_HREF}?booked=1`;
-        },
-      });
-    } catch {
-      if (!cancelled) setState('failed');
-      window.clearInterval(poll);
+      if ((window as unknown as { Calendly?: CalendlyApi }).Calendly) {
+        init();
+      } else {
+        const s = document.createElement('script');
+        s.src = WIDGET_SRC;
+        s.async = true;
+        s.onload = init;
+        s.onerror = () => !cancelled && setState('failed');
+        document.head.appendChild(s);
+      }
     }
 
     return () => {
       cancelled = true;
       window.clearInterval(poll);
+      window.removeEventListener('message', onMessage);
     };
   }, []);
 
@@ -207,39 +115,28 @@ export default function BookACallPage() {
 
         <div
           id="calendar"
-          className="relative left-1/2 mt-10 w-[min(1040px,calc(100vw-32px))] -translate-x-1/2 rounded-2xl border border-line bg-white p-2 shadow-[0_4px_24px_-8px_rgba(0,32,98,0.10)] sm:p-4"
+          className="relative left-1/2 mt-10 w-[min(1040px,calc(100vw-32px))] -translate-x-1/2 rounded-2xl border border-line bg-white p-2 sm:p-4"
         >
-          {!CAL_LINK ? (
-            <div className="flex min-h-[420px] items-center justify-center rounded-xl border-2 border-dashed border-[#C15151] bg-[#FFEDED] p-6 text-center text-[14px] font-semibold text-[#C15151]">
-              [TODO] Booking calendar not connected. Set NEXT_PUBLIC_CAL_LINK to the Cal.com event
-              (for example team-name/pain-assessment).
-            </div>
-          ) : (
-            <>
-              {state !== 'ready' && (
-                <p
-                  className={`px-4 pt-6 text-center text-[14px] ${state === 'failed' ? 'font-semibold text-[#C15151]' : 'text-ink-soft'}`}
-                >
-                  {state === 'failed'
-                    ? 'The calendar could not load here. Use the direct link below and your booking will work exactly the same.'
-                    : 'Loading the calendar.'}
-                </p>
-              )}
-              <div id="sm-cal" className={state === 'ready' ? '' : 'min-h-[520px]'} />
-            </>
+          {state !== 'ready' && (
+            <p
+              className={`px-4 pt-6 text-center text-[14px] ${state === 'failed' ? 'font-semibold text-[#C15151]' : 'text-ink-soft'}`}
+            >
+              {state === 'failed'
+                ? 'The calendar could not load here. Use the direct link below and your booking will work exactly the same.'
+                : 'Loading the calendar.'}
+            </p>
           )}
+          <div ref={box} style={{ minWidth: 320, height: 700 }} />
         </div>
 
         <div className="mx-auto mt-5 max-w-[760px] text-center text-[14px] text-ink-soft">
-          {CAL_URL && (
-            <p>
-              Calendar not showing?{' '}
-              <a href={CAL_URL} target="_blank" rel="noopener noreferrer" className="font-semibold text-brand underline">
-                Open the booking page directly
-              </a>
-              .
-            </p>
-          )}
+          <p>
+            Calendar not showing?{' '}
+            <a href={CALENDLY_URL} target="_blank" rel="noopener noreferrer" className="font-semibold text-brand underline">
+              Open the booking page directly
+            </a>
+            .
+          </p>
           <p className="mt-2">
             Can&rsquo;t find a time that works? Email{' '}
             <a href={`mailto:${CONTACT_EMAIL}`} className="font-semibold text-brand underline">

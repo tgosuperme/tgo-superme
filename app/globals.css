@@ -365,3 +365,70 @@ button {
     transform: none;
   }
 }
+
+/* ── fitjam.in forms, on white ───────────────────────────────────────────── */
+
+.sm-cta {
+  box-shadow: none;
+}
+.sm-cta:hover {
+  transform: none;
+}
+
+/* Hero coach photo: a circle inside a thin brand ring. */
+.fj-ring {
+  width: 260px;
+  height: 260px;
+  padding: 8px;
+  border: 1.5px solid #1054c2;
+  border-radius: 50%;
+}
+.fj-ring-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: top;
+  background: #e8f3fc;
+}
+
+/* Flat white card with a thin border. */
+.fj-card {
+  background: #ffffff;
+  border: 1px solid #dce9f9;
+  border-radius: 12px;
+}
+
+.fj-quote {
+  margin: 0;
+  padding-left: 18px;
+  border-left: 3px solid #1054c2;
+  font-size: 18px;
+  font-weight: 700;
+  font-style: italic;
+  line-height: 1.6;
+  color: #002062;
+}
+
+/* Three steps: columns split by thin rules, a boxed number on top. */
+.fj-step + .fj-step {
+  border-top: 1px solid #dce9f9;
+}
+@media (min-width: 768px) {
+  .fj-step + .fj-step {
+    border-top: 0;
+    border-left: 1px solid #dce9f9;
+  }
+}
+.fj-step-num {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1.5px solid #1054c2;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #1054c2;
+}

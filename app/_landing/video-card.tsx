@@ -4,63 +4,61 @@ import { Play } from '@phosphor-icons/react';
 import Image from 'next/image';
 import { useState } from 'react';
 
-import { MediaPlaceholder } from './shared';
+import { asset } from './asset-version';
 
 export type VideoTestimonial = {
-  /** /public path of the clip's still frame. */
-  poster?: string;
-  /** /public path or URL of the clip. */
-  src?: string;
-  name?: string;
-  meta?: string;
+  vimeoId: string;
+  /** /public path of the clip's 9:16 still frame. */
+  poster: string;
 };
 
-/* A still until clicked: only the chosen card ever becomes a real <video>. */
+/* title/byline/portrait off strip the uploader chrome from the player. */
+function vimeoSrc(id: string) {
+  const p = new URLSearchParams({
+    dnt: '1',
+    title: '0',
+    byline: '0',
+    portrait: '0',
+    badge: '0',
+    playsinline: '1',
+    autoplay: '1',
+  });
+  return `https://player.vimeo.com/video/${id}?${p.toString()}`;
+}
+
+/* A still until clicked: only the chosen card ever loads a Vimeo player. */
 export default function VideoCard({ item }: { item: VideoTestimonial }) {
   const [playing, setPlaying] = useState(false);
 
-  if (!item.src || !item.poster) {
-    return (
-      <MediaPlaceholder
-        ratio="9 / 16"
-        label="Video testimonial: a client on camera, 9:16 portrait"
-        className="w-full"
-      />
-    );
-  }
-
   return (
-    <figure className="w-full">
-      <div className="relative w-full overflow-hidden rounded-xl bg-brand-light" style={{ aspectRatio: '9 / 16' }}>
-        {playing ? (
-          <video
-            src={item.src}
-            poster={item.poster}
-            controls
-            autoPlay
-            playsInline
-            className="absolute inset-0 h-full w-full object-cover"
+    <div className="relative w-full overflow-hidden rounded-lg" style={{ aspectRatio: '9 / 16' }}>
+      {playing ? (
+        <iframe
+          src={vimeoSrc(item.vimeoId)}
+          title="Client video testimonial"
+          allow="autoplay; fullscreen; picture-in-picture"
+          allowFullScreen
+          className="absolute inset-0 h-full w-full border-0"
+        />
+      ) : (
+        <button
+          type="button"
+          onClick={() => setPlaying(true)}
+          className="sm-video-poster absolute inset-0 h-full w-full"
+          aria-label="Play client video testimonial"
+        >
+          <Image
+            src={asset(item.poster)}
+            alt=""
+            fill
+            sizes="(min-width: 1024px) 240px, (min-width: 768px) 30vw, (min-width: 640px) 45vw, 360px"
+            className="object-cover"
           />
-        ) : (
-          <button
-            type="button"
-            onClick={() => setPlaying(true)}
-            className="sm-video-poster absolute inset-0 h-full w-full"
-            aria-label={item.name ? `Play ${item.name}'s video` : 'Play video testimonial'}
-          >
-            <Image src={item.poster} alt="" fill sizes="(min-width: 768px) 300px, 70vw" className="object-cover" />
-            <span className="sm-play" aria-hidden>
-              <Play weight="fill" />
-            </span>
-          </button>
-        )}
-      </div>
-      {(item.name || item.meta) && (
-        <figcaption className="mt-3 text-center">
-          {item.name && <span className="block text-[15px] font-bold text-ink">{item.name}</span>}
-          {item.meta && <span className="block text-[13px] text-ink-soft">{item.meta}</span>}
-        </figcaption>
+          <span className="sm-play" aria-hidden>
+            <Play weight="fill" />
+          </span>
+        </button>
       )}
-    </figure>
+    </div>
   );
 }
