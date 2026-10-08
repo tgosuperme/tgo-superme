@@ -7,12 +7,14 @@ import crypto from 'crypto';
  * category applies): custom_data carries NOTHING descriptive, no content_name,
  * no product string, no UTM, no fbclid, and event_source_url is cut to the
  * origin here rather than trusted from the browser. user_data stays maximal:
- * it is hashed and says nothing about the offer. Event names stay standard.
+ * it is hashed and says nothing about the offer.
  */
 
 /** Meta's standard events. A free call funnel has no payment, so no Purchase. */
-export type StandardEvent = 'ViewContent' | 'Schedule';
-export type SendableEvent = StandardEvent;
+export type StandardEvent = 'ViewContent';
+/** The two conversions go as custom events: the form submit and the booked call. */
+export type CustomEvent = 'registration_completed' | 'call_booked';
+export type SendableEvent = StandardEvent | CustomEvent;
 
 /** Which funnel step a ViewContent belongs to. Feeds the event id only, never Meta. */
 export type FunnelStage = 'landing' | 'booking';
@@ -54,6 +56,11 @@ function hashName(v: string) {
   const s = v.trim().toLowerCase();
   return s ? sha256Hex(s) : undefined;
 }
+/* Meta's city format: lowercase, letters only, no spaces or punctuation. */
+function hashCity(v: string) {
+  const s = v.toLowerCase().replace(/[^a-z]/g, '');
+  return s ? sha256Hex(s) : undefined;
+}
 function hashCountry(v: string) {
   const s = v.trim().toLowerCase();
   return s ? sha256Hex(s) : undefined;
@@ -64,6 +71,7 @@ export type UserSignals = {
   phone?: string;
   firstName?: string;
   lastName?: string;
+  city?: string;
   country?: string;
   externalId?: string;
   fbc?: string;
@@ -77,12 +85,14 @@ function buildUserData(u: UserSignals) {
   const ph = u.phone ? hashPhone(u.phone) : undefined;
   const fn = u.firstName ? hashName(u.firstName) : undefined;
   const ln = u.lastName ? hashName(u.lastName) : undefined;
+  const ct = u.city ? hashCity(u.city) : undefined;
   const country = u.country ? hashCountry(u.country) : undefined;
   return {
     ...(em && { em: [em] }),
     ...(ph && { ph: [ph] }),
     ...(fn && { fn: [fn] }),
     ...(ln && { ln: [ln] }),
+    ...(ct && { ct: [ct] }),
     ...(country && { country: [country] }),
     ...(u.externalId && { external_id: [sha256Hex(u.externalId)] }),
     ...(u.fbc && { fbc: u.fbc }),

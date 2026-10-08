@@ -1,7 +1,6 @@
-import { ArrowRight } from '@phosphor-icons/react/dist/ssr';
-import Link from 'next/link';
+import BookCTA from './book-cta';
 
-import { BOOK_HREF } from '@/lib/site';
+export { BookCTA };
 
 export type Parts = readonly [string, string, string];
 
@@ -59,14 +58,6 @@ export function SectionHeading({
   );
 }
 
-export function BookCTA({ label, className = '' }: { label: string; className?: string }) {
-  return (
-    <Link href={BOOK_HREF} className={`sm-cta ${className}`}>
-      <span>{label}</span>
-      <ArrowRight weight="bold" aria-hidden className="sm-cta-arrow" />
-    </Link>
-  );
-}
 
 export function CtaBlock({ label, note }: { label: string; note?: string }) {
   return (

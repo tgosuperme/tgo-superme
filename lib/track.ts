@@ -1,7 +1,7 @@
 'use client';
 
 import { collectSignals } from '@/lib/client-signals';
-import { ga4GenerateLead, ga4ViewItem, once } from '@/lib/ga4';
+import { ga4Event, ga4ViewItem, once } from '@/lib/ga4';
 import type { FunnelStage, SendableEvent } from '@/lib/meta-capi';
 
 type Person = {
@@ -43,10 +43,15 @@ export function trackBookingView() {
   });
 }
 
-/** The call is booked. Keyed on Cal's booking uid so a back-navigation cannot count it twice. */
-export function trackSchedule(bookingUid: string, person: Person) {
-  once(`schedule_${bookingUid || 'anon'}`, () => {
-    capi('Schedule', { bookingUid, ...person });
-    ga4GenerateLead();
+/** Details form submitted. Meta gets this one server side from /api/lead. */
+export function trackRegistration() {
+  ga4Event('registration_completed');
+}
+
+/** The call is booked. Keyed on Calendly's invitee uid so a back-navigation cannot count it twice. */
+export function trackCallBooked(bookingUid: string, person: Person) {
+  once(`booked_${bookingUid || 'anon'}`, () => {
+    capi('call_booked', { bookingUid, ...person });
+    ga4Event('call_booked');
   });
 }

@@ -10,11 +10,10 @@ import {
 import { readClientIp, readClientUserAgent, readRequestCookie } from '@/lib/request-signals';
 import { SITE_URL } from '@/lib/site';
 
-/* Schedule is accepted from the browser because Cal's in-page callback is the
+/* call_booked is accepted from the browser because Calendly's postMessage is the
    only booking signal this build has. It carries no value, so a forged one can
-   inflate a count but never a revenue number. If Cal webhooks are wired to a
-   server route later, move Schedule there and drop it from this list. */
-const ALLOWED: SendableEvent[] = ['ViewContent', 'Schedule'];
+   inflate a count but never a revenue number. */
+const ALLOWED: SendableEvent[] = ['ViewContent', 'call_booked'];
 const STAGES: FunnelStage[] = ['landing', 'booking'];
 
 const str = (v: unknown, max = 300) => (typeof v === 'string' ? v.trim().slice(0, max) : '');

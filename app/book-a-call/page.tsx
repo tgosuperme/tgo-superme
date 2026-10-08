@@ -6,8 +6,9 @@ import BrandMark from '@/components/BrandMark';
 import SiteFooter from '@/components/SiteFooter';
 import { readAttribution } from '@/lib/attribution';
 import { CALENDLY_URL, CALL_FIRST_STEP, CALL_PURPOSE } from '@/lib/call';
+import { readLead } from '@/lib/lead';
 import { CONTACT_EMAIL, THANK_YOU_HREF } from '@/lib/site';
-import { trackBookingView, trackSchedule } from '@/lib/track';
+import { trackBookingView, trackCallBooked } from '@/lib/track';
 
 const WIDGET_SRC = 'https://assets.calendly.com/assets/external/widget.js';
 
@@ -25,6 +26,11 @@ function calendlyUrl(): string {
     ['utm_term', a.utmTerm],
   ];
   for (const [k, v] of utm) if (v) p.set(k, v.slice(0, 200));
+  const lead = readLead();
+  if (lead) {
+    p.set('name', `${lead.firstName} ${lead.lastName}`.trim());
+    p.set('email', lead.email);
+  }
   return `${CALENDLY_URL}?${p.toString()}`;
 }
 
@@ -61,7 +67,7 @@ export default function BookACallPage() {
       if (data?.event !== 'calendly.event_scheduled' || handedOff) return;
       handedOff = true;
       const uid = data.payload?.invitee?.uri?.split('/').pop() ?? '';
-      trackSchedule(uid, {});
+      trackCallBooked(uid, readLead() ?? {});
       window.location.href = `${THANK_YOU_HREF}?booked=1`;
     };
     window.addEventListener('message', onMessage);

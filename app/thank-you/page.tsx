@@ -36,7 +36,7 @@ function Tick({ className = 'h-3 w-3' }: { className?: string }) {
 }
 
 /* Reached only by booking, so it carries no booking CTA and fires no event:
-   the Schedule was reported on the booking page. */
+   call_booked was reported on the booking page. */
 export default function ThankYouPage() {
   return (
     <main className="min-h-screen bg-white font-body text-ink">

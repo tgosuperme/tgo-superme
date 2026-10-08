@@ -432,3 +432,32 @@ button {
   font-weight: 800;
   color: #1054c2;
 }
+
+/* Pre-booking details form. 16px stops iOS zooming into the field on focus. */
+.sm-input {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 1px solid #c3dcf5;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #002062;
+  font: inherit;
+  font-size: 16px;
+}
+.sm-input:focus {
+  outline: 2px solid #1054c2;
+  outline-offset: 0;
+  border-color: #1054c2;
+}
+/* Phone row: fixed-width country code, the number field takes the rest. */
+.sm-phone-row select.sm-input {
+  flex: 0 0 168px;
+  width: 168px;
+}
+.sm-phone-row input.sm-input {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+}
