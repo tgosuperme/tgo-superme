@@ -106,17 +106,13 @@ function Team() {
       <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)] lg:gap-14">
         <figure className="mx-auto w-full max-w-[380px] lg:mx-0">
           <Image
-            src={asset('/atul/atul-seated.jpg')}
-            alt="Atul Mishra, Head Coach at SuperMe"
-            width={760}
-            height={950}
+            src={asset('/atul/behind-the-inner-brace-method.webp')}
+            alt="The team behind the Inner Brace Method: Sriram Natarajan, Atul Mishra and Stéphane Bezençon"
+            width={1672}
+            height={941}
             sizes="(min-width: 1024px) 380px, 90vw"
             className="block h-auto w-full rounded-lg"
           />
-          <figcaption className="mt-4">
-            <span className="block text-[17px] font-bold text-ink">Atul Mishra</span>
-            <span className="text-[14px] text-ink-soft">Head Coach at SuperMe</span>
-          </figcaption>
         </figure>
 
         <div>
