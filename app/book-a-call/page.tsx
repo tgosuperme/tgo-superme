@@ -31,7 +31,11 @@ function calendlyUrl(): string {
     p.set('name', `${lead.firstName} ${lead.lastName}`.trim());
     p.set('email', lead.email);
   }
-  return `${CALENDLY_URL}?${p.toString()}`;
+  /* `?` only when the configured URL does not already carry one. Calendly's
+     own share links often come with a query string attached, and now that the
+     URL is pasted into Vercel by hand rather than typed here, appending a
+     second `?` is a realistic way to break the widget. */
+  return `${CALENDLY_URL}${CALENDLY_URL.includes('?') ? '&' : '?'}${p.toString()}`;
 }
 
 export default function BookACallPage() {

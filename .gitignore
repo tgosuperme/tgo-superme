@@ -26,10 +26,15 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# local env files — never commit secrets
-.env
-.env.local
-.env*.local
+# local env files — never commit secrets.
+#
+# `.env*`, not a hand-listed few. The named patterns missed every variant that
+# actually exists in this working tree — .env.india (a Meta CAPI token and a
+# Razorpay webhook secret), .env_uk_paid (a LIVE Stripe key), .env.final — all
+# of which sat untracked and one `git add -A` from being in the history
+# permanently. Verified never committed; the pattern is widened so it stays
+# that way.
+.env*
 # the dotless typo. Next.js does not load it, so it is easy to create by
 # mistake and not notice — and the patterns above do not catch it.
 env.local
